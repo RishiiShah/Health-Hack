@@ -43,3 +43,65 @@
 13. `node --test` tests for the pure helpers (countdown, mapping cells to their status) → check: `npm test` passes.
 
 **Out of scope:** charting libraries, editing eligibility rules, and sending real SMS or push notifications.
+
+## Response shapes these screens need (proposal for the backend owner)
+
+The screens render these fields as-is and compute no rules. Every timestamp is ISO 8601 with an offset. Names and display text come from the server; the client never builds them from IDs. A section the server can't compute yet returns `supported: false` and the screen says so. Errors use FastAPI's `{"detail": "..."}`, shown to the user verbatim.
+
+### Added to `GET /snapshot`
+
+```jsonc
+"coverage": {                       // G13
+  "supported": true,
+  "steps": ["2026-03-17T22:20:00+00:00", "...7 steps: now, then +15 to +90 min"],
+  "assumption": "Current surge uplift (+1) carried across the horizon",   // or null
+  "hospitals": [{
+    "hospital_id": "…", "hospital_name": "…",
+    "nobody_reachable_now": false,
+    "cells": [{
+      "at": "…", "count": 1, "required": 2,              // null when unknown
+      "status": "gap | at_minimum | above_minimum | unknown",
+      "unverified": false, "schedule_incomplete": true,
+      "physician_ids": ["…"], "incomplete_physician_ids": ["…"],
+      "gap_id": "…"                                       // set when status is gap
+    }]
+  }]
+},
+"demand": {                         // G12
+  "supported": true,
+  "items": [{ "hospital_id": "…", "hospital_name": "…", "trailing_60m": 5, "p90": 1, "status": "surge | normal | unknown" }]
+},
+"workload": {                       // G8, G8b, G10, sorted by the server
+  "supported": true,
+  "items": [{ "physician_id": "…", "name": "…", "consults": 14, "calls": 17, "open_consults": 3,
+              "shift_end": "…", "minutes_to_shift_end": 40,
+              "overload": "Critical | Warning | null", "shift_end_risk": "Critical | Warning | null",
+              "open_notes": 2, "reason": "…" }]
+},
+"data_quality": {                   // G1 to G4
+  "supported": true,
+  "events_read": 1164, "accepted": 1163, "duplicates": 1, "duplicate_ids": ["…"], "conflicts": 0,
+  "reordered": 23, "late": 1, "max_reorder_lag_s": 355, "max_delivery_lag_s": 405,
+  "rejected": 0, "pending_orphans": 0, "expired_orphans": 0
+},
+"dataset": { "name": "…", "description": "…", "reference_files": 7 },
+"pending_approvals": 1
+```
+
+### Gaps, offers and audit
+
+| Route | Returns |
+|---|---|
+| `GET /gaps/{gap_id}/candidates` | `{gap, revision, rules: [{id: "R1", label}], candidates: [{physician_id, name, eligible, rank, primary_reason, results: [{rule, status: "pass \| fail \| unknown", explanation}], ranking: {gap_hospitals, minutes_to_online, declines_30d, hours_7d}}]}`, sorted by the server |
+| `GET /gaps/{gap_id}/trap-check` | `{gap_id, physician_id, passed, reasons: [string], seed_consults, limited_to: [{hospital_id, hospital_name}], steps: [iso], without: [{count, required}], with: [{count, required}], joiner_load, busiest_peer_load, other_gaps_worsened, assumption}` |
+| `POST /offers` `{gap_id, physician_id, start, end}` | `Offer` (state Proposed), or 4xx with the rule that failed |
+| `GET /offers` | `{items: Offer[]}` |
+| `POST /offers/{id}/approve`, `POST /offers/{id}/reject {reason}` | `Offer`; 403 for a non-lead token |
+| `GET /interventions?state=pending` | `{items: [{intervention_id, kind, item_id, reason, created_at}]}` (escalations for the approval queue) |
+| `GET /audit?gap_id=` | `{items: [{at, actor, action, detail}]}`, oldest first |
+| `POST /events/csv` (body `text/csv`) | the same report as `POST /events` |
+| `POST /admin/reset`, `POST /admin/clock {mode, at?, advance_s?, paused?}` | `{revision}` / the snapshot `clock` |
+
+`gap` is `{gap_id, hospital_ids, hospital_names, start, end, required, count, summary}`, where `summary` is the server's plain-language reason (for example the trailing count against the usual peak, and who leaves at the shift change).
+
+`Offer` is `{offer_id, gap_id, physician_id, physician_name, hospital_names, start, end, state, checked_count, proposed_by, proposed_at, approved_by, approved_at, sent_at, expires_at, responded_at, message, audio_url, phone_url, reject_reason}`. `message` is the exact text sent (hospital, hours and start only); `audio_url` is null when ElevenLabs is unavailable.
