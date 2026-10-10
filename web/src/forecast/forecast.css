@@ -1,0 +1,35 @@
+.coverage table { width: 100%; border-collapse: separate; border-spacing: 4px; }
+.coverage th { font: 500 12px var(--font-mono); color: var(--muted); text-align: center; padding: 0 0 4px; }
+.coverage th.hosp { text-align: left; font: 500 12px var(--font-body); }
+.coverage th.hot { color: var(--ink); font-weight: 700; }
+.coverage td.name { font-size: 14px; font-weight: 500; white-space: nowrap; padding-right: 8px; }
+.coverage .bang { color: var(--red); font-weight: 700; margin-left: 2px; }
+.coverage td.cell { padding: 0; }
+.coverage td.cell button {
+  width: 100%; min-width: 52px; height: 30px; border: 1px solid transparent; border-radius: 5px;
+  font: 13px var(--font-mono); cursor: pointer; background: var(--surface-sunk); color: var(--ink-2);
+}
+.coverage .above { background: var(--green-soft); color: var(--green); }
+.coverage .at { background: var(--surface-sunk); }
+.coverage .gap { background: var(--red-soft); color: var(--red); }
+.coverage .maybe { background: var(--amber-soft); color: var(--amber); border: 1px dashed var(--amber-line) !important; }
+.coverage .unknown { background: transparent; border: 1px dashed var(--line) !important; color: var(--muted); }
+.coverage .unverified::after { content: "°"; margin-left: 1px; }
+.coverage button[aria-pressed="true"] { outline: 2px solid var(--teal); outline-offset: 1px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.legend .above::before { background: var(--green-soft); }
+.legend .at::before { background: var(--surface-sunk); }
+.legend .gap::before { background: var(--red-soft); }
+.legend .maybe::before { background: var(--amber-soft); border: 1px dashed var(--amber-line); }
+.legend .bang::before { display: none; }
+
+.cell-detail { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--bg); font-size: 14px; display: flex; gap: 16px; align-items: center; justify-content: space-between; }
+.cell-detail p { margin: 0; }
+
+.rows { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rows th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 0 8px 8px 0; }
+.rows td { padding: 10px 8px 10px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.rows .num { font-family: var(--font-mono); text-align: right; }
+.rows .reason { color: var(--ink-2); font-size: 13px; }

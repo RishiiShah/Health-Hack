@@ -4,3 +4,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 backend/.venv/
+.env
+web/node_modules/
+web/dist/
