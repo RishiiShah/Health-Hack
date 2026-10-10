@@ -6,6 +6,9 @@ DESCRIPTION = {
     ("incoming_call_ended", "Call ends; phone-only consult (outside treatment window)"): (None, "phone_complete"),
     ("incoming_call_ended", "Call ends"): (None, "continue"),
     ("outgoing_call_ended", "Call ends"): (None, "continue"),
+    # Scenario-pack wording for the same events.
+    ("incoming_call_ended", "Clinical phone-only consultation completed; note not started"): (None, "phone_complete"),
+    ("outgoing_call_ended", "Hospital follow-up call ends"): (None, "continue"),
     ("routing_attempt_failed", "No available credentialed provider; retry scheduled"): (None, "retry_in_5m"),
 }
 STATUS = {"Self-reported status: Available": "Available", "Self-reported status: In Meeting": "In Meeting", "Self-reported status: Temporarily Unavailable": "Temporarily Unavailable"}
