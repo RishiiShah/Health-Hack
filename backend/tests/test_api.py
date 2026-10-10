@@ -270,3 +270,30 @@ def test_password_accounts_reach_the_same_routes(db_url):
         assert client.get("/snapshot", headers=as_doc).status_code == 403
         assert client.post("/offers", json={"gap_id": "x", "physician_id": pid, "start": "2026-03-17T23:00:00Z", "end": "2026-03-18T01:00:00Z"},
                            headers=as_lead).status_code == 403  # only a coordinator proposes
+
+
+def test_judge_file_on_the_original_kit_updates_without_restart(db_url):
+    """Chapter 4: one CSV in event_stream format, new wording included, dropped into the running tool."""
+    from datetime import date
+    from pathlib import Path
+    kit = Path(__file__).resolve().parents[2] / "data"
+    if not (kit / "event_stream.csv").exists():
+        pytest.skip("source data is gitignored")
+    api = create_app(db_url, FixedClock(datetime.fromisoformat("2026-03-17T18:20:00-04:00")), auth=TEST_AUTH,
+                     references=load_references(kit, date(2026, 3, 17)), speech=FakeSpeech(), sweep_s=0)
+    judge = (b"event_id,event_time,ingested_at,consult_id,event_type,physician_id,hospital_id,description\n"
+             b"EVT-J001,2026-03-17T18:21:00-04:00,2026-03-17T18:21:02-04:00,CON-J01,consult_received,,SYN-005,Acute stroke consult requested\n"
+             b"EVT-J002,2026-03-17T18:21:40-04:00,2026-03-17T18:21:41-04:00,CON-J01,consult_triaged,,SYN-005,Consult triaged\n"
+             b"EVT-J001,2026-03-17T18:21:00-04:00,2026-03-17T18:21:02-04:00,CON-J01,consult_received,,SYN-005,Acute stroke consult requested\n"
+             b"EVT-J003,2026-03-17T18:30:00-04:00,2026-03-17T18:30:01-04:00,CON-J01,consult_received,,SYN-005,Stroke consult request received\n")
+    with TestClient(api) as client:
+        base = post_csv(client, raw_rows(kit, "event_stream.csv"))
+        assert (base["accepted"], base["duplicates"], base["reordered"], base["late"]) == (1163, 1, 23, 1)
+        r = client.post("/events/csv", params={"advance_clock": "true"}, content=judge, headers={**ADMIN, "Content-Type": "text/csv"}).json()
+        assert (r["accepted"], r["duplicates"], r["quarantined"], r["pending_future"]) == (3, 1, [], 0)
+        assert r["clock_advanced_to"] == r["latest_event_time"] == datetime.fromisoformat("2026-03-17T18:30:00-04:00").astimezone(timezone.utc).isoformat()
+        snap = client.get("/snapshot", headers=COORD).json()
+        new = next(c for c in snap["consults"] if c["consult_id"] == "CON-J01")
+        assert (new["consult_type"], new["repeat_contacts"], new["minutes_since_received"]) == ("Stroke", 1, 9)  # one patient, first clock
+        assert any("CON-J01" in (i["where"].get("consult_id") or "") for i in snap["queue"]["items"] if i["severity"] == "Critical")
+        assert next(s for s in snap["forecast"]["surges"] if s["hospital_id"] == "SYN-005")["count"] == 6  # repeat call is not new demand

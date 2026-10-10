@@ -217,12 +217,30 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         return report
 
     @api.post("/events/csv")
-    async def ingest_csv(request: Request, who: Principal = need("admin.inject")):
-        """The judges' file: same columns as event_stream.csv, appended without restart [H ch4]."""
+    async def ingest_csv(request: Request, advance_clock: bool = False, who: Principal = need("admin.inject")):
+        """The judges' file: same columns as event_stream.csv, appended without restart [H ch4].
+        Events after the clock stay pending (`pending_future`) until it reaches them; `advance_clock=true` moves the
+        simulated clock forward to the file's latest event so everything in it is visible at once (never backwards)."""
         text = (await request.body()).decode("utf-8-sig")
         rows = list(csv.DictReader(io.StringIO(text)))
         if len(rows) > settings.max_batch_rows: raise HTTPException(413, "batch exceeds configured row limit")
-        return await run_in_threadpool(request.app.state.coordinator.ingest_raw, rows, FIXTURE_VERSION)
+        report = await run_in_threadpool(request.app.state.coordinator.ingest_raw, rows, FIXTURE_VERSION)
+        times = []
+        for row in rows:
+            try:
+                times.append(utc(datetime.fromisoformat(row["event_time"])))
+            except (KeyError, TypeError, ValueError):
+                continue  # already quarantined by ingest
+        latest = max(times, default=None)
+        report["latest_event_time"] = latest.isoformat() if latest else None
+        clock = request.app.state.clock
+        if advance_clock and latest and latest > clock.now():
+            moved = FixedClock(latest) if clock.mode == "fixed" else AnchoredClock(latest)
+            request.app.state.coordinator.set_clock(moved)
+            request.app.state.clock = moved
+            report["clock_advanced_to"] = latest.isoformat()
+            report["pending_future"] = 0
+        return report
 
     # ---- snapshot ----------------------------------------------------------------------------------------
     def snapshot_bytes(app) -> bytes:
