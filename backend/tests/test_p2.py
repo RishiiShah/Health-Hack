@@ -349,3 +349,47 @@ def test_late_session_start_repairs_prior_unmatched_end_by_replay():
     assert not c.flags and c.stage == "Note Pending" and c.note_pending_since == at(3)
     p = coord.published.state.physicians["P1"]
     assert not p.calls and p.call_starts == (at(1),) and p.last_call_end == at(3)
+
+
+@pytest.mark.parametrize("service_date", [date(2026, 4, 7), date(2026, 11, 2)])
+def test_independent_day_and_id_prefix_are_not_bound_to_original_fixture(service_date):
+    start = datetime.combine(service_date, datetime.min.time(), tzinfo=timezone.utc) + timedelta(hours=12)
+    reference = Refs({"H-T0001": Hospital("Practice Hospital", "America/New_York")},
+                     {"PHY-T0001": Physician("Practice Physician", (Shift(start, start + timedelta(hours=1)),))},
+                     {"PHY-T0001": frozenset({"H-T0001"})})
+    coord = MutationCoordinator(EventDatabase(":memory:"), FixedClock(start + timedelta(minutes=10)), refs=reference)
+    events = []
+    for i, (kind, value) in enumerate((("consult_received", None), ("physician_assigned", None),
+                                       ("incoming_call_started", None), ("incoming_call_ended", "phone_complete"))):
+        events.append({"event_id": f"EVT-T{i + 1:04d}", "event_time": (start + timedelta(minutes=i)).isoformat(),
+                       "event_type": kind, "consult_id": "CON-T0001", "hospital_id": "H-T0001", "consult_type": "Stroke",
+                       "physician_id": "PHY-T0001" if i else None, "value": value})
+    report = coord.ingest_raw(events)
+    assert report["accepted"] == 4 and not report["held_orphans"] and not report["quarantined"]
+    bundle = coord.current_publication()
+    c = bundle.state.consults["CON-T0001"]
+    assert c.stage == "Note Pending" and c.note_pending_since == start + timedelta(minutes=3)
+    view = physician_view(bundle.state, bundle.refs, "PHY-T0001", bundle.as_of)
+    assert (view.consults_this_shift, view.calls_this_shift, view.open_consults) == (1, 1, 1)
+    assert eligible_for_hospital(view, "H-T0001")
+
+
+def test_march17_judging_extension_appends_without_reset_and_respects_clock():
+    clock = FixedClock(at(10))
+    coord = MutationCoordinator(EventDatabase(":memory:"), clock, refs=refs())
+    coord.ingest([row("base-receipt"), row("base-assignment", "physician_assigned", 1, pid="P1")])
+    old_consult = coord.published.state.consults["C"]
+    extension = [row("EVT-J0001", minute=10, cid="CON-J0001"),
+                 row("EVT-J0002", "physician_assigned", 11, "CON-J0001", "P2"),
+                 row("EVT-J0003", "incoming_call_started", 12, "CON-J0001", "P2")]
+    report = coord.ingest(extension)
+    assert report["accepted"] == 3 and report["pending_future"] == 2
+    assert coord.published.state.consults["CON-J0001"].stage == "Received"
+    clock.value = at(14)
+    bundle = coord.current_publication()
+    assert bundle.event_count == 5 and bundle.state.consults["C"] == old_consult
+    assert bundle.state.consults["CON-J0001"].stage == "Provider Contacted"
+    view = physician_view(bundle.state, bundle.refs, "P2", bundle.as_of)
+    assert view.derived_state == "Hospital Call" and view.calls_this_shift == 1
+    assert coord.ingest(extension)["duplicates"] == 3
+    assert coord.current_publication().event_count == 5
