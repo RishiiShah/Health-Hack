@@ -78,6 +78,8 @@ def test_failed_commit_keeps_published_state_unchanged():
     except RuntimeError:
         pass
     assert coordinator.published is before
+    assert not coordinator.current_publication().state.consults
+    assert db.revision == before.revision
 
 def test_future_event_becomes_visible_when_simulation_clock_advances():
     class MutableClock:
@@ -169,3 +171,97 @@ def test_invalid_routing_retry_is_quarantined():
     report = coord.ingest([row])
     assert report["accepted"] == 0
     assert "routing failure requires retry_in_5m" in report["quarantined"][0]["reason"]
+
+
+def test_signed_off_consult_is_unchanged_by_later_events():
+    closed = (event("1", "consult_received", "2026-03-17T12:00:00", hospital_id="H", consult_type="Stroke"),
+              event("2", "physician_assigned", "2026-03-17T12:01:00", physician_id="P1"),
+              event("3", "note_signed", "2026-03-17T12:02:00", physician_id="P1"))
+    late_assignment = event("4", "physician_assigned", "2026-03-17T12:03:00", physician_id="P2")
+    assert replay(closed + (late_assignment,)) == replay(closed)
+
+
+@pytest.mark.parametrize("field", ["event_id", "consult_id", "physician_id", "hospital_id"])
+def test_api_rejects_blank_identifiers_without_mutation(field):
+    api = create_app(":memory:", FixedClock(t("2026-03-17T13:00:00")))
+    row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z",
+           "event_type": "consult_received", "consult_id": "C", "hospital_id": "H", "consult_type": "Stroke"}
+    row[field] = "   "
+    with TestClient(api) as client:
+        assert client.post("/events", json=row).status_code == 422
+        assert client.get("/ready").json()["event_count"] == 0
+
+
+def test_api_rejects_unknown_fields_instead_of_silently_ignoring_them():
+    api = create_app(":memory:", FixedClock(t("2026-03-17T13:00:00")))
+    row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z",
+           "event_type": "consult_received", "consult_id": "C", "hospital_id": "H",
+           "consult_type": "Stroke", "physican_id": "P1"}
+    with TestClient(api) as client:
+        assert client.post("/events", json=row).status_code == 422
+        assert client.get("/ready").json()["event_count"] == 0
+
+
+def test_clock_rewind_and_late_insert_rebuild_the_correct_visible_prefix():
+    db = EventDatabase(":memory:")
+    clock = FixedClock(t("2026-03-17T12:00:00"))
+    coord = MutationCoordinator(db, clock)
+    receipt = EventInput(event_id="r", event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id="C", hospital_id="H", consult_type="Stroke")
+    assigned = EventInput(event_id="a", event_time=t("2026-03-17T12:02:00"), event_type="physician_assigned", consult_id="C", physician_id="P1")
+    coord.ingest([assigned, receipt])
+    assert coord.current_publication().state.consults["C"].stage == "Received"
+    clock.value = t("2026-03-17T12:03:00")
+    assert coord.current_publication().state.consults["C"].stage == "Assigned"
+    triaged = EventInput(event_id="t", event_time=t("2026-03-17T12:01:00"), event_type="consult_triaged", consult_id="C")
+    coord.ingest([triaged])
+    clock.value = t("2026-03-17T12:01:30")
+    c = coord.current_publication().state.consults["C"]
+    assert c.stage == "Triaged" and c.owner == "Unassigned"
+    clock.value = t("2026-03-17T11:59:00")
+    assert not coord.current_publication().state.consults
+
+
+def test_concurrent_ingest_and_snapshots_preserve_committed_state():
+    from concurrent.futures import ThreadPoolExecutor
+    db = EventDatabase(":memory:")
+    coord = MutationCoordinator(db, FixedClock(t("2026-03-17T13:00:00")))
+    def write(i):
+        row = EventInput(event_id=str(i), event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id=f"C{i}", hospital_id="H", consult_type="Stroke")
+        report = coord.ingest([row])
+        p = coord.current_publication()
+        assert p.revision >= report["revision"]
+        assert f"C{i}" in p.state.consults
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(write, range(24)))
+    p = coord.current_publication()
+    assert p.revision == 24 and p.event_count == 24
+    assert set(p.state.consults) == {f"C{i}" for i in range(24)}
+    assert len(db.events()) == 24
+
+
+def test_batch_row_limit_rejects_entire_request(monkeypatch):
+    from dataclasses import replace
+    from importlib import import_module
+    main = import_module("app.main")
+    monkeypatch.setattr(main, "settings", replace(main.settings, max_batch_rows=1))
+    api = create_app(":memory:", FixedClock(t("2026-03-17T13:00:00")))
+    row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z", "event_type": "consult_received",
+           "consult_id": "C", "hospital_id": "H", "consult_type": "Stroke"}
+    with TestClient(api) as client:
+        assert client.post("/events", json=[row, {**row, "event_id": "r2"}]).status_code == 413
+        assert client.get("/ready").json()["event_count"] == 0
+
+
+def test_failed_startup_closes_database(monkeypatch):
+    import sqlite3
+    from dataclasses import replace
+    from importlib import import_module
+    main = import_module("app.main")
+    db = EventDatabase(":memory:")
+    monkeypatch.setattr(main, "EventDatabase", lambda path: db)
+    monkeypatch.setattr(main, "settings", replace(main.settings, clock_mode="fixed", clock_fixed=None))
+    with pytest.raises(ValueError, match="fixed clock requires"):
+        with TestClient(create_app()):
+            pass
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        db.conn.execute("SELECT 1")

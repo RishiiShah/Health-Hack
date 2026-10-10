@@ -33,7 +33,7 @@ def replay(events: tuple[Event, ...]) -> State:
             if c is None:
                 consults[e.consult_id] = {"hospital_id":e.hospital_id or "", "consult_type":e.consult_type or "", "owner":"Unassigned", "stage":"Received", "received_at":e.event_time, "entered_at":e.event_time, "history":[("Received", e.event_time)]}
             continue
-        if c is None: continue
+        if c is None or c["stage"] == "Signed Off": continue
         if e.event_type == "physician_assigned" and e.physician_id: c["owner"] = e.physician_id
         stage = transitions.get(e.event_type)
         if e.event_type in {"incoming_call_started", "outgoing_call_started"} and c["stage"] == "Assigned": stage = "Provider Contacted"

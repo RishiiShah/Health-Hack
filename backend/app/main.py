@@ -13,12 +13,12 @@ def create_app(db_path: str | None = None, test_clock=None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(api: FastAPI):
         db = EventDatabase(db_path or settings.db_path)
-        events = db.events()
-        clock = test_clock or make_clock(settings.clock_mode, settings.fixed_datetime(), max((e.event_time for e in events), default=None))
-        api.state.db = db
-        api.state.clock = clock
-        api.state.coordinator = MutationCoordinator(db, clock, settings.late_lag_s)
         try:
+            events = db.events()
+            clock = test_clock or make_clock(settings.clock_mode, settings.fixed_datetime(), max((e.event_time for e in events), default=None))
+            api.state.db = db
+            api.state.clock = clock
+            api.state.coordinator = MutationCoordinator(db, clock, settings.late_lag_s)
             yield
         finally:
             db.conn.close()

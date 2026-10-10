@@ -36,6 +36,7 @@ class Event(BaseModel):
 
 
 class EventInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     event_id: str
     event_time: datetime
     ingested_at: datetime | None = None
@@ -52,6 +53,13 @@ class EventInput(BaseModel):
     @field_validator("event_time", "ingested_at")
     @classmethod
     def aware(cls, value): return utc(value) if value else value
+
+    @field_validator("event_id", "consult_id", "physician_id", "hospital_id")
+    @classmethod
+    def nonblank_identifier(cls, value):
+        if value is not None and not value.strip():
+            raise ValueError("identifier must not be blank")
+        return value
 
     def validate_semantics(self):
         if self.event_type not in EVENT_TYPES: raise ValueError("unknown event_type")
