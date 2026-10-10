@@ -17,15 +17,20 @@ services:
   backend:
     build:
       context: ../backend
+    env_file:  # gitignored secrets and demo settings; see .env.example
+      - path: ../.env
+        required: false
     environment:
       CC_DATABASE_URL: postgresql://cc:local-development-only@postgres:5432/command_center
       CC_AUTH_CONFIG: /run/cc/auth.json
+      CC_DATA_DIR: /data
       PORT: "8000"
     ports:
       - "127.0.0.1:${PORT:-8000}:8000"
     volumes:
       - ../backend/app:/app/app:ro
       - ${CC_LOCAL_AUTH_FILE:-../backend/.local/auth.json}:/run/cc/auth.json:ro
+      - ../data:/data:ro
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       postgres:
