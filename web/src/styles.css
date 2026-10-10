@@ -1,0 +1,63 @@
+/* Minimal scaffold for Anish: shared tokens, header and base components from WebDesign.pdf. */
+:root {
+  --bg: #f2f0eb;
+  --surface: #faf8f4;
+  --surface-sunk: #ece8e0;
+  --ink: #15202b;
+  --ink-2: #3d4853;
+  --muted: #6b7480;
+  --line: #e3ded4;
+  --teal: #0f6e75;
+  --teal-soft: #ddebea;
+  --red: #b42318;
+  --red-soft: #f6dcd7;
+  --amber: #8a5a00;
+  --amber-soft: #f5e6c8;
+  --amber-line: #d08a2e;
+  --green: #2f6b4f;
+  --green-soft: #dcebe2;
+  --radius: 10px;
+  --font-head: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: 32px; font-weight: 800; line-height: 1.15; }
+h2 { font-size: 19px; font-weight: 700; }
+button, input, textarea { font: inherit; color: inherit; }
+.mono { font-family: var(--font-mono); }
+.muted { color: var(--muted); }
+
+.topbar { background: var(--ink); color: #fff; display: flex; align-items: center; gap: 24px; padding: 0 32px; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 17px var(--font-head); }
+.brand svg { color: #6fc3c7; }
+.topbar .meta { font: 13px var(--font-mono); color: #a9b2bb; }
+.topbar nav { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.topbar nav a { color: #e8ecef; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; font-weight: 500; }
+.topbar nav a[aria-current="page"] { background: var(--surface); color: var(--ink); }
+.topbar nav .count { color: var(--amber-line); margin-left: 4px; }
+.topbar .role { margin-left: 18px; font-size: 14px; color: #e8ecef; }
+
+.page { max-width: 1280px; margin: 0 auto; padding: 32px 32px 64px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.panel-head .note { font-size: 13px; color: var(--muted); }
+.unavailable { color: var(--muted); font-size: 14px; }
+
+.badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
+.badge.amber { background: var(--amber-soft); color: var(--amber); }
+.badge.teal { background: var(--teal-soft); color: var(--teal); }
+.badge.green { background: var(--green-soft); color: var(--green); }
+.badge.red { background: var(--red-soft); color: var(--red); }
+.badge.neutral { background: var(--surface-sunk); color: var(--ink-2); }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn.danger { color: var(--red); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn.block { width: 100%; }
+.error { color: var(--red); font-size: 14px; margin: 8px 0 0; }
+.topbar .signout { margin-left: 8px; background: none; border: 1px solid #3a4652; color: #e8ecef; border-radius: 6px; padding: 5px 10px; font-size: 13px; cursor: pointer; }

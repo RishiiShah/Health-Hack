@@ -6,6 +6,7 @@ The seed and write operations add synthetic consults. Use only a disposable test
 import argparse
 from datetime import datetime, timedelta, timezone
 import json
+import os
 from statistics import quantiles
 import threading
 import time
@@ -17,6 +18,10 @@ from uuid import uuid4
 local = threading.local()
 
 
+# CC_TOKEN signs the requests in when the server has sign-in turned on.
+HEADERS = {"Content-Type": "application/json", **({"Authorization": f"Bearer {os.environ['CC_TOKEN']}"} if os.environ.get("CC_TOKEN") else {})}
+
+
 def call(url, payload=None):
     """One keep-alive connection per thread, as a browser would hold."""
     parts = urlsplit(url)
@@ -25,7 +30,7 @@ def call(url, payload=None):
     data = json.dumps(payload).encode() if payload is not None else None
     start = time.perf_counter()
     try:
-        local.conn.request("POST" if data else "GET", parts.path, data, {"Content-Type": "application/json"})
+        local.conn.request("POST" if data else "GET", parts.path, data, HEADERS)
         response = local.conn.getresponse()
         response.read()
     except OSError:

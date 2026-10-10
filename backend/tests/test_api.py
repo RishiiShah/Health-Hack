@@ -116,7 +116,7 @@ def test_roles_permissions_and_physician_isolation(db_url):
         assert client.get("/snapshot", headers={"Authorization": "Bearer wrong"}).status_code == 401
         me = {h["Authorization"]: client.get("/me", headers=h).json() for h in (COORD, LEAD, ADMIN)}
         assert [m["role"] for m in me.values()] == ["coordinator", "lead", "admin"] and me[LEAD["Authorization"]]["display_name"] == "Dr. Lead"
-        assert client.post("/events/csv", content=b"", headers=COORD).status_code == 403
+        assert client.post("/events/csv", content=b"", headers=COORD).status_code == 200  # the web Data page: coordinator and lead inject
         assert client.post("/offers/OFR-00001/approve", headers=COORD).status_code == 403
         assert client.post("/offers", json={"gap_id": "x", "physician_id": "y", "start": "2026-01-01T00:00:00Z", "end": "2026-01-01T02:00:00Z"},
                            headers=LEAD).status_code == 403
@@ -126,7 +126,9 @@ def test_roles_permissions_and_physician_isolation(db_url):
         assert client.get("/me", headers=doc).json() == {"role": "physician", "display_name": pid, "physician_id": pid,
                                                         "permissions": ["offers.view_own", "offers.respond"]}
         assert client.get("/snapshot", headers=doc).status_code == 403
-        assert client.get("/offers", headers=doc).json() == []
+        assert client.post("/events/csv", content=b"", headers=doc).status_code == 403
+        assert client.post("/admin/reset", headers=doc).status_code == 403
+        assert client.get("/offers", headers=doc).json() == {"items": []}
         expired = TEST_AUTH.physician_token(pid, datetime.now(timezone.utc) - timedelta(seconds=1))
         assert client.get("/me", headers={"Authorization": f"Bearer {expired}"}).status_code == 401
         assert client.get("/me", headers={"Authorization": f"Bearer {token[:-2]}xx"}).status_code == 401  # tampered signature
@@ -145,27 +147,29 @@ def test_offer_loop_over_http(db_url):
         item = next(i for i in queue if i["fix"]["kind"] == "split_shift")
         table = client.get(f"/gaps/{item['id']}/candidates", headers=COORD).json()["candidates"]
         best = next(c for c in table if c["physician_id"] == item["fix"]["physician_id"])
-        assert best["eligible"] and all(r["passed"] for r in best["rules"])
+        assert best["eligible"] and best["rank"] == 1 and all(r["status"] == "pass" for r in best["results"])
         trap = client.get(f"/gaps/{item['id']}/trap-check", headers=LEAD).json()
-        assert trap["passed"] and trap["trap_shown_unguarded"] and set(trap["scenarios"]["baseline"]) == {"no_joiner", "trap", "guarded"}
+        assert trap["passed"] and trap["seed_consults"] > 0 and [h["hospital_id"] for h in trap["limited_to"]] == best["window"]["hospitals"]
+        assert len(trap["steps"]) == len(trap["with"]) == 7 and set(trap["scenarios"]["baseline"]) == {"no_joiner", "trap", "guarded"}
 
-        offer = client.post("/offers", json={"gap_id": item["id"], "physician_id": best["physician_id"], "start": best["start"], "end": best["end"]},
-                            headers={**COORD, "Idempotency-Key": "p1"}).json()
-        assert offer["state"] == "PROPOSED" and offer["hospitals"] == best["hospitals"]
-        again = client.post("/offers", json={"gap_id": item["id"], "physician_id": best["physician_id"], "start": best["start"], "end": best["end"]},
-                            headers={**COORD, "Idempotency-Key": "p1"}).json()
-        assert again == offer  # a retried click does not create a second offer
-        assert client.get("/snapshot", headers=LEAD).json()["headline"]["offers_awaiting_approval"] == 1
-        sent = client.post(f"/offers/{offer['id']}/approve", headers=LEAD).json()
-        assert sent["state"] == "SENT" and sent["approved_by"] == "Dr. Lead"
+        body = {"gap_id": item["id"], "physician_id": best["physician_id"], "start": best["window"]["start"], "end": best["window"]["end"]}
+        offer = client.post("/offers", json=body, headers={**COORD, "Idempotency-Key": "p1"}).json()
+        assert offer["state"] == "Proposed" and offer["hospital_ids"] == best["window"]["hospitals"] and offer["checked_count"] == len(pack.ops.roster)
+        assert client.post("/offers", json=body, headers={**COORD, "Idempotency-Key": "p1"}).json() == offer  # a retried click: no second offer
+        snap = client.get("/snapshot", headers=LEAD).json()
+        assert snap["headline"]["offers_awaiting_approval"] == 1 and snap["pending_approvals"] == 1
+        sent = client.post(f"/offers/{offer['offer_id']}/approve", headers=LEAD).json()
+        assert sent["state"] == "Sent" and sent["approved_by"] == "Dr. Lead" and "split-shift offer" in sent["message"]
+        assert sent["audio_url"] == f"/offers/{offer['offer_id']}/audio"
 
         token = client.post("/admin/physician-tokens", json={"physician_id": best["physician_id"]}, headers=ADMIN).json()["token"]
         doc = {"Authorization": f"Bearer {token}"}
         other = client.post("/admin/physician-tokens", json={"physician_id": next(p for p in pack.ops.roster if p != best["physician_id"])},
                             headers=ADMIN).json()["token"]
-        assert client.get(f"/offers/{offer['id']}", headers={"Authorization": f"Bearer {other}"}).status_code == 404  # not probeable
-        assert [o["id"] for o in client.get("/offers", headers=doc).json()] == [offer["id"]]
-        audio = client.get(f"/offers/{offer['id']}/audio", headers=doc)
+        assert client.get(f"/offers/{offer['offer_id']}", headers={"Authorization": f"Bearer {other}"}).status_code == 404  # not probeable
+        mine = client.get("/me/offers", headers=doc).json()
+        assert [o["offer_id"] for o in mine["items"]] == [offer["offer_id"]] and mine["now"]
+        audio = client.get(f"/offers/{offer['offer_id']}/audio", headers=doc)
         assert audio.status_code == 200 and audio.headers["content-type"] == "audio/mpeg"
         consult_ids = {r.consult_id for r in pack.rows.values() if r.consult_id}
         assert "split-shift offer" in speech.texts[-1]
@@ -174,14 +178,15 @@ def test_offer_loop_over_http(db_url):
         # Neither message can carry consult or patient detail: no consult ID, no consult type.
         assert not [t for t in speech.texts if any(c in t for c in consult_ids) or "Stroke" in t or "Neuro" in t]
 
-        accepted = client.post(f"/offers/{offer['id']}/accept", headers=doc).json()
-        assert accepted["state"] == "ACCEPTED"
-        assert client.post(f"/offers/{offer['id']}/decline", headers=doc).json()["error"]["code"] == "conflicting_reply"
+        accepted = client.post(f"/me/offers/{offer['offer_id']}/accept", headers=doc).json()
+        assert accepted["state"] == "Accepted" and accepted["responded_at"]
+        refused = client.post(f"/offers/{offer['offer_id']}/decline", headers=doc).json()
+        assert refused["error"]["code"] == "conflicting_reply" and refused["detail"] == "offer is ACCEPTED"
         after = client.get("/snapshot", headers=COORD).json()
         assert not [i for i in after["queue"]["items"] if i["fix"]["kind"] == "split_shift" and i["fix"]["physician_id"] == best["physician_id"]]
-        trail = client.get("/audit", params={"gap_id": item["id"]}, headers=LEAD).json()
+        trail = client.get("/audit", params={"gap_id": item["id"]}, headers=LEAD).json()["items"]
         assert [a["command"] for a in trail] == ["propose", "approve", "send", "accept", "decline:refused"]
-        assert trail[1]["actor"] == "Dr. Lead"
+        assert trail[1]["actor"] == "Dr. Lead" and trail[0]["action"] == "Proposed offer"
 
 
 @pytest.mark.skipif(not PACKS or PACKS[0].name != "01_development", reason="needs the development pack")
@@ -239,3 +244,29 @@ def test_decisions_need_references(db_url):
     with TestClient(api) as client:
         assert client.get("/snapshot", headers=COORD).json()["queue"]["supported"] is False
         assert client.get("/gaps/x/candidates", headers=COORD).status_code == 503
+
+
+def test_password_accounts_reach_the_same_routes(db_url):
+    """Web and mobile sign in with an email and password; the token carries the same permissions as the role tokens."""
+    import json
+    from app.auth import Accounts, Auth
+    from app.passwords import hash_password
+    path = PACKS[0]
+    pack = load_pack(path)
+    pid = next(iter(pack.ops.roster))
+    h = hash_password("right-password", iterations=1_000)
+    users = json.dumps([{"email": "lead@x.test", "name": "Dr. Lead", "role": "lead", "password_hash": h},
+                        {"email": "doc@x.test", "name": "Dr. Doc", "role": "physician", "physician_id": pid, "password_hash": h}])
+    api = create_app(db_url, FixedClock(pack.time("1820")), auth=Auth(Accounts(users, "s" * 32)), references=load_references(path / "inputs"),
+                     speech=FakeSpeech(), sweep_s=0)
+    with TestClient(api) as client:
+        lead = client.post("/auth/login", json={"email": "lead@x.test", "password": "right-password"}).json()
+        doc = client.post("/auth/login", json={"email": "doc@x.test", "password": "right-password"}).json()
+        assert lead["user"]["role_label"] == "Clinical lead" and doc["user"]["physician_id"] == pid
+        as_lead, as_doc = {"Authorization": f"Bearer {lead['token']}"}, {"Authorization": f"Bearer {doc['token']}"}
+        assert client.get("/snapshot", headers=as_lead).status_code == 200
+        assert client.get("/me", headers=as_lead).json()["permissions"] == ["ops.view", "approvals.decide", "offers.view_all", "admin.inject"]
+        assert client.get("/me/offers", headers=as_doc).json()["items"] == []
+        assert client.get("/snapshot", headers=as_doc).status_code == 403
+        assert client.post("/offers", json={"gap_id": "x", "physician_id": pid, "start": "2026-03-17T23:00:00Z", "end": "2026-03-18T01:00:00Z"},
+                           headers=as_lead).status_code == 403  # only a coordinator proposes

@@ -25,6 +25,9 @@ class Settings:
     lead_name: str = os.getenv("CC_LEAD_NAME", "Clinical lead")
     token_secret: str | None = os.getenv("CC_TOKEN_SECRET")
     sweep_s: float = float(os.getenv("CC_SWEEP_S", "5"))  # offer expiry and orphan deadlines; 0 = only on requests
+    users: str = os.getenv("CC_USERS", "")  # sign-in accounts: JSON list with PBKDF2 hashes (python -m app.auth)
+    auth_secret: str = os.getenv("CC_AUTH_SECRET", "")  # 32+ characters; signs account sign-in tokens
+    auth_config: str | None = os.getenv("CC_AUTH_CONFIG")  # local file {users, secret} written by scripts/setup_auth.py
 
     def fixed_datetime(self):
         return datetime.fromisoformat(self.clock_fixed) if self.clock_fixed else None

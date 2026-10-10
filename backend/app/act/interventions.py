@@ -19,6 +19,7 @@ SCHEMA = (
         consult_id TEXT, physician_id TEXT, state TEXT NOT NULL CHECK (state IN ('RECORDED','REQUESTED','AUTHORIZED')),
         created_at TIMESTAMPTZ NOT NULL, created_by TEXT NOT NULL, authorized_at TIMESTAMPTZ, authorized_by TEXT)""",
     "CREATE INDEX IF NOT EXISTS interventions_by_item ON interventions(item_id, id)",
+    "ALTER TABLE interventions ADD COLUMN IF NOT EXISTS reason TEXT",
 )
 
 
@@ -36,6 +37,11 @@ class InterventionLog:
         with self.lock:
             rows = self.conn.execute("SELECT * FROM interventions ORDER BY id").fetchall()
         return {r["item_id"]: r for r in rows}
+
+    def pending(self) -> list[dict]:
+        """Escalations waiting for the lead, oldest first."""
+        with self.lock:
+            return self.conn.execute("SELECT * FROM interventions WHERE state='REQUESTED' ORDER BY id").fetchall()
 
     def _audit(self, cur, at, item_id, actor, command, detail):
         cur.execute("INSERT INTO offer_audit(gap_id,at,actor,command,detail) VALUES(%s,%s,%s,%s,%s)",
@@ -57,8 +63,9 @@ class InterventionLog:
             raise OfferError(422, "unknown_kind", "kind must be reassign or escalate")
         with self.lock, self.conn.transaction(), self.conn.cursor() as cur:
             cur.execute("SELECT pg_advisory_xact_lock(%s)", (OFFER_LOCK,))
-            cur.execute("""INSERT INTO interventions(item_id,kind,consult_id,physician_id,state,created_at,created_by)
-                           VALUES(%s,%s,%s,%s,%s,%s,%s) RETURNING *""", (item.id, kind, consult_id, physician_id, state, at, actor))
+            cur.execute("""INSERT INTO interventions(item_id,kind,consult_id,physician_id,state,created_at,created_by,reason)
+                           VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
+                        (item.id, kind, consult_id, physician_id, state, at, actor, f"{item.what}: {item.fix.reason}"))
             row = cur.fetchone()
             self._audit(cur, at, item.id, actor, kind, {"intervention": row["id"], "physician_id": physician_id, "recommended": item.fix.physician_id,
                                                         "followed_recommendation": physician_id == item.fix.physician_id if kind == "reassign" else None})

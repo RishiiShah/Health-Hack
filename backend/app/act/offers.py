@@ -104,7 +104,9 @@ def message(refs: Refs, hospitals, start: datetime, end: datetime, expires_at: d
     """Typed fields only: hospital names, times, expiry and a fixed reason. No consult or patient data can reach it [B p4]."""
     names = ", ".join(refs.hospitals[h].name for h in hospitals)
     t = lambda x: x.astimezone(ET).strftime("%-I:%M %p")
-    return (f"Sevaro split-shift offer. {names}. {t(start)} to {t(end)} Eastern ({(end - start).total_seconds() / 3600:g} hours). "
+    minutes = int((end - start).total_seconds() // 60)
+    length = f"{minutes // 60} h" + (f" {minutes % 60} min" if minutes % 60 else "")
+    return (f"Sevaro split-shift offer. {names}. {t(start)} to {t(end)} Eastern ({length}). "
             f"Requested because of a coverage gap at a hospital you are credentialed for. Expires at {t(expires_at)}.")
 
 
