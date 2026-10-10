@@ -226,3 +226,29 @@ def test_surge_requires_strictly_more_than_p90():
     assert surge_at(ops, "H", received, et(7, 18, 30)) is False
     assert surge_at(ops, "H", [*received, et(7, 18, 20)], et(7, 18, 30)) is True
     assert surge_at(ops, "H", received, et(7, 19, 30)) is None  # no baseline row: unknown, not zero
+
+
+def two_candidates(a=None, b=None):
+    """Hospital H needs 1 physician and nobody is on shift; A and B are both fully eligible off-shift physicians."""
+    base = dict(role="Day", opt_in=True, last_shift_end=et(7, 0), next_shift_start=None, hours_last_7d=20, minutes_to_online=0, channel="sms", declines_30d=0)
+    roster = {"A": RosterEntry(**{**base, **(a or {})}), "B": RosterEntry(**{**base, **(b or {})})}
+    refs = Refs({"H": Hospital("H", "America/New_York")}, {p: Physician(p) for p in roster}, {p: frozenset({"H"}) for p in roster})
+    ops = OpsRefs({("H", 1, h): (0.5, 5.0) for h in range(24)}, {"H": ((0, 0, 1),)}, roster)
+    return decide(replay(()), refs, ops, et(7, 18))
+
+
+def offer_for(d):
+    return next(i for i in d.items if i.fix.kind == "split_shift")
+
+
+def test_two_eligible_candidates_rank_by_the_stated_order_and_the_winner_changes_with_the_data():
+    # Equal on everything: the stable tie-breaker is the physician ID.
+    item = offer_for(two_candidates())
+    assert item.fix.physician_id == "A" and [c.physician_id for c in item.candidates if c.eligible] == ["A", "B"]
+    assert any("B: eligible, ranked lower" in alt for alt in item.fix.alternatives)  # the runner-up is shown, not hidden
+    # Each ranking component, in order, flips the winner on its own [doc 5.2].
+    assert offer_for(two_candidates(a={"minutes_to_online": 30})).fix.physician_id == "B"  # fewer gap minutes covered
+    assert offer_for(two_candidates(a={"declines_30d": 2})).fix.physician_id == "B"
+    assert offer_for(two_candidates(a={"hours_last_7d": 40})).fix.physician_id == "B"
+    # A rule failure removes a candidate entirely; ranking never overrides a rule.
+    assert offer_for(two_candidates(a={"opt_in": False}, b={"declines_30d": 9})).fix.physician_id == "B"

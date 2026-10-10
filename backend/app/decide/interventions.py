@@ -384,9 +384,12 @@ def decide(state: State, refs: Refs, ops: OpsRefs, now: datetime, history: Offer
     hard = [g for g in gaps if g.kind == "hard"]
     items = _incidents(_merge(findings, views, refs, ops, now), refs)
     current, probes = _current_gap_items(state, refs, ops, views, now, hard, history, accepted)
-    short_now = {p.hospital_id for p in probes}
+    # A schedule gap starting now outranks a "busy, not absent" watch: nobody to wait for means act now.
+    scheduled_short_now = {g.hospital_id for g in hard if g.start == now}
+    current = [i for i in current if not (i.fix.kind == "watch" and i.where["hospital_id"] in scheduled_short_now)]
+    acting_now = {i.where["hospital_id"] for i in current}
     for g in gaps:
-        if g.kind == "at_risk" or (g.start == now and g.hospital_id in short_now):
+        if g.kind == "at_risk" or (g.start == now and g.hospital_id in acting_now):
             continue  # a forecast gap starting now is already the current-gap item
         item = _gap_item(g, hard, refs, ops, now, history)
         items.append(Item(item.id, item.severity, item.what, item.where, item.why, item.fix,
