@@ -10,6 +10,7 @@
 ## Boundaries
 - Edit only the area of the person you're working for (see the ownership table). Needing a change elsewhere means writing an issue, not editing the file.
 - The server is the only place rules are computed. Web and mobile only display them.
+- Role-based access: both apps load the dashboard for the role returned by `GET /me` (web: coordinator, lead, physician; mobile: lead, physician). The server enforces every permission; hiding a button is never the security check.
 - Never edit generated files (`web/src/api/types.gen.ts`) or the supplied `data/*.csv`.
 
 ## Engineering rules

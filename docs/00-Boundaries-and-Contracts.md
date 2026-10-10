@@ -5,15 +5,16 @@ Detect, then Decide, then Approve (a person), then Act, then Update, then back t
 | Area | Owner | Can edit | Must not edit |
 |---|---|---|---|
 | `backend/` | Backend (Rishi and backend team) | Engine, API, database, ElevenLabs calls | — |
-| `web/src/` Detect screens | Anish | `web/src/detect/*`, `web/src/api/*`, `web/src/App.tsx` | Joy's folders, backend |
-| `web/src/` Decide/Act screens | Joy | `web/src/act/*`, `web/src/forecast/*` | `web/src/api/*` (ask Anish), backend |
-| `mobile/` screens and flow | Hitanshu | `mobile/lib/screens/*`, `mobile/test/screens/*` | `mobile/lib/data/*` |
-| `mobile/` data, audio, deploy | Chandan | `mobile/lib/data/*`, `mobile/lib/audio.dart`, build config | Screens |
+| `web/src/` shell, role routing, Detect and physician screens | Anish | `web/src/App.tsx`, `web/src/auth/*`, `web/src/api/*`, `web/src/detect/*`, `web/src/physician/*` | Joy's folders, backend |
+| `web/src/` Decide/Act and clinical-lead screens | Joy | `web/src/act/*`, `web/src/forecast/*`, `web/src/lead/*` | `web/src/api/*` (ask Anish), backend |
+| `mobile/` screens, role routing and flow | Hitanshu | `mobile/lib/screens/*`, `mobile/lib/main.dart`, `mobile/test/screens/*` | `mobile/lib/data/*` |
+| `mobile/` data, auth, audio, deploy | Chandan | `mobile/lib/data/*`, `mobile/lib/audio.dart`, build config | Screens |
 | Synthetic data | Krish | `scripts/synth/*`, the generated output folder `data/synthetic/` (not committed) | `data/*.csv` originals, `backend/` |
 | Docs | Each person owns their own doc | Your own doc | Other people's docs |
 
 **Rules for crossing a boundary**
 - The client apps never recompute business rules. Levels, scores, eligibility and gaps all come from the server, and the clients only display them.
+- The client apps never decide who may do what. They choose which dashboard to load from `GET /me`; the server enforces every permission on every request.
 - Need an API change? Open an issue for the backend owner. They update the backend schema, then Anish regenerates the web types. Nobody edits generated types by hand.
 - App code never hard-codes IDs from the sample data (for example `CON-2105`). Those IDs belong only in tests.
 
@@ -23,33 +24,60 @@ event CSV / JSON ──► backend (1 process, in-memory replay) ──► RDS P
                         │  ▲                      │
           WebSocket /ws │  │ REST                 └─► ElevenLabs text-to-speech (server-side only, cached)
                         ▼  │
-               web (coordinator + clinical lead)        mobile (off-shift physician: accept/decline only)
+     web: coordinator, clinical lead, physician      mobile: clinical lead, physician (coordinator → "use web")
+     (dashboard chosen by GET /me role)              (dashboard chosen by GET /me role)
 ```
 
 ## API contract v1 (backend owns this; freeze it at the start of the hackathon)
 | Method and path | Role | Used by |
 |---|---|---|
 | `GET /health`, `GET /ready` | none | deploy |
-| `GET /snapshot` | coordinator, lead | web |
+| `GET /me` → `{role, display_name, physician_id, permissions[]}` | any valid token | Anish, Chandan. Both apps pick the dashboard from this |
+| `GET /snapshot` | coordinator, lead | web; mobile lead (polled; the response is cached server side) |
 | `WS /ws` | coordinator, lead | web. Sends `{epoch, seq, snapshot}` with the **whole snapshot** on every update; no partial updates |
-| `GET /gaps/{gap_id}/candidates` | coordinator, lead | Joy |
-| `GET /gaps/{gap_id}/trap-check` | coordinator, lead | Joy |
+| `GET /gaps/{gap_id}/candidates` | coordinator, lead | Joy, Hitanshu |
+| `GET /gaps/{gap_id}/trap-check` | coordinator, lead | Joy, Hitanshu |
 | `POST /interventions` `{kind: reassign\|escalate, item_id, physician_id?}` | coordinator | Anish |
-| `POST /interventions/{id}/authorize` | lead | Joy |
+| `POST /interventions/{id}/authorize` | lead | Joy, Hitanshu |
 | `POST /offers` `{gap_id, physician_id, start, end}` | coordinator | Joy |
-| `POST /offers/{id}/approve` and `/reject {reason}` | lead | Joy. Approving runs the pre-send check and the simulated send in one call |
-| `GET /offers`, `GET /audit?gap_id=` | coordinator, lead | Joy |
-| `GET /alerts/{item_id}/audio` | coordinator, lead | Anish |
-| `GET /m/offer?token=` | physician token | Chandan |
-| `POST /m/offer/accept`, `POST /m/offer/decline` `{token}` | physician token | Chandan |
-| `GET /m/offer/audio?token=` | physician token | Chandan |
+| `POST /offers/{id}/approve` and `/reject {reason}` | lead | Joy, Hitanshu. Approving runs the pre-send check and the simulated send in one call |
+| `GET /offers`, `GET /offers/{id}` | coordinator, lead: all offers; physician: **only their own** (the server filters) | everyone |
+| `POST /offers/{id}/accept`, `POST /offers/{id}/decline` | physician, own offer only | Anish, Hitanshu |
+| `GET /offers/{id}/audio` | lead; physician, own offer only | everyone |
+| `GET /audit?gap_id=` | coordinator, lead | Joy, Hitanshu |
+| `GET /alerts/{item_id}/audio` | coordinator, lead | Anish, Hitanshu |
 | `POST /events` (JSON batch), `POST /events/csv` | admin | Joy |
 | `POST /admin/reset`, `POST /admin/clock` | admin | Joy |
+| `POST /admin/physician-tokens` `{physician_id}` | admin | demo setup: issues a physician's sign-in link |
 
-## Roles and authentication (kept simple, standard library only)
-- The coordinator, lead and admin each get a fixed demo token from an environment variable. The server checks it with `hmac.compare_digest`. The lead's display name also comes from an environment variable and is written to the audit log as the approver.
-- Each physician offer gets a token: an HMAC over `offer_id`, `physician_id` and the expiry time, built with `hmac` and `hashlib`. It works for that one offer only.
-- The server enforces every role check. The web UI's role switch is cosmetic.
+## Roles, authentication and RBAC (kept simple, standard library only)
+**Who uses which app.** The clinical lead and the physician each get a dashboard on **both** web and mobile, so either can work on the go. The coordinator works at a desk and uses web only; the mobile app shows a coordinator "Use the web dashboard".
+
+| Role | Web dashboard | Mobile dashboard |
+|---|---|---|
+| Coordinator | Full command center: Detect, forecast, candidates, propose offers, interventions | "Use the web dashboard" screen |
+| Clinical lead | Approval queue (home), stroke-risk Critical items, offer tracker, audit | Same content in compact form: approvals (home), stroke-risk items, offer status |
+| Physician | My offers (accept/decline, countdown, audio) and my accepted shifts | Same |
+| Admin | Live injector and reset (inside the coordinator layout) | none |
+
+**Tokens.**
+- Coordinator, lead and admin each get a fixed demo token from an environment variable, checked with `hmac.compare_digest`. The lead's display name also comes from an environment variable and is written to the audit log as the approver.
+- A physician token is an HMAC over `physician_id` and an expiry time (`hmac`, `hashlib`), issued by `POST /admin/physician-tokens`. It identifies one physician, not one offer, so the same sign-in works for every offer they get. The simulated offer message links to `<app>/?token=…&offer=<id>`.
+- Both apps read `token` from the URL once, store it in `sessionStorage` (cleared when the tab closes) and remove it from the address bar with `history.replaceState`, so it doesn't leak through screenshots or shared links. A signed-out user pastes a token on the sign-in screen.
+
+**Permissions** (returned by `GET /me`; the server checks the same table on every request):
+
+| Permission | Coordinator | Lead | Physician | Admin |
+|---|---|---|---|---|
+| `ops.view` (snapshot, WebSocket, candidates, trap check, audit) | ✓ | ✓ | | |
+| `ops.intervene` (reassign, escalate, propose offers) | ✓ | | | |
+| `approvals.decide` (approve/reject offers, authorize interventions) | | ✓ | | |
+| `offers.view_all` | ✓ | ✓ | | |
+| `offers.view_own`, `offers.respond` | | | ✓ | |
+| `admin.inject` (events, reset, clock, physician tokens) | | | | ✓ |
+
+- The client shows a button only when `/me` lists its permission, but hiding a button is a convenience, not security. A request without the permission gets 403; an offer belonging to another physician gets 404, so offer IDs can't be probed.
+- A 401 (missing, wrong or expired token) sends either app back to the sign-in screen.
 
 ## Offer states (from the PRD)
 Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already filled | Declined | Expired | Withdrawn | Cancelled.
@@ -57,7 +85,7 @@ Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already
 - When an offer is declined or expires, the server proposes the next-ranked candidate. That new offer still needs the lead's approval.
 
 ## ElevenLabs integration (backend implements it; web and mobile only play the audio)
-- **Uses:** (1) reading an offer aloud to the physician; (2) speaking a new Critical alert to the coordinator, which the brief allows as an automated low-risk internal alert; (3) announcing "approval requested" to the clinical lead.
+- **Uses:** (1) reading an offer aloud to the physician; (2) speaking a new Critical alert to the coordinator, which the brief allows as an automated low-risk internal alert; (3) announcing "approval requested" to the clinical lead, on web or phone.
 - **Call:** `POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}` with an `xi-api-key` header and a JSON body `{text, model_id}`, which returns `audio/mpeg`. It uses `urllib.request` with a 10-second timeout and makes one attempt, with no retry loop.
 - **Config:** environment variables `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` and `ELEVENLABS_MODEL_ID`. The key never reaches a client.
 - **Templates:** typed functions that accept only hospital names, times, durations, counts and a reason code. They can't accept consult or patient data, so none can leak into a message. Physician names aren't spoken.

@@ -1,5 +1,6 @@
-**Owns:** `web/src/forecast/*`, `web/src/act/*`.
-**Uses** Anish's `api/client.ts` and `live.ts`; asks Anish for changes to them.
+**Owns:** `web/src/forecast/*`, `web/src/act/*`, `web/src/lead/*`.
+**Uses** Anish's `api/client.ts`, `live.ts` and `can(permission)`; asks Anish for changes to them.
+**Roles:** the coordinator uses the Decide/Act panels; the clinical lead gets a dashboard of their own (task 14), which mirrors the lead screens in the mobile app.
 
 ### Tasks
 1. Coverage forecast (`forecast/CoverageGrid.tsx`):
@@ -41,5 +42,12 @@
     - Check: T23 to T27 from Krish's file update the UI without a restart.
 12. Data quality panel → check: 1 duplicate, 23 reordered, 1 late, 0 rejected.
 13. `node --test` tests for the pure helpers (countdown, mapping cells to their status) → check: `npm test` passes.
+14. Clinical-lead dashboard (`lead/LeadDashboard.tsx`), loaded when `me.role` is lead:
+    - Home is the approval queue from task 7, newest first, with a count badge.
+    - Below it: stroke-risk Critical items from the snapshot's attention queue (read-only, the server's order and reasons), and the offer tracker from task 8 (read-only for the lead).
+    - Audit by gap from task 10.
+    - "Approval requested" voice alert: when a new Proposed offer appears, play `/alerts/{id}/audio` once, using the same enable/mute pattern as Anish's voice alerts.
+    - Usable at 390 px wide (a lead on the go may open the web on a phone).
+    - Check: with the lead token, approve and reject both work and the coordinator-only actions never render; with the coordinator token, approving returns 403.
 
-**Out of scope:** charting libraries, editing eligibility rules, and sending real SMS or push notifications.
+**Out of scope:** charting libraries, editing eligibility rules, client-side permission logic, and sending real SMS or push notifications.

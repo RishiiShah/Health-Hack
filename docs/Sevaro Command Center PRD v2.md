@@ -34,14 +34,14 @@ We build a real-time command center that rebuilds physician state and consult li
 | User | Sees | May do |
 | --- | --- | --- |
 | Operations coordinator | Queue, breaches, physician activity, projected gaps | Act on alerts, reassign (stretch) |
-| Clinical lead on duty | Stroke-risk items, proposed interventions | Approve or reject offers (stretch) |
-| Off-shift physician | One offer: hospitals, hours, start | Accept or decline (stretch) |
+| Clinical lead on duty (web or phone) | Stroke-risk items, proposed interventions | Approve or reject offers (stretch) |
+| Off-shift physician (web or phone) | Their offers: hospitals, hours, start; their accepted shifts | Accept or decline their own offers (stretch) |
 
 **In scope (core):** state rebuild from events, consult and physician state kept separately, time in stage, per-physician workload, alerts, 90-minute coverage forecast, attention queue, live event ingest, dashboard.
 
 **Next priority after core:** read-only, explainable assignment recommendations and shared-capacity checks. These precede the external offer loop when time permits. They do not change the production router.
 
-**Stretch:** reassignment actions, split-shift offers, approval, Flutter physician app.
+**Stretch:** reassignment actions, split-shift offers, approval, Flutter app for the clinical lead and physician (dashboard by role).
 
 **Out of scope:** clinical decisions, real scheduling, credentialing or messaging systems, compensation, changing the production routing engine.
 
@@ -56,7 +56,7 @@ FastAPI backend on Render, Vite + React dashboard on Vercel, one deterministic e
 | Storage | Amazon RDS for PostgreSQL | Event log, quarantine, audit; append-only |
 | Dashboard | Vite, React, TypeScript, Tailwind, ECharts | Client-only app; server rendering adds nothing |
 | Contract | `openapi-typescript` | Frontend types generated from backend schema |
-| Physician app (stretch) | Flutter web | Judges open a URL on any phone |
+| Mobile app for clinical lead and physician (stretch) | Flutter web, dashboard chosen by role (RBAC) | Judges open a URL on any phone |
 | Tests and CI | pytest, GitHub Actions | Core fixtures, synthetic boundaries, recovery and consistency checks run on every push; stretch tests only when implemented |
 
 **Hosting**
@@ -266,7 +266,7 @@ Started only if core tests T1–T12, T23–T28 and consistency checks pass at H2
 | G17 Eligibility | Test every off-shift physician on R1 opt-in, R2 credentialed at a gap hospital, R3 10 h rest, R4 7-day hours + offer at most 60, R5 no overlap, R6 2 h minimum and can come online, R7 one open offer, R8 under 3 offers in 7 days. Keep every result |
 | G18 Rank | Most gap hospitals, fewest minutes to online, fewest declines in 30 days, fewest hours in 7 days |
 | G19 Trap guard | Joiner routable only at gap hospitals; seeded at lowest peer count at the gap hospital; simulate 90 min of baseline demand with and without; pass if gap closes, no other gap worsens, joiner load at most busiest peer |
-| G20 Approval | Only the clinical lead approves, enforced server side. No auto path |
+| G20 Approval | Only the clinical lead approves (from web or phone), enforced server side by role permissions. No auto path |
 | G21 Pre-send check | Re-check R1 to R8 and gap; message holds hospital, hours, start only; lock offer slot; 10-min timer |
 | G22 Response | Accept with gap open = Accepted (one transaction). Accept after fill = Already filled. Decline or 10-min timeout = next candidate |
 | G23 Close | Add physician with G19 limit and seed; re-run G13; withdraw other offers when closed |
