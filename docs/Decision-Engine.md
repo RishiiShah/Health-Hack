@@ -281,6 +281,18 @@ Typed template fields only: hospital names, start, end, hours, expiry, and a rea
 ### 6.5 Audit (append-only)
 One row per transition and per decision pass that produced a recommendation: gap snapshot, every candidate with every rule result and value, chosen window, proposer, approver (display name from the lead's token), send time, reply and timestamp, late/duplicate/conflicting replies, final coverage after the transition, revision and `as_of`.
 
+### 6.6 As built (step 8, `app/act/offers.py`, `tests/test_offers.py`)
+- **One command = one transaction:** global advisory lock (`OFFER_LOCK`, serializes instances) → offer row `FOR UPDATE` → re-check from current state → transition + audit row + outbox row + idempotency record → commit. A failure anywhere rolls all of it back (`test_a_failure_mid_command_leaves_nothing_behind`).
+- **A refused command still leaves a record:** the refusal's audit row (under the offer's gap) and its idempotency record commit, then the error is raised. Expiry found at reply time is materialized (EXPIRED + next candidate) before the late reply is refused.
+- **Schema backstops:** partial unique index = one open offer per physician (R7); a trigger rejects any state change outside the transition table.
+- **Need is derived, never counted:** `ops.coverage.remaining_need` (forecast hard shortfall with accepted joiners as supply, or with consults waiting the current shortfall less joiners due within the horizon). Propose requires need at every offered hospital (trap guard); later re-checks require need at any.
+- **Parallel sends are allowed** (replaces A18): the lead approves each; the first committed acceptance wins; other open offers that no longer reduce any need are WITHDRAWN (SENT, with a "no longer needed" notice) or CANCELLED (PROPOSED/APPROVED). A later reply to a withdrawn offer gets 409 `already_filled`; an acceptance that finds no need left becomes ALREADY_FILLED.
+- **Late approval** moves the start to `now` and re-checks R6 on what is left; the move is in the audit row.
+- **Next candidate** after decline/expiry: best eligible physician not yet asked for this gap, for the hospitals that still need help, PROPOSED by `system` (lead approval still required). None left → audit `next_candidate:none` (the queue shows the escalation).
+- **Feedback:** `desk.accepted()` and `desk.history(now)` go into `decide()`; `decide()` also folds accepted shifts into R4/R5 itself, and accepted joiners close current gaps.
+- **Physician isolation:** another physician's offer returns 404, same as a missing one.
+- Pack check (`test_engine_offer_runs_end_to_end_through_the_desk`): dev pack, the engine's own PHY-809 offer goes propose → send → accept and SYN-146 stops being short (SYN-864 still escalates: the surge needs one more); validation pack, every off-shift physician is refused (422) for the example gap.
+
 ## 7. Edge cases and expected behavior
 
 | Case | Expected behavior | Test |
@@ -328,7 +340,7 @@ One row per transition and per decision pass that produced a recommendation: gap
 | 5 | `decide/eligibility.py`: windows, R1-R8, ranking | Sample table (F7), boundary tests per rule, nobody-eligible case (Cedar Ridge 21:00) |
 | 6 | `decide/interventions.py` + `rank.py`: fix choice, alternatives, incidents, queue | Top item at 18:20 with plain reason; order invariance |
 | 7 ✅ | `decide/routing_sim.py`: three runs and pass criteria; clock sweep and metrics | Trap shown unguarded, contained guarded; `test_routing_sim.py`, `test_pack_sweep.py` |
-| 8 | `act/offers.py` + schema: state machine, commands, sweep, audit | All flow tests in section 7 |
+| 8 ✅ | `act/offers.py` + schema: state machine, commands, sweep, audit | `test_offers.py` (all section 7 flow cases, atomicity, concurrency) |
 | 9 | Wire into snapshot and API contract with P1 (endpoints already listed in 00-Boundaries) | API tests; live-append and idempotent-ingest decision tests |
 | 10 | Generator-driven property tests (Krish's synthetic data): assert behavior, not IDs | Runs on two practice datasets |
 
@@ -342,7 +354,7 @@ Steps 1-7 are pure functions and can be tested without the database. Step 8 need
 | A9 | A physician leaves coverage exactly at shift end | Half-open intervals |
 | A12 | Simulated demand uses baseline mean, placed deterministically | No randomness in decisions |
 | A16 | Prior offers this week = 0 unless our offer log has some; shown explicitly | No offer history supplied |
-| A18 | Open sent offers per hospital ≤ remaining need | Stops over-offering, still parallel for multi-need |
+| A18 | ~~Open sent offers per hospital ≤ remaining need~~ Replaced in 6.6: parallel sends, first committed acceptance wins, the rest withdrawn | Handbook expects two doctors accepting the same need; sequential sends would also slow every fill by a full reply window |
 | A19 | First committed acceptance wins | Single serialized writer makes this exact |
 | A24b | Busy does not remove staffing coverage; TU does | Busy is transient, handled per consult |
 | A26 | Joiner seed = max(threshold + 1, min peer count at gap hospitals) | Rule 3 still floods a joiner below threshold |
