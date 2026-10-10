@@ -1,0 +1,43 @@
+name: backend-ci
+on:
+  push:
+  pull_request:
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.7"
+      - run: pip install -e '.[test]'
+      - run: pytest
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the portable image
+        run: docker build -t cc-backend:ci backend
+      - name: Start with a persistent volume and a Render-style port
+        run: |
+          mkdir -p "$RUNNER_TEMP/cc-data"
+          docker run -d --name cc-backend -e PORT=10000 -p 127.0.0.1:10000:10000 --mount "type=bind,source=$RUNNER_TEMP/cc-data,target=/data" cc-backend:ci
+      - name: Probe and commit a synthetic consult
+        run: python3 scripts/hosting_smoke.py seed --url http://127.0.0.1:10000
+      - name: Check the container's own health probe
+        run: docker exec cc-backend python -m app.healthcheck
+      - name: Replace the container while preserving its data disk
+        run: |
+          docker stop cc-backend
+          docker rm cc-backend
+          docker run -d --name cc-backend -e PORT=10000 -p 127.0.0.1:10000:10000 --mount "type=bind,source=$RUNNER_TEMP/cc-data,target=/data" cc-backend:ci
+      - name: Verify replay from persisted events
+        run: python3 scripts/hosting_smoke.py verify --url http://127.0.0.1:10000
+      - name: Show logs and clean up the test container
+        if: always()
+        run: |
+          docker logs cc-backend
+          docker rm -f cc-backend

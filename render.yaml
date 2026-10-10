@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: sevaro-command-center-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    numInstances: 1
+    healthCheckPath: /ready
+    disk:
+      name: command-center-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: CC_DB_PATH
+        value: /data/cc.db
+      - key: CC_CLOCK_MODE
+        value: auto
+      - key: CC_DATA_DIR
+        value: /data/ref

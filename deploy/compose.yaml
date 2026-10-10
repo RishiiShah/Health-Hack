@@ -1,0 +1,23 @@
+# Shared AWS EC2 / Azure Linux VM fallback. Mount the durable disk before starting.
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "8000"
+      CC_DB_PATH: /data/cc.db
+      CC_DATA_DIR: /data/ref
+      CC_CLOCK_MODE: ${CC_CLOCK_MODE:-auto}
+      CC_CLOCK_FIXED: ${CC_CLOCK_FIXED:-}
+    # A TLS reverse proxy/load balancer on this host forwards to localhost:8000.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - type: bind
+        source: ${CC_HOST_DATA_DIR:?Set CC_HOST_DATA_DIR to the mounted durable disk}
+        target: /data
+        bind:
+          create_host_path: false
+    stop_grace_period: 40s
