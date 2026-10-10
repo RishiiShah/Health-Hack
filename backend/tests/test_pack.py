@@ -265,3 +265,33 @@ def test_example_offer_goes_to_an_answer_key_eligible_physician_or_escalates(pat
             if i.fix.kind == "escalate":
                 assert {a.split(":")[0] for a in i.fix.alternatives} >= set(pack.ops.roster)
     assert any(i.fix.kind == "split_shift" for i in items) == bool(eligible)
+
+
+@by_pack
+def test_engine_offer_runs_end_to_end_through_the_desk(path, db_url):
+    """The engine's own recommendation goes through propose -> approve/send -> accept, and then stops being recommended.
+    With no eligible physician (validation pack) the desk refuses every one of them for the example gap."""
+    from app.act.offers import Context, OfferDesk, OfferError
+    pack = load_pack(path)
+    now = pack.time("1820")
+    state = state_at(pack.rows, now)
+    desk = OfferDesk(db_url, lambda: Context(state, pack.refs, pack.ops, now), pack.history(now))
+    d = decide(state, pack.refs, pack.ops, now, desk.history(now), desk.accepted())
+    offers = [i for i in d.items if i.fix.kind == "split_shift"]
+    if not pack.manifest["eligible_candidates_for_example_offer"]:
+        key = json.loads((path / "expected/candidate_checks_1820.json").read_text())
+        p = key["proposal"]
+        for pid in pack.ops.roster:
+            with pytest.raises(OfferError) as exc:
+                desk.propose("example", pid, datetime.fromisoformat(p["start"]), datetime.fromisoformat(p["end"]), p["hospitals"], "coordinator")
+            assert exc.value.status == 422
+        assert desk.offers() == [] and desk.outbox() == []
+        return
+    item = offers[0]
+    best = next(c for c in item.candidates if c.physician_id == item.fix.physician_id)
+    o = desk.propose(item.id, best.physician_id, best.start, best.end, best.hospitals, "coordinator")
+    assert desk.approve(o["id"], "lead")["state"] == "SENT"
+    assert desk.accept(o["id"], best.physician_id)["state"] == "ACCEPTED"
+    after = decide(state, pack.refs, pack.ops, now, desk.history(now), desk.accepted())
+    assert not [i for i in after.items if i.fix.kind == "split_shift" and i.fix.physician_id == best.physician_id]
+    assert not [i for i in after.items if i.fix.kind == "split_shift" and set(i.where.get("hospital_ids") or [i.where.get("hospital_id")]) & set(best.hospitals)]
