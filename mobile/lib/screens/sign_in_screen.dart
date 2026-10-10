@@ -13,11 +13,13 @@ class SignInScreen extends StatefulWidget {
     this.onSignIn,
     this.showDemoAccounts = true,
     this.onPreview,
+    this.onDemo,
   });
 
   final SignInCallback? onSignIn;
   final bool showDemoAccounts;
   final VoidCallback? onPreview;
+  final VoidCallback? onDemo;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -71,6 +73,14 @@ class _SignInScreenState extends State<SignInScreen> {
     body: ScreenBody(
       children: [
         const SizedBox(height: 24),
+        if (widget.onDemo != null) ...[
+          FilledButton.icon(
+            onPressed: widget.onDemo,
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Open working demo'),
+          ),
+          const SizedBox(height: 12),
+        ],
         if (widget.onPreview != null) ...[
           OutlinedButton.icon(
             onPressed: widget.onPreview,

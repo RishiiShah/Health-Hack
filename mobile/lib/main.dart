@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import 'screens/preview/preview_menu.dart';
+import 'screens/demo_workspace.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/theme.dart';
 
@@ -44,6 +45,13 @@ class _SevaroAppState extends State<SevaroApp> {
         widget.home ??
         Builder(
           builder: (context) => SignInScreen(
+            onDemo: kDebugMode
+                ? () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const DemoWorkspace(),
+                    ),
+                  )
+                : null,
             onPreview:
                 kDebugMode &&
                     const bool.fromEnvironment(

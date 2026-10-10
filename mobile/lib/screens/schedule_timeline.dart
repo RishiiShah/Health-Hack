@@ -21,12 +21,14 @@ class TimelineEntry {
     required this.startHour,
     required this.endHour,
     required this.kind,
+    this.highlighted = false,
   });
   final String name;
   final String hoursLabel;
   final double startHour;
   final double endHour;
   final TimelineKind kind;
+  final bool highlighted;
 }
 
 class ScheduleTimeline extends StatelessWidget {
@@ -87,9 +89,9 @@ class ScheduleTimeline extends StatelessWidget {
         ),
         LayoutBuilder(
           builder: (context, constraints) {
-            // A readable shared axis scrolls within the card at narrow widths or
-            // large text sizes, instead of changing the duration of short shifts.
-            final width = math.max(constraints.maxWidth, scaler.scale(240));
+            // Keep the shared axis within the phone viewport. Exact names and
+            // ranges below the chart remain readable when a bar truncates text.
+            final width = constraints.maxWidth;
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
@@ -139,6 +141,12 @@ class ScheduleTimeline extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: entries[index].kind.color,
                                   borderRadius: BorderRadius.circular(24),
+                                  border: entries[index].highlighted
+                                      ? Border.all(
+                                          color: const Color(0xFF172831),
+                                          width: 3,
+                                        )
+                                      : null,
                                 ),
                                 child: ExcludeSemantics(
                                   child: Text(

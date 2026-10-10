@@ -12,6 +12,8 @@ class RoleHome extends StatefulWidget {
     required this.leadPages,
     this.onOpenWebDashboard,
     this.initialIndex = 0,
+    this.actions = const [],
+    this.tabIndex,
   }) : assert(physicianPages.length == 4),
        assert(leadPages.length == 4),
        assert(initialIndex >= 0 && initialIndex < 4);
@@ -21,6 +23,8 @@ class RoleHome extends StatefulWidget {
   final List<WidgetBuilder> leadPages;
   final VoidCallback? onOpenWebDashboard;
   final int initialIndex;
+  final List<Widget> actions;
+  final ValueNotifier<int>? tabIndex;
 
   @override
   State<RoleHome> createState() => _RoleHomeState();
@@ -28,10 +32,37 @@ class RoleHome extends StatefulWidget {
 
 class _RoleHomeState extends State<RoleHome> {
   late int _index = widget.initialIndex;
+  @override
+  void initState() {
+    super.initState();
+    widget.tabIndex?.addListener(_externalTab);
+  }
+
+  void _externalTab() {
+    final index = widget.tabIndex?.value;
+    if (index != null && index >= 0 && index < 4 && index != _index) {
+      setState(() => _index = index);
+    }
+  }
+
+  void _select(int index) {
+    setState(() => _index = index);
+    widget.tabIndex?.value = index;
+  }
+
+  @override
+  void dispose() {
+    widget.tabIndex?.removeListener(_externalTab);
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant RoleHome oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.tabIndex != widget.tabIndex) {
+      oldWidget.tabIndex?.removeListener(_externalTab);
+      widget.tabIndex?.addListener(_externalTab);
+    }
     if (oldWidget.role != widget.role) _index = 0;
   }
 
@@ -81,7 +112,7 @@ class _RoleHomeState extends State<RoleHome> {
           ];
     final pages = physician ? widget.physicianPages : widget.leadPages;
     return Scaffold(
-      appBar: AppBar(title: Text(labels[_index])),
+      appBar: AppBar(title: Text(labels[_index]), actions: widget.actions),
       body: KeyedSubtree(
         key: ValueKey('${widget.role}/$_index'),
         child: pages[_index](context),
@@ -117,7 +148,7 @@ class _RoleHomeState extends State<RoleHome> {
                       title: Text(labels[index]),
                       onTap: () {
                         Navigator.pop(sheetContext);
-                        setState(() => _index = index);
+                        _select(index);
                       },
                     ),
                 ],
@@ -153,7 +184,7 @@ class _RoleHomeState extends State<RoleHome> {
                           : const Color(0xFF787E84),
                       minimumSize: const Size(48, 56),
                     ),
-                    onPressed: () => setState(() => _index = index),
+                    onPressed: () => _select(index),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [

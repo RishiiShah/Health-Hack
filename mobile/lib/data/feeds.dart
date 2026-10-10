@@ -33,6 +33,7 @@ class PollingPhysicianFeed implements PhysicianFeed {
   Timer? _timer;
   StreamSubscription<bool>? _vis;
   bool _running = false;
+  int _generation = 0;
   Future<void>? _inFlight;
 
   @override
@@ -61,6 +62,8 @@ class PollingPhysicianFeed implements PhysicianFeed {
   @override
   void stop() {
     _running = false;
+    _generation++;
+    _inFlight = null;
     _timer?.cancel();
     _vis?.cancel();
     _vis = null;
@@ -75,37 +78,41 @@ class PollingPhysicianFeed implements PhysicianFeed {
   Future<void> refreshNow() => _poll();
 
   Future<void> _poll() {
-    return _inFlight ??= _doPoll().whenComplete(() => _inFlight = null);
+    if (!_running || _browser.hidden) return Future.value();
+    final generation = _generation;
+    return _inFlight ??= _doPoll(generation).whenComplete(() {
+      if (generation == _generation) _inFlight = null;
+    });
   }
 
-  Future<void> _doPoll() async {
+  Future<void> _doPoll(int generation) async {
     _timer?.cancel();
-    await Future.wait([_loadOffers(), _loadNotifications()]);
-    if (_running && !_browser.hidden) {
+    await Future.wait([_loadOffers(generation), _loadNotifications(generation)]);
+    if (_running && generation == _generation && !_browser.hidden) {
       final anySent = _offers.value.data?.anySent ?? false;
       _timer = Timer(anySent ? fast : slow, _poll);
     }
   }
 
-  Future<void> _loadOffers() async {
+  Future<void> _loadOffers(int generation) async {
     try {
       final list = await _repo.listOffers();
-      if (!_running) return;
+      if (!_running || generation != _generation) return;
       _offers.value = FeedState(data: list);
       _detect(list);
     } catch (e) {
-      if (!_running) return;
+      if (!_running || generation != _generation) return;
       _offers.value = FeedState(data: _offers.value.data, error: e);
     }
   }
 
-  Future<void> _loadNotifications() async {
+  Future<void> _loadNotifications(int generation) async {
     try {
       final list = await _repo.notifications();
-      if (!_running) return;
+      if (!_running || generation != _generation) return;
       _notifications.value = FeedState(data: list);
     } catch (e) {
-      if (!_running) return;
+      if (!_running || generation != _generation) return;
       _notifications.value = FeedState(data: _notifications.value.data, error: e);
     }
   }
@@ -144,6 +151,7 @@ class PollingLeadFeed implements LeadFeed {
   Timer? _timer;
   StreamSubscription<bool>? _vis;
   bool _running = false;
+  int _generation = 0;
   Future<void>? _inFlight;
 
   @override
@@ -170,6 +178,8 @@ class PollingLeadFeed implements LeadFeed {
   @override
   void stop() {
     _running = false;
+    _generation++;
+    _inFlight = null;
     _timer?.cancel();
     _vis?.cancel();
     _vis = null;
@@ -182,30 +192,34 @@ class PollingLeadFeed implements LeadFeed {
   Future<void> refreshNow() => _poll();
 
   Future<void> _poll() {
-    return _inFlight ??= _doPoll().whenComplete(() => _inFlight = null);
+    if (!_running || _browser.hidden) return Future.value();
+    final generation = _generation;
+    return _inFlight ??= _doPoll(generation).whenComplete(() {
+      if (generation == _generation) _inFlight = null;
+    });
   }
 
-  Future<void> _doPoll() async {
+  Future<void> _doPoll(int generation) async {
     _timer?.cancel();
-    await Future.wait([_loadQueue(), _loadActive()]);
-    if (_running && !_browser.hidden) _timer = Timer(interval, _poll);
+    await Future.wait([_loadQueue(generation), _loadActive(generation)]);
+    if (_running && generation == _generation && !_browser.hidden) _timer = Timer(interval, _poll);
   }
 
-  Future<void> _loadQueue() async {
+  Future<void> _loadQueue(int generation) async {
     try {
       final q = await _repo.queue();
-      if (!_running) return;
+      if (!_running || generation != _generation) return;
       _queue.value = FeedState(data: q);
     } catch (e) {
-      if (!_running) return;
+      if (!_running || generation != _generation) return;
       _queue.value = FeedState(data: _queue.value.data, error: e);
     }
   }
 
-  Future<void> _loadActive() async {
+  Future<void> _loadActive(int generation) async {
     try {
       final list = await _repo.activeOffers();
-      if (!_running) return;
+      if (!_running || generation != _generation) return;
       _active.value = FeedState(data: list);
       final previous = _lastStatus;
       for (final b in list.broadcasts) {
@@ -224,7 +238,7 @@ class PollingLeadFeed implements LeadFeed {
           for (final o in b.offers) o.offerId: o.status,
       };
     } catch (e) {
-      if (!_running) return;
+      if (!_running || generation != _generation) return;
       _active.value = FeedState(data: _active.value.data, error: e);
     }
   }
