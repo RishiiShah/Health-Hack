@@ -1,0 +1,343 @@
+{
+  "gap_id": "GAP-SYN-005-1900",
+  "evaluated_at": "2026-03-17T18:21:00-04:00",
+  "candidates": [
+    {
+      "physician_id": "PHY-009",
+      "display_name": "Dr. Grace Okafor",
+      "eligible": true,
+      "rank": 1,
+      "rules": [
+        {
+          "rule": "R1",
+          "name": "Opted in",
+          "passed": true,
+          "detail": "Opted in to split shifts"
+        },
+        {
+          "rule": "R2",
+          "name": "Credentialed where needed",
+          "passed": true,
+          "detail": "Credentialed at Suncrest Medical Pavilion"
+        },
+        {
+          "rule": "R3",
+          "name": "Rested",
+          "passed": true,
+          "detail": "12 h since last shift"
+        },
+        {
+          "rule": "R4",
+          "name": "Weekly hours",
+          "passed": true,
+          "detail": "40 of 60 h with this offer"
+        },
+        {
+          "rule": "R5",
+          "name": "No overlap",
+          "passed": true,
+          "detail": "Next shift Wed 18 Mar 19:00"
+        },
+        {
+          "rule": "R6",
+          "name": "Long enough",
+          "passed": true,
+          "detail": "4 h; online in 15 min"
+        },
+        {
+          "rule": "R7",
+          "name": "One open offer",
+          "passed": true,
+          "detail": "No other open offer"
+        },
+        {
+          "rule": "R8",
+          "name": "Weekly offer limit",
+          "passed": true,
+          "detail": "Fewer than 3 offers this week"
+        }
+      ]
+    },
+    {
+      "physician_id": "PHY-010",
+      "display_name": "Dr. Ben Alvarez",
+      "eligible": false,
+      "rank": null,
+      "rules": [
+        {
+          "rule": "R1",
+          "name": "Opted in",
+          "passed": true,
+          "detail": "Opted in to split shifts"
+        },
+        {
+          "rule": "R2",
+          "name": "Credentialed where needed",
+          "passed": false,
+          "detail": "Not credentialed at Suncrest Medical Pavilion"
+        },
+        {
+          "rule": "R3",
+          "name": "Rested",
+          "passed": true,
+          "detail": "23 h since last shift"
+        },
+        {
+          "rule": "R4",
+          "name": "Weekly hours",
+          "passed": true,
+          "detail": "28 of 60 h with this offer"
+        },
+        {
+          "rule": "R5",
+          "name": "No overlap",
+          "passed": true,
+          "detail": "Next shift Thu 19 Mar 08:00"
+        },
+        {
+          "rule": "R6",
+          "name": "Long enough",
+          "passed": true,
+          "detail": "4 h; online in 10 min"
+        },
+        {
+          "rule": "R7",
+          "name": "One open offer",
+          "passed": true,
+          "detail": "No other open offer"
+        },
+        {
+          "rule": "R8",
+          "name": "Weekly offer limit",
+          "passed": true,
+          "detail": "Fewer than 3 offers this week"
+        }
+      ]
+    },
+    {
+      "physician_id": "PHY-011",
+      "display_name": "Dr. Hannah Cho",
+      "eligible": false,
+      "rank": null,
+      "rules": [
+        {
+          "rule": "R1",
+          "name": "Opted in",
+          "passed": true,
+          "detail": "Opted in to split shifts"
+        },
+        {
+          "rule": "R2",
+          "name": "Credentialed where needed",
+          "passed": true,
+          "detail": "Credentialed at Suncrest Medical Pavilion"
+        },
+        {
+          "rule": "R3",
+          "name": "Rested",
+          "passed": true,
+          "detail": "12 h since last shift"
+        },
+        {
+          "rule": "R4",
+          "name": "Weekly hours",
+          "passed": true,
+          "detail": "52 of 60 h with this offer"
+        },
+        {
+          "rule": "R5",
+          "name": "No overlap",
+          "passed": false,
+          "detail": "Already scheduled from 19:00"
+        },
+        {
+          "rule": "R6",
+          "name": "Long enough",
+          "passed": true,
+          "detail": "4 h; online now"
+        },
+        {
+          "rule": "R7",
+          "name": "One open offer",
+          "passed": true,
+          "detail": "No other open offer"
+        },
+        {
+          "rule": "R8",
+          "name": "Weekly offer limit",
+          "passed": true,
+          "detail": "Fewer than 3 offers this week"
+        }
+      ]
+    },
+    {
+      "physician_id": "PHY-012",
+      "display_name": "Dr. Omar Haddad",
+      "eligible": false,
+      "rank": null,
+      "rules": [
+        {
+          "rule": "R1",
+          "name": "Opted in",
+          "passed": false,
+          "detail": "Opted out of split shifts"
+        },
+        {
+          "rule": "R2",
+          "name": "Credentialed where needed",
+          "passed": false,
+          "detail": "Not credentialed at Suncrest Medical Pavilion"
+        },
+        {
+          "rule": "R3",
+          "name": "Rested",
+          "passed": true,
+          "detail": "35 h since last shift"
+        },
+        {
+          "rule": "R4",
+          "name": "Weekly hours",
+          "passed": true,
+          "detail": "40 of 60 h with this offer"
+        },
+        {
+          "rule": "R5",
+          "name": "No overlap",
+          "passed": false,
+          "detail": "Already scheduled from 20:00"
+        },
+        {
+          "rule": "R6",
+          "name": "Long enough",
+          "passed": true,
+          "detail": "4 h; online now"
+        },
+        {
+          "rule": "R7",
+          "name": "One open offer",
+          "passed": true,
+          "detail": "No other open offer"
+        },
+        {
+          "rule": "R8",
+          "name": "Weekly offer limit",
+          "passed": true,
+          "detail": "Fewer than 3 offers this week"
+        }
+      ]
+    },
+    {
+      "physician_id": "PHY-013",
+      "display_name": "Dr. Lucy Brennan",
+      "eligible": false,
+      "rank": null,
+      "rules": [
+        {
+          "rule": "R1",
+          "name": "Opted in",
+          "passed": false,
+          "detail": "Opted out of split shifts"
+        },
+        {
+          "rule": "R2",
+          "name": "Credentialed where needed",
+          "passed": true,
+          "detail": "Credentialed at Suncrest Medical Pavilion"
+        },
+        {
+          "rule": "R3",
+          "name": "Rested",
+          "passed": true,
+          "detail": "23 h since last shift"
+        },
+        {
+          "rule": "R4",
+          "name": "Weekly hours",
+          "passed": true,
+          "detail": "52 of 60 h with this offer"
+        },
+        {
+          "rule": "R5",
+          "name": "No overlap",
+          "passed": true,
+          "detail": "Next shift Wed 18 Mar 08:00"
+        },
+        {
+          "rule": "R6",
+          "name": "Long enough",
+          "passed": true,
+          "detail": "4 h; online in 20 min"
+        },
+        {
+          "rule": "R7",
+          "name": "One open offer",
+          "passed": true,
+          "detail": "No other open offer"
+        },
+        {
+          "rule": "R8",
+          "name": "Weekly offer limit",
+          "passed": true,
+          "detail": "Fewer than 3 offers this week"
+        }
+      ]
+    },
+    {
+      "physician_id": "PHY-014",
+      "display_name": "Dr. Ravi Menon",
+      "eligible": false,
+      "rank": null,
+      "rules": [
+        {
+          "rule": "R1",
+          "name": "Opted in",
+          "passed": true,
+          "detail": "Opted in to split shifts"
+        },
+        {
+          "rule": "R2",
+          "name": "Credentialed where needed",
+          "passed": true,
+          "detail": "Credentialed at Suncrest Medical Pavilion"
+        },
+        {
+          "rule": "R3",
+          "name": "Rested",
+          "passed": true,
+          "detail": "23 h since last shift"
+        },
+        {
+          "rule": "R4",
+          "name": "Weekly hours",
+          "passed": false,
+          "detail": "63 h in 7 days with this offer, limit 60"
+        },
+        {
+          "rule": "R5",
+          "name": "No overlap",
+          "passed": true,
+          "detail": "Next shift Thu 19 Mar 07:00"
+        },
+        {
+          "rule": "R6",
+          "name": "Long enough",
+          "passed": true,
+          "detail": "4 h; online in 40 min"
+        },
+        {
+          "rule": "R7",
+          "name": "One open offer",
+          "passed": true,
+          "detail": "No other open offer"
+        },
+        {
+          "rule": "R8",
+          "name": "Weekly offer limit",
+          "passed": true,
+          "detail": "Fewer than 3 offers this week"
+        }
+      ]
+    }
+  ],
+  "server_now": "2026-03-17T18:22:00-04:00"
+}

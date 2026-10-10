@@ -1,0 +1,41 @@
+{
+  "outcome": "released",
+  "applied": true,
+  "offer": {
+    "offer_id": "OFF-0007",
+    "gap_id": "GAP-SYN-005-1900",
+    "hospitals": [
+      {
+        "hospital_id": "SYN-005",
+        "name": "Suncrest Medical Pavilion"
+      }
+    ],
+    "start": "2026-03-17T19:00:00-04:00",
+    "end": "2026-03-17T23:00:00-04:00",
+    "hours": 4.0,
+    "reason": "You are credentialed at Suncrest Medical Pavilion and available tonight.",
+    "status": "released",
+    "status_reason": null,
+    "sent_at": "2026-03-17T18:25:00-04:00",
+    "expires_at": "2026-03-17T18:35:00-04:00",
+    "responded_at": "2026-03-17T18:27:10-04:00",
+    "routing_hospitals": [
+      {
+        "hospital_id": "SYN-005",
+        "name": "Suncrest Medical Pavilion"
+      }
+    ],
+    "approved_at": "2026-03-17T18:24:00-04:00",
+    "gap_summary": "Suncrest will be one physician short from 19:00. You'd be the second.",
+    "sign_in_by": "2026-03-17T18:55:00-04:00",
+    "why_you": [
+      "Credentialed at Suncrest",
+      "12 h rested since your last shift",
+      "40 of 60 h this week, so you stay under the limit"
+    ],
+    "allowed_actions": [],
+    "next_steps": [],
+    "coverage_after": null
+  },
+  "server_now": "2026-03-17T18:29:00-04:00"
+}

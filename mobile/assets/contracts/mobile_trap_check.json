@@ -1,0 +1,9 @@
+{
+  "gap_id": "GAP-SYN-005-1900",
+  "result": "pass",
+  "explanation": "Joiner limited to Suncrest and seeded at 12 consults; gap closes, no other hospital worsens.",
+  "seed_consults": 12,
+  "joiner_projected_consults": 3,
+  "busiest_peer_projected_consults": 5,
+  "server_now": "2026-03-17T18:22:00-04:00"
+}

@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "forbidden",
+    "message": "Only the clinical lead on duty can approve offers."
+  }
+}

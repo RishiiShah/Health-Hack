@@ -1,0 +1,16 @@
+{
+  "user_id": "shah@demo.sevaro",
+  "role": "physician",
+  "display_name": "Dr. Priya Shah",
+  "physician_id": "PHY-005",
+  "permissions": [
+    "offer.respond",
+    "preferences.update"
+  ],
+  "split_shift_opt_in": null,
+  "offers_received_7d": 0,
+  "weekly_offer_limit": 3,
+  "on_shift": true,
+  "shift_end": "2026-03-17T20:00:00-04:00",
+  "server_now": "2026-03-17T18:20:00-04:00"
+}
