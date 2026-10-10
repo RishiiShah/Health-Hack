@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from pathlib import Path
 import pytest
 from app.main import create_app
+from conftest import ADMIN, COORD, TEST_AUTH
 
 def t(value): return datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
 
@@ -58,10 +59,10 @@ def test_all_base_fixture_rows_have_explicit_adapter_metadata_and_validate(db_ur
     assert sum(c.stage != "Signed Off" for c in coordinator.published.state.consults.values()) == 18
 
 def test_api_contract_reports_incomplete_capabilities(db_url):
-    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")))
+    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")), auth=TEST_AUTH, sweep_s=0)
     with TestClient(api) as client:
         ready = client.get("/ready").json()
-        snapshot = client.get("/snapshot").json()
+        snapshot = client.get("/snapshot", headers=COORD).json()
     assert ready["capabilities"]["orphan_holding"] is True
     assert snapshot["physicians"]["supported"] is False
     assert snapshot["coverage"]["supported"] is False
@@ -184,22 +185,22 @@ def test_signed_off_consult_is_unchanged_by_later_events():
 
 @pytest.mark.parametrize("field", ["event_id", "consult_id", "physician_id", "hospital_id"])
 def test_api_rejects_blank_identifiers_without_mutation(db_url, field):
-    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")))
+    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")), auth=TEST_AUTH, sweep_s=0)
     row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z",
            "event_type": "consult_received", "consult_id": "C", "hospital_id": "H", "consult_type": "Stroke"}
     row[field] = "   "
     with TestClient(api) as client:
-        assert client.post("/events", json=row).status_code == 422
+        assert client.post("/events", headers=ADMIN, json=row).status_code == 422
         assert client.get("/ready").json()["event_count"] == 0
 
 
 def test_api_rejects_unknown_fields_instead_of_silently_ignoring_them(db_url):
-    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")))
+    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")), auth=TEST_AUTH, sweep_s=0)
     row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z",
            "event_type": "consult_received", "consult_id": "C", "hospital_id": "H",
            "consult_type": "Stroke", "physican_id": "P1"}
     with TestClient(api) as client:
-        assert client.post("/events", json=row).status_code == 422
+        assert client.post("/events", headers=ADMIN, json=row).status_code == 422
         assert client.get("/ready").json()["event_count"] == 0
 
 
@@ -245,11 +246,11 @@ def test_batch_row_limit_rejects_entire_request(db_url, monkeypatch):
     from importlib import import_module
     main = import_module("app.main")
     monkeypatch.setattr(main, "settings", replace(main.settings, max_batch_rows=1))
-    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")))
+    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")), auth=TEST_AUTH, sweep_s=0)
     row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z", "event_type": "consult_received",
            "consult_id": "C", "hospital_id": "H", "consult_type": "Stroke"}
     with TestClient(api) as client:
-        assert client.post("/events", json=[row, {**row, "event_id": "r2"}]).status_code == 413
+        assert client.post("/events", headers=ADMIN, json=[row, {**row, "event_id": "r2"}]).status_code == 413
         assert client.get("/ready").json()["event_count"] == 0
 
 
@@ -270,17 +271,17 @@ def test_failed_startup_closes_database(db_url, monkeypatch):
 
 def test_snapshot_cache_reuses_bytes_within_a_second_but_never_hides_new_events(db_url):
     clock = FixedClock(t("2026-03-17T13:00:00"))
-    api = create_app(db_url, clock)
+    api = create_app(db_url, clock, auth=TEST_AUTH, sweep_s=0)
     row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z", "event_type": "consult_received",
            "consult_id": "C", "hospital_id": "H", "consult_type": "Stroke"}
     with TestClient(api) as client:
-        first = client.get("/snapshot").content
+        first = client.get("/snapshot", headers=COORD).content
         clock.value = t("2026-03-17T13:00:00.900000")
-        assert client.get("/snapshot").content == first
-        client.post("/events", json=row)
-        assert client.get("/snapshot").json()["headline"]["open_consults"] == 1
+        assert client.get("/snapshot", headers=COORD).content == first
+        client.post("/events", headers=ADMIN, json=row)
+        assert client.get("/snapshot", headers=COORD).json()["headline"]["open_consults"] == 1
         clock.value = t("2026-03-17T13:01:00")
-        assert client.get("/snapshot").json()["consults"][0]["minutes_in_stage"] == 61
+        assert client.get("/snapshot", headers=COORD).json()["consults"][0]["minutes_in_stage"] == 61
 
 
 def test_second_writer_reloads_committed_log_instead_of_overwriting_it(db_url):
