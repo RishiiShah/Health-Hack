@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ApiError, api } from "../api/client.ts";
-import type { Snapshot } from "../api/live.ts";
+import { STATIC_OFFERS, type Snapshot } from "../api/live.ts";
 import { serverNow } from "./time.ts";
 
 export type Loaded<T> = { data: T | null; error: ApiError | null };
@@ -11,7 +11,10 @@ export function useApi<T>(path: string | null, reloadKey?: unknown): Loaded<T> {
   useEffect(() => {
     if (!path) return;
     let current = true;
-    api<T>(path).then(
+    api<T>(path).catch((error: unknown) => {
+      if (path === "/offers") return STATIC_OFFERS as T;
+      throw error;
+    }).then(
       (data) => current && setState({ data, error: null }),
       (error: ApiError) => current && setState((prev) => ({ data: prev.data, error })),
     );

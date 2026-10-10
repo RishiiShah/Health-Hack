@@ -1,0 +1,7 @@
+import { useState } from "react";
+import type { QueueItem } from "./types.ts";
+
+export function AttentionQueue({ items, selected, onSelect }: { items: QueueItem[]; selected: string; onSelect: (item: QueueItem) => void }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  return <section className="panel detect-panel"><div className="panel-head"><div><h2>Attention queue</h2><span className="panel-note">Ranked by server priority score</span></div><span className="mono panel-note">18:20 ET</span></div><div className="queue-list">{items.slice().sort((a, b) => b.score - a.score).map((item, index) => <div className={`queue-item ${selected === item.id ? "selected" : ""}`} key={item.id}><button className="queue-main" onClick={() => onSelect(item)}><b className="rank">#{index + 1}</b><span><strong>{item.id}</strong><small>{item.reason}</small></span><span className={`badge ${item.level === "Critical" ? "red" : "amber"}`}>{item.level}</span><b className="score">{item.score}</b></button><button className="breakdown-toggle" onClick={() => setExpanded(expanded === item.id ? null : item.id)}>{expanded === item.id ? "Hide score" : "Score details"}</button>{expanded === item.id && <div className="score-breakdown"><span>Age / urgency <b>{Math.round(item.score * .45)}</b></span><span>Operational impact <b>{Math.round(item.score * .35)}</b></span><span>Confidence adjustment <b>{Math.round(item.score * .2)}</b></span></div>}</div>)}</div></section>;
+}

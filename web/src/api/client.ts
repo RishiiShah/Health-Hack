@@ -1,4 +1,8 @@
-// Minimal scaffold for Anish to replace: fetch wrapper with the bearer token and typed errors.
+import { STATIC_OFFERS, STATIC_SNAPSHOT } from "./live.ts";
+
+export const LOCAL_MOCK_MODE = true;
+
+// Local demos stay entirely in memory; no proxy or backend request is needed.
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -16,6 +20,11 @@ function token(): string | null {
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  if (LOCAL_MOCK_MODE) {
+    if (path === "/snapshot") return STATIC_SNAPSHOT as T;
+    if (path === "/offers") return STATIC_OFFERS as T;
+    return {} as T;
+  }
   const headers = new Headers(init.headers);
   const bearer = token();
   if (bearer) headers.set("Authorization", `Bearer ${bearer}`);

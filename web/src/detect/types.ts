@@ -1,0 +1,4 @@
+export type QueueItem = { id: string; kind: string; level: string; score: number; reason: string; uncertainty: string; where: string; why: string; fix: string; approver: string };
+export type Consult = { id: string; hospital: string; type: string; stage: string; minutesInStage: number; minutesSinceCall: number; level: string };
+export type Physician = { id: string; name: string; status: string; synapse: string; camera: string; helper: string; canTakeCalls: boolean; workload: string; reason: string };
+export type DetectSnapshot = { headline: Record<string, number>; queue: QueueItem[]; consults: Consult[]; physicians: Physician[]; stuck: { id: string; failures: number; retryAt: string; eligible: string[]; excluded: string[] }[]; signals: { physician: string; detail: string; tone: string }[] };
