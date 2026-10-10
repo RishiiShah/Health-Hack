@@ -6,3 +6,5 @@
 - Keep accuracy and deterministic replay ahead of shortcuts. Measure operational latency before claiming performance improvements.
 - Use Python 3.14.7 and keep CI, the Docker image and runtime documentation aligned. Hosting preference: Render, AWS, then Azure.
 - Never commit source data, local environments, databases or secrets. Run the backend tests before pushing implementation changes.
+
+- Routing and operations decisions must use deterministic rules and explicit optimization constraints. Do not add AI/ML models, training pipelines, inference services or model-provider dependencies. Document capacities, objective weights and stable tie-breakers.

@@ -1,8 +1,16 @@
-# Sevaro Command Center PRD v2.1
+# Sevaro Command Center PRD v2.2
 
 Oct 10, 2026 · @Rishabh
 
 Updated against the supplied March 17, 2026 fixtures. [Backend Scaffold Review](Backend%20Scaffold%20Review.md) records the original discrepancies; [Command Center Backend Scaffold](Command%20Center%20Backend%20Scaffold.md) defines the implementation contract. The source CSVs remain unchanged. Expected values below describe this dataset; synthetic cases are explicitly identified.
+
+## Organizer clarification and testing data
+
+Carl Dugart confirmed that judging will introduce held-out data covering the same operational scenarios, including additional March 17, 2026 calls/consults. Longer-term history is unnecessary: these scenarios can occur within one day. For team-generated dataset extensions, he recommends a different date and different ID prefixes, such as `EVT-T0001`. Exact delivery format, clock control, reference changes and schema/value compatibility have not yet been confirmed.
+
+Maintain three separate uses: the unchanged March 17 base/snapshot fixtures; controlled March 17 append rehearsals in a disposable test database to prepare for judging; and independently generated single-day practice datasets on another service date with unique event/consult prefixes and consistent references. Generated rows must preserve scenario/schema relationships, not add invented external factors. Do not mix practice data into the judging base or replace it with a generated history.
+
+Generality is tested with other dates and ID prefixes. Live correctness is tested by appending new events without restart/reset, preserving prior state, enforcing event-time visibility, and handling repeated/late deliveries. No seven-day/month-long synthetic history is required. Near-term operational projections use current workload, roster intervals and supplied baseline/coverage inputs with explicit assumptions; synthetic scenarios verify rule/constraint behavior; they do not prove real-world assignment improvements. [P2 handoff](P2-Backend.md) distinguishes domain verification from the P1/P3 integration still required.
 
 ## Overview
 
@@ -45,7 +53,7 @@ FastAPI backend on Render, Vite + React dashboard on Vercel, one deterministic e
 | --- | --- | --- |
 | Backend | Python 3.14.7, FastAPI, Pydantic v2 | Native async and WebSockets; OpenAPI schema lets frontend generate types and work in parallel |
 | Engine | Pure Python replay functions, stdlib csv for reference loads | Deterministic, testable against snapshots |
-| Storage | SQLite on a persistent disk | Event log, quarantine, audit; append-only |
+| Storage | Amazon RDS for PostgreSQL | Event log, quarantine, audit; append-only |
 | Dashboard | Vite, React, TypeScript, Tailwind, ECharts | Client-only app; server rendering adds nothing |
 | Contract | `openapi-typescript` | Frontend types generated from backend schema |
 | Physician app (stretch) | Flutter web | Judges open a URL on any phone |
@@ -53,10 +61,10 @@ FastAPI backend on Render, Vite + React dashboard on Vercel, one deterministic e
 
 **Hosting**
 
-- Backend: Render paid web service, 1 uvicorn worker, persistent disk. Free tier loses SQLite on restart and spins down after 15 min idle.
+- Backend: Render paid web service in Virginia, 1 uvicorn worker, events in RDS PostgreSQL (us-east-1). The free tier spins down after 15 min idle.
 - Dashboard and Flutter web: Vercel, preview URL per pull request.
 - First fallback: AWS EC2 with the same Docker image and a local-filesystem EBS data volume.
-- Last resort: Azure Linux VM with the same image and a managed data disk. Azure Container Apps/Azure Files is not a drop-in SQLite WAL deployment. See [Deployment](Deployment.md) for configurations and storage constraints.
+- Last resort: Azure Linux VM with the same image and a managed data disk. See [Deployment](Deployment.md) for configurations and storage constraints.
 
 **Clock**
 
@@ -240,11 +248,13 @@ The sample's source snapshot shows PHY-007 with 6 calls, not an unanswered-ring 
 
 ## Operations recommendations after core
 
+**Implementation constraint:** routing is a deterministic constrained-allocation problem. Use current state, credentials, shift membership, availability and explicit per-physician capacity to define feasible assignments; use documented operational costs and stable tie-breakers to compare them. No AI/ML model, training pipeline, inference service or model-provider dependency is required or allowed in this design. Coverage forecasts are explicit schedule/demand scenarios. Pydantic schemas validate input data and are unrelated to learned models. This does not expand P2 beyond eligibility and state/counters; recommendation ranking remains with the team.
+
 Provide a read-only recommendation for each waiting consult with feasible physician IDs, every exclusion and the state revision used. Filter credentials and G7 first. Rank feasible candidates by active work, open consults, unfinished notes, remaining shift and lost coverage; show component values so an operator can understand the choice. Define and version any weights with operations rather than inventing them from this small sample.
 
 When multiple consults are waiting, evaluate them together with an explicit per-physician assignment capacity. Preserve a feasible unassigned outcome and avoid repeatedly recommending the same sole eligible physician. A shared-capacity feasibility view must account for physicians credentialed at several hospitals. Automated dispatch remains outside scope; any future assignment command revalidates the revision/eligibility and reserves capacity transactionally.
 
-Success measures: arrival-to-assignment, assignment-to-first-contact, oldest unassigned age, stage breaches, unfinished work after shift end and workload distribution. Establish a replay baseline first; the sample does not establish a counterfactual improvement or enough history for a validated service-time prediction.
+Success measures: arrival-to-assignment, assignment-to-first-contact, oldest unassigned age, stage breaches, unfinished work after shift end and workload distribution. Establish a replay baseline first; the sample does not establish a counterfactual improvement or validated evidence for service-time estimates.
 
 ## Stretch: intervention loop
 
@@ -288,7 +298,7 @@ Core is done when T1–T12 and T23–T28 pass with no restart between base load 
 
 **Live test (new synthetic `live_test_events.csv`, fed one at a time)**
 
-This file is absent from the supplied data and must be authored separately using March 17 timestamps. Record explicit clock advancement per test; it must pass events' times and delivery times consistently. T23 count assertions require that no prior Suncrest receipt expires from the trailing window during the two injections.
+This file is absent from the supplied data. The cases below are a controlled March 17 append rehearsal in a disposable test database, reflecting the announced judging extension; they are not a generated replacement/extension distributed with the official dataset. Independent generated practice datasets must use another service date and a distinct event/consult ID namespace, following the organizer guidance. Record explicit clock advancement per test; it must pass events' times and delivery times consistently. T23 count assertions require that no prior Suncrest receipt expires from the trailing window during the two injections.
 
 | # | Events | Expected |
 | --- | --- | --- |
@@ -312,7 +322,7 @@ Six people, 36 hours, five parallel workstreams. Pydantic schemas freeze at H2 s
 | --- | --- | --- |
 | P1 Backend lead | API, WebSockets, clock modes, ingest endpoints, deploy, reset | Integration |
 | P2 Backend | G1 to G8 replay engine, quarantine, column map | T1 to T6, T12, T24, T25 |
-| P3 AI/data | G8b to G15, alert reasons | T7 to T11, T23, T26 to T28 |
+| P3 Operations/data | G8b to G15, alert reasons | T7 to T11, T23, T26 to T28 |
 | P4 Frontend | Consult board, physician board, attention queue | Visual |
 | P5 Frontend | Workload, heatmap, data quality, live injector | Visual |
 | P6 Flutter | H0 to H20: test harness, live-test runner, demo script. After H20: Flutter offer app (stretch) | Harness for all |
@@ -348,7 +358,9 @@ Each assumption lives in one config value or one function, so it can change in o
 
 **Open questions**
 
-- [ ] How will test data arrive: live stream, replayed CSV, or both? Decides default clock mode.
+- [ ] How will the held-out March 17 data arrive: CSV upload, API batch or event stream? How is simulation time advanced during judging?
+- [ ] Will new physician/hospital IDs come with updated rosters and credentials, or will the extension use existing reference IDs?
+- [ ] Will held-out columns, event types, description values and timestamp offsets follow the supplied CSV conventions?
 - [ ] What are the judging criteria and their weights? Decides whether live test work moves before H24.
 - [ ] How long is a Temporarily Unavailable status trusted before it is flagged stale?
 - [ ] What clears an unanswered ring when no answer/cancel event arrives? Until a policy is configured, retain the routing exclusion and expose its age.

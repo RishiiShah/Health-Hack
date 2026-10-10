@@ -5,15 +5,12 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: starter
+    region: virginia  # same AWS region as the RDS instance (us-east-1)
     numInstances: 1
     healthCheckPath: /ready
-    disk:
-      name: command-center-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
-      - key: CC_DB_PATH
-        value: /data/cc.db
+      - key: CC_DATABASE_URL  # RDS URL with sslmode=verify-full; set in the dashboard
+        sync: false
       - key: CC_CLOCK_MODE
         value: auto
       - key: CC_DATA_DIR

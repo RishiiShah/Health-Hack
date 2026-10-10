@@ -7,10 +7,10 @@ import subprocess
 import sys
 
 
-def test_cloud_launcher_and_disk_recovery_across_process_replacement(tmp_path):
+def test_cloud_launcher_and_database_recovery_across_process_replacement(tmp_path, db_url):
     backend = Path(__file__).resolve().parents[1]
     smoke = backend.parent / "scripts" / "hosting_smoke.py"
-    env = {**os.environ, "CC_DB_PATH": str(tmp_path / "persistent" / "cc.db"),
+    env = {**os.environ, "CC_DATABASE_URL": db_url,
            "CC_CLOCK_MODE": "wall", "CC_CLOCK_FIXED": ""}
     for operation in ("seed", "verify"):
         with socket.socket() as socket_probe:

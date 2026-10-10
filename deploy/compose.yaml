@@ -1,4 +1,4 @@
-# Shared AWS EC2 / Azure Linux VM fallback. Mount the durable disk before starting.
+# Shared AWS EC2 / Azure Linux VM fallback. Events persist in the database at CC_DATABASE_URL.
 services:
   backend:
     build:
@@ -7,17 +7,11 @@ services:
     restart: unless-stopped
     environment:
       PORT: "8000"
-      CC_DB_PATH: /data/cc.db
+      CC_DATABASE_URL: ${CC_DATABASE_URL:?Set CC_DATABASE_URL to the RDS PostgreSQL URL}
       CC_DATA_DIR: /data/ref
       CC_CLOCK_MODE: ${CC_CLOCK_MODE:-auto}
       CC_CLOCK_FIXED: ${CC_CLOCK_FIXED:-}
     # A TLS reverse proxy/load balancer on this host forwards to localhost:8000.
     ports:
       - "127.0.0.1:8000:8000"
-    volumes:
-      - type: bind
-        source: ${CC_HOST_DATA_DIR:?Set CC_HOST_DATA_DIR to the mounted durable disk}
-        target: /data
-        bind:
-          create_host_path: false
     stop_grace_period: 40s

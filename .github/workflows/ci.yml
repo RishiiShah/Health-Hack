@@ -5,6 +5,15 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
+    env:
+      CC_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
     defaults:
       run:
         working-directory: backend
@@ -17,23 +26,30 @@ jobs:
       - run: pytest
   container:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
+    env:
+      RUN: docker run -d --name cc-backend --network host -e PORT=10000 -e CC_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres cc-backend:ci
     steps:
       - uses: actions/checkout@v4
       - name: Build the portable image
         run: docker build -t cc-backend:ci backend
-      - name: Start with a persistent volume and a Render-style port
-        run: |
-          mkdir -p "$RUNNER_TEMP/cc-data"
-          docker run -d --name cc-backend -e PORT=10000 -p 127.0.0.1:10000:10000 --mount "type=bind,source=$RUNNER_TEMP/cc-data,target=/data" cc-backend:ci
+      - name: Start against Postgres on a Render-style port
+        run: $RUN
       - name: Probe and commit a synthetic consult
         run: python3 scripts/hosting_smoke.py seed --url http://127.0.0.1:10000
       - name: Check the container's own health probe
         run: docker exec cc-backend python -m app.healthcheck
-      - name: Replace the container while preserving its data disk
+      - name: Replace the container; the database keeps the events
         run: |
           docker stop cc-backend
           docker rm cc-backend
-          docker run -d --name cc-backend -e PORT=10000 -p 127.0.0.1:10000:10000 --mount "type=bind,source=$RUNNER_TEMP/cc-data,target=/data" cc-backend:ci
+          $RUN
       - name: Verify replay from persisted events
         run: python3 scripts/hosting_smoke.py verify --url http://127.0.0.1:10000
       - name: Show logs and clean up the test container
