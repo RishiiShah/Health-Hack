@@ -76,3 +76,14 @@ class EventDatabase:
             updates.append(("revision", str(revision + 1)))
             cur.executemany("INSERT INTO metadata VALUES(%s,%s) ON CONFLICT(key) DO UPDATE SET value=excluded.value", updates)
         return revision + 1
+
+    def reset(self) -> int:
+        """Start a new dataset generation; nothing is deleted, earlier generations remain for audit."""
+        if self.conn.broken: self.conn = self._connect()
+        with self.conn.transaction(), self.conn.cursor() as cur:
+            cur.execute("SELECT key, value FROM metadata WHERE key IN ('revision','dataset_generation') FOR UPDATE")
+            current = {r["key"]: json.loads(r["value"]) for r in cur.fetchall()}
+            cur.executemany("UPDATE metadata SET value=%s WHERE key=%s", [(str(current["revision"] + 1), "revision"),
+                                                                          (str(current["dataset_generation"] + 1), "dataset_generation")])
+            cur.execute("DELETE FROM metadata WHERE key='ingest_stats'")
+        return current["revision"] + 1

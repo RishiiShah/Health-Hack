@@ -7,9 +7,10 @@ Backstops in the schema: one open offer per physician (R7) and a trigger that re
 """
 import hashlib
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from threading import RLock
 from datetime import datetime, timedelta
-from typing import Callable, Mapping
+from typing import Callable
 import psycopg
 from psycopg.rows import dict_row
 from app.clock import Clock, utc
@@ -123,6 +124,8 @@ class OfferDesk:
 
     def __init__(self, url: str, context: Callable[[], Context], base_history: OfferHistory = OfferHistory()):
         self.url, self.context, self.base_history = url, context, base_history
+        self.lock = RLock()  # one connection is shared by the API's worker threads: one command or read at a time
+        self.version = 0  # bumps on every committed command, so cached snapshots know offers changed
         self.conn = self._connect()
         with self.conn.transaction():
             for statement in SCHEMA:
@@ -133,21 +136,25 @@ class OfferDesk:
 
     # ---- reads -------------------------------------------------------------------------------------------
     def offers(self, physician_id: str | None = None) -> list[Offer]:
-        rows = self.conn.execute("SELECT * FROM offers WHERE %s::text IS NULL OR physician_id=%s ORDER BY id", (physician_id, physician_id)).fetchall()
+        with self.lock:
+            rows = self.conn.execute("SELECT * FROM offers WHERE %s::text IS NULL OR physician_id=%s ORDER BY id", (physician_id, physician_id)).fetchall()
         return [_row(r) for r in rows]
 
     def offer(self, offer_id: str, physician_id: str | None = None) -> Offer:
-        r = self.conn.execute("SELECT * FROM offers WHERE id=%s", (offer_id,)).fetchone()
+        with self.lock:
+            r = self.conn.execute("SELECT * FROM offers WHERE id=%s", (offer_id,)).fetchone()
         if r is None or (physician_id is not None and r["physician_id"] != physician_id):
             raise OfferError(404, "not_found", "no such offer")  # another physician's offer is indistinguishable from none
         return _row(r)
 
     def audit(self, gap_id: str | None = None) -> list[dict]:
-        rows = self.conn.execute("SELECT * FROM offer_audit WHERE %s::text IS NULL OR gap_id=%s ORDER BY id", (gap_id, gap_id)).fetchall()
+        with self.lock:
+            rows = self.conn.execute("SELECT * FROM offer_audit WHERE %s::text IS NULL OR gap_id=%s ORDER BY id", (gap_id, gap_id)).fetchall()
         return [{**r, "detail": json.loads(r["detail"])} for r in rows]
 
     def outbox(self) -> list[dict]:
-        return self.conn.execute("SELECT * FROM offer_outbox ORDER BY id").fetchall()
+        with self.lock:
+            return self.conn.execute("SELECT * FROM offer_outbox ORDER BY id").fetchall()
 
     def accepted(self) -> tuple:
         """Accepted split shifts in the shape decide()/project() take: (physician_id, start, end, hospitals)."""
@@ -174,6 +181,13 @@ class OfferDesk:
     def _run(self, command: str, actor: str, args: dict, idempotency_key: str | None, body):
         """One command = one transaction. A refused command still commits its audit row, then raises; with an
         idempotency key the same request returns the same result (or the same refusal) forever."""
+        with self.lock:
+            try:
+                return self._run_locked(command, actor, args, idempotency_key, body)
+            finally:
+                self.version += 1
+
+    def _run_locked(self, command, actor, args, idempotency_key, body):
         if self.conn.broken:
             self.conn = self._connect()
         request = json.dumps({"command": command, "actor": actor, **args}, sort_keys=True, default=str)
@@ -262,19 +276,30 @@ class OfferDesk:
             return {"code": "non_gap_hospital", "message": f"no need at {sorted(h for h, n in need.items() if not n)}", "need": need}
         return None
 
+    def reset(self, actor: str, at: datetime):
+        """Admin reset for a fresh demo run: open and past offers go; the audit log is append-only and keeps a reset row."""
+        with self.lock, self.conn.transaction(), self.conn.cursor() as cur:
+            cur.execute("SELECT pg_advisory_xact_lock(%s)", (OFFER_LOCK,))
+            cur.execute("TRUNCATE offers, offer_outbox, offer_idempotency")
+            cur.execute("INSERT INTO offer_audit(at,actor,command,detail) VALUES(%s,%s,'reset','{}')", (at, actor))
+            self.version += 1
+
     # ---- commands ----------------------------------------------------------------------------------------
     def propose(self, gap_id: str, physician_id: str, start: datetime, end: datetime, hospitals, actor: str, idempotency_key=None, replaces=None):
-        hospitals = tuple(sorted(set(hospitals)))
+        """`hospitals` may be a callable that picks them from current decisions. It runs after the idempotency check,
+        so a retried request returns its stored result even though the queue has changed since the first try."""
         start, end = utc(start), utc(end)
-        args = {"gap_id": gap_id, "physician_id": physician_id, "start": start, "end": end, "hospitals": hospitals}
+        args = {"gap_id": gap_id, "physician_id": physician_id, "start": start, "end": end,
+                "hospitals": "default" if callable(hospitals) else tuple(sorted(set(hospitals)))}
 
         def body(cur, ctx):
+            hospitals_ = tuple(sorted(set(hospitals() if callable(hospitals) else hospitals)))
             if start < ctx.now:
                 raise OfferError(422, "start_in_past", "an offer cannot start in the past")
-            failure = self._check(ctx, self._all(cur), physician_id, hospitals, start, end)
+            failure = self._check(ctx, self._all(cur), physician_id, hospitals_, start, end)
             if failure:
                 raise OfferError(409 if failure["code"] == "gap_filled" else 422, failure["code"], failure["message"])
-            return self._insert(cur, ctx, gap_id, physician_id, hospitals, start, end, actor, replaces).payload()
+            return self._insert(cur, ctx, gap_id, physician_id, hospitals_, start, end, actor, replaces).payload()
         return self._run("propose", actor, args, idempotency_key, body)
 
     def _insert(self, cur, ctx, gap_id, physician_id, hospitals, start, end, actor, replaces=None) -> Offer:

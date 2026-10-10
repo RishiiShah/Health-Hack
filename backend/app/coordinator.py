@@ -205,3 +205,19 @@ class MutationCoordinator:
             self._visible_count = visible_count
             self.published = self._publication(state, self.published.revision, as_of)
             return self.published
+
+    def visible_events(self):
+        """Events at or before the clock, as of the latest publication (the input of observed service times)."""
+        with self.lock:
+            return self._events[:self._visible_count]
+
+    def set_clock(self, clock: Clock):
+        """Admin clock change; the next publication uses it. Offers refuse commands from a rewound clock themselves."""
+        with self.lock:
+            self.clock = clock
+
+    def reset(self):
+        """Admin reset: a new, empty dataset generation (old generations stay in the database), same references."""
+        with self.lock:
+            self.db.reset()
+            self._load()
