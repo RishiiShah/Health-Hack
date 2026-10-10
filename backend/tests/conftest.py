@@ -5,6 +5,8 @@ import psycopg
 from psycopg.conninfo import make_conninfo
 import pytest
 
+# Tests build their own Auth where they need sign-in; app.main's module-level app runs without it.
+os.environ.setdefault("CC_AUTH", "off")
 ADMIN_URL = os.getenv("CC_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/postgres")
 
 

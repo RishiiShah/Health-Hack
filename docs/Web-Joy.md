@@ -44,6 +44,10 @@
 
 **Out of scope:** charting libraries, editing eligibility rules, and sending real SMS or push notifications.
 
+## Demo data
+
+`VITE_DEMO_DATA=1 npm run dev` (or `VITE_DEMO_DATA=1` in `web/.env.local`) answers every API call from `web/src/demo/`, an in-memory stand-in with the design's values. Approve, reject, propose, add events, pause and +5 min all work against it, and the header shows a "Demo data" badge. Without the variable the app calls the real backend and the demo code is left out of the build.
+
 ## Response shapes these screens need (proposal for the backend owner)
 
 The screens render these fields as-is and compute no rules. Every timestamp is ISO 8601 with an offset. Names and display text come from the server; the client never builds them from IDs. A section the server can't compute yet returns `supported: false` and the screen says so. Errors use FastAPI's `{"detail": "..."}`, shown to the user verbatim.
@@ -101,6 +105,18 @@ The screens render these fields as-is and compute no rules. Every timestamp is I
 | `GET /audit?gap_id=` | `{items: [{at, actor, action, detail}]}`, oldest first |
 | `POST /events/csv` (body `text/csv`) | the same report as `POST /events` |
 | `POST /admin/reset`, `POST /admin/clock {mode, at?, advance_s?, paused?}` | `{revision}` / the snapshot `clock` |
+
+### Sign-in and roles
+
+`POST /auth/login {email, password}` returns `{token, expires_at, user}` and `GET /auth/me` returns `{user}`; both are implemented in the backend (see backend/README.md). Sign-in automatically opens the account's workspace. Older clients may still send the optional `portal: "operations" | "physician"` field. The web app revalidates a saved session before opening a workspace and offers retry on connectivity errors. The server decides the role and must check every route:
+
+| Route | Roles |
+|---|---|
+| `GET /snapshot`, `/consults/*`, `/gaps/*`, `/offers`, `/audit`, `/interventions` | coordinator, lead |
+| `POST /offers` | coordinator |
+| `POST /offers/{id}/approve`, `/reject`, `POST /interventions/{id}/authorize` | lead |
+| `POST /events`, `/events/csv`, `/admin/*` | coordinator, lead |
+| `GET /me/offers` → `{now, items: Offer[]}`, `POST /me/offers/{id}/accept`, `/decline` | physician (their own offers, only once Sent) |
 
 `gap` is `{gap_id, hospital_ids, hospital_names, start, end, required, count, summary}`, where `summary` is the server's plain-language reason (for example the trailing count against the usual peak, and who leaves at the shift change).
 

@@ -56,12 +56,12 @@ export function CoverageGrid({ coverage, onFindCover }: { coverage?: Coverage; o
         </tbody>
       </table>
       <div className="legend">
-        <span className="above">Above minimum</span>
-        <span className="at">At minimum</span>
-        <span className="gap">Short</span>
-        <span className="maybe">Short unless an unconfirmed shift starts</span>
-        <span className="bang"><b style={{ color: "var(--red)" }}>!</b> nobody reachable now</span>
-        <span className="bang">° unverified</span>
+        <span className="key key-above">Above minimum</span>
+        <span className="key key-at">At minimum</span>
+        <span className="key key-gap">Short</span>
+        <span className="key key-maybe">Short unless an unconfirmed shift starts</span>
+        <span className="mark"><b>!</b>nobody reachable now</span>
+        <span className="mark"><b>°</b>unverified</span>
       </div>
       {selected && <CellDetail {...selected} onFindCover={onFindCover} />}
     </section>

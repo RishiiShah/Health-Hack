@@ -4,7 +4,7 @@ import "./act.css";
 const MARK = { pass: "✓", fail: "✗", unknown: "?" } as const;
 
 // Every off-shift physician against R1 to R8, in the server's order, with the server's explanations.
-export function Candidates({ data, onPropose }: { data: CandidatesData; onPropose: (c: Candidate) => void }) {
+export function Candidates({ data, onPropose }: { data: CandidatesData; onPropose: ((c: Candidate) => void) | null }) {
   return (
     <table className="candidates">
       <thead>
@@ -34,7 +34,7 @@ export function Candidates({ data, onPropose }: { data: CandidatesData; onPropos
               {c.ranking.gap_hospitals} · {c.ranking.minutes_to_online ?? "?"} min · {c.ranking.declines_30d ?? "?"} · {c.ranking.hours_7d ?? "?"} h
             </td>
             <td className="why">{c.primary_reason}</td>
-            <td>{c.eligible && <button className="btn primary" onClick={() => onPropose(c)}>Propose offer</button>}</td>
+            <td>{c.eligible && onPropose && <button className="btn primary" onClick={() => onPropose(c)}>Propose offer</button>}</td>
           </tr>
         ))}
       </tbody>

@@ -1,14 +1,41 @@
 from contextlib import asynccontextmanager
 import json
 from uuid import uuid4
+from typing import Literal
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response
+from pydantic import BaseModel, Field
+from app.auth import Auth, User, require
 from app.config import settings
 from app.clock import make_clock
 from app.db import EventDatabase
 from app.coordinator import MutationCoordinator
 from app.models import EventInput
 
-def create_app(database_url: str | None = None, test_clock=None) -> FastAPI:
+OPERATIONS = ("coordinator", "lead")
+
+
+class Login(BaseModel):
+    email: str = Field(min_length=1, max_length=320)
+    password: str = Field(min_length=1, max_length=1024)
+    # Older clients may still select a portal; new clients follow the account's role.
+    portal: Literal["operations", "physician"] | None = None
+
+
+def auth_from_settings() -> Auth | None:
+    if settings.auth_off:
+        return None
+    if settings.users:
+        return Auth(settings.users, settings.auth_secret)
+    if settings.auth_config:
+        config = json.loads(Path(settings.auth_config).read_text())
+        return Auth(json.dumps(config["users"]), config["secret"])
+    raise RuntimeError("Run make backend from the repository root for local setup, or set CC_USERS and CC_AUTH_SECRET.")
+
+
+_SETTINGS = object()
+
+def create_app(database_url: str | None = None, test_clock=None, auth: Auth | None | object = _SETTINGS) -> FastAPI:
     epoch = str(uuid4())
     # Readers within the same second share one encoding. Any commit or newly visible event
     # (a new state object) re-encodes at once; only clock-derived fields may lag by <1 s.
@@ -28,6 +55,19 @@ def create_app(database_url: str | None = None, test_clock=None) -> FastAPI:
             db.conn.close()
 
     api = FastAPI(title="Sevaro Command Center API", version="0.1.0", lifespan=lifespan)
+    api.state.auth = auth_from_settings() if auth is _SETTINGS else auth
+
+    @api.post("/auth/login")
+    def login(body: Login, request: Request, response: Response):
+        if request.app.state.auth is None: raise HTTPException(503, "Sign-in is turned off on this server (CC_AUTH=off).")
+        token, user, expires = request.app.state.auth.login(body.email, body.password, body.portal)
+        response.headers["Cache-Control"] = "no-store"
+        return {"token": token, "expires_at": expires, "user": user.public()}
+
+    @api.get("/auth/me")
+    def me(response: Response, user: User | None = require("coordinator", "lead", "physician")):
+        response.headers["Cache-Control"] = "no-store"
+        return {"user": user.public() if user else None}
 
     @api.get("/health")
     def health(): return {"status":"ok"}
@@ -38,10 +78,10 @@ def create_app(database_url: str | None = None, test_clock=None) -> FastAPI:
         return {"ready":True, "revision":p.revision, "event_count":p.event_count, "clock_mode":request.app.state.clock.mode,
             "capabilities":{"event_ingest":True,"durable_event_log":True,"consult_replay":True,"fixture_adapter":True,
                 "orphan_holding":True,"reference_validation":False,"physician_state":False,"detection":False,
-                "coverage_forecast":False,"websocket":False,"authentication":False}}
+                "coverage_forecast":False,"websocket":False,"authentication":request.app.state.auth is not None}}
 
     @api.post("/events")
-    def ingest(request: Request, payload: EventInput | list[EventInput]):
+    def ingest(request: Request, payload: EventInput | list[EventInput], _: User | None = require(*OPERATIONS)):
         rows = payload if isinstance(payload, list) else [payload]
         if len(rows) > settings.max_batch_rows: raise HTTPException(413, "batch exceeds configured row limit")
         coordinator = request.app.state.coordinator
@@ -51,7 +91,7 @@ def create_app(database_url: str | None = None, test_clock=None) -> FastAPI:
         return report
 
     @api.get("/snapshot")
-    def snapshot(request: Request):
+    def snapshot(request: Request, _: User | None = require(*OPERATIONS)):
         coordinator = request.app.state.coordinator
         p = coordinator.current_publication()
         revision, state, second, body = snapshot_cache[0]
@@ -76,7 +116,7 @@ def create_app(database_url: str | None = None, test_clock=None) -> FastAPI:
             "data_quality":{"supported":False,"accepted_events":p.event_count}}
 
     @api.get("/consults/{consult_id}")
-    def consult(consult_id: str, request: Request):
+    def consult(consult_id: str, request: Request, _: User | None = require(*OPERATIONS)):
         c = request.app.state.coordinator.current_publication().state.consults.get(consult_id)
         if c is None: raise HTTPException(404, "consult not found")
         return {"consult_id":c.consult_id, "stage":c.stage, "owner":c.owner, "history":[{"stage":s,"at":t.isoformat()} for s,t in c.history]}

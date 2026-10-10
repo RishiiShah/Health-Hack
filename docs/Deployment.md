@@ -1,6 +1,6 @@
 # Deployment: Render first, AWS second, Azure last
 
-The same Python 3.14.7 Docker image runs on all three providers. It binds `0.0.0.0:$PORT` (default 8000), keeps one uvicorn worker, writes logs to stdout/stderr, handles SIGTERM directly and closes its database connection during application shutdown. `/health` is liveness; `/ready` checks startup of the implemented consult-replay foundation and reports unsupported capabilities. Authentication and the remaining operations gates are still pending.
+The same Python 3.14.7 Docker image runs on all three providers. It binds `0.0.0.0:$PORT` (default 8000), keeps one uvicorn worker, writes logs to stdout/stderr, handles SIGTERM directly and closes its database connection during application shutdown. `/health` is liveness; `/ready` checks startup of the implemented consult-replay foundation and reports unsupported capabilities. Sign-in and role checks protect the implemented operations routes; the remaining operations gates are still pending.
 
 Events, holds, quarantine and metrics live in **Amazon RDS for PostgreSQL** (see the decision record in [Boundaries and Contracts](00-Boundaries-and-Contracts.md)). The application process has no local durable state, so any host that can reach RDS can run it.
 
@@ -10,7 +10,9 @@ Events, holds, quarantine and metrics live in **Amazon RDS for PostgreSQL** (see
 | 2 | AWS EC2 Linux VM in us-east-1 running `deploy/compose.yaml` | Same RDS instance | 1 container, 1 worker |
 | 3 | Azure Linux VM running the same Compose file | Same RDS instance (cross-cloud latency; measure first) | 1 container, 1 worker |
 
-These are executable deployment configurations, not completed cloud deployments. No infrastructure has been provisioned, including the RDS instance. Until mutation authentication is implemented, use private access or an authenticated gateway for hosted demos.
+These are executable deployment configurations, not completed cloud deployments. No infrastructure has been provisioned, including the RDS instance. Use private access or a TLS and rate-limited gateway for hosted demos; session revocation, refresh, password recovery and login rate limiting are not implemented in the app.
+
+For local development, `make backend` uses the separate `deploy/local.compose.yaml`, creates a local sign-in configuration on first use, and starts Python 3.14.7 plus PostgreSQL with no RDS or host virtual environment requirement. It binds the API to loopback and does not publish a database port. See [local startup](../backend/README.md#simple-local-startup).
 
 The runtime is pinned to standard CPython 3.14.7 in `backend/Dockerfile` (`python:3.14.7-slim`), CI and `backend/.python-version`. Package metadata allows Python >=3.14.7,<3.15.
 
@@ -76,6 +78,10 @@ Use an Azure Linux VM with Docker Engine and Compose and the same commands. The 
 | --- | --- | --- |
 | `PORT` | HTTP port; integer 1–65535 | 8000; Render supplies its own |
 | `CC_DATABASE_URL` | PostgreSQL URL (RDS in deployment) | local `postgres:postgres@127.0.0.1:5432/postgres` |
+| `CC_USERS` | JSON list of accounts: `email`, `name`, `role` (`coordinator`, `lead` or `physician`), `password_hash` from `python -m app.auth`, and `physician_id` for physicians | required unless `CC_AUTH=off` |
+| `CC_AUTH_SECRET` | 32+ random characters that sign sign-in tokens (`python3 -c "import secrets; print(secrets.token_urlsafe(32))"`) | required with `CC_USERS` |
+| `CC_AUTH_CONFIG` | Private JSON file with `secret` and `users`; used if `CC_USERS` is absent | local Compose mounts the gitignored setup file read-only |
+| `CC_AUTH` | `off` runs without sign-in (tests and CI only) | unset: the server refuses to start without accounts |
 | `CC_DATA_DIR` | Reference-file location for future reference support; not durable without a disk | `/data/ref` |
 | `CC_CLOCK_MODE` | `auto`, `wall`, `anchored`, `fixed` | `auto` |
 | `CC_CLOCK_FIXED` | Offset-aware fixed/anchor time, when needed | unset |
