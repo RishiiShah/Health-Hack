@@ -6,6 +6,7 @@ Hospital physician operations: reconstruct consult activity, identify bottleneck
 - [Backend architecture](docs/Command%20Center%20Backend%20Scaffold.md): target interfaces, state consistency and performance requirements.
 - [Fixture review](docs/Backend%20Scaffold%20Review.md): source-data findings and outstanding decisions.
 - [Backend foundation](backend/README.md): implemented features, local setup and deferred gates.
+- [P2 backend handoff](docs/P2-Backend.md): G1–G8 domain interfaces, verification, and team integration.
 - [Deployment](docs/Deployment.md): Render first, AWS fallback, Azure last resort.
 
 The supplied CSVs live in the gitignored `data/` folder and remain unchanged. Run the independent read-only audit with:
