@@ -389,3 +389,25 @@ def test_march17_judging_extension_appends_without_reset_and_respects_clock(db_u
     assert view.derived_state == "Hospital Call" and view.calls_this_shift == 1
     assert coord.ingest(extension)["duplicates"] == 3
     assert coord.current_publication().event_count == 5
+
+
+def test_new_wording_is_read_by_keyword_and_unreadable_rows_are_rejected():
+    """The judges' file may phrase events differently; known wordings keep their exact meaning."""
+    import pytest
+    from app.ingest.adapters import DESCRIPTION, STATUS, _by_keyword, adapt_fixture
+    for (kind, desc), (consult_type, value) in DESCRIPTION.items():
+        assert _by_keyword(kind, desc) == (consult_type, value), desc  # the fallback agrees with every known wording
+    for desc, status in STATUS.items():
+        assert _by_keyword("physician_status_changed", desc) == (None, status)
+    row = lambda kind, desc: adapt_fixture({"event_type": kind, "description": desc})
+    assert row("consult_received", "Acute stroke consult requested")["consult_type"] == "Stroke"
+    assert row("consult_received", "General neurology consult received")["consult_type"] == "General Neuro"
+    assert row("incoming_call_ended", "Call ended (phone only, no video needed)")["value"] == "phone_complete"
+    assert row("incoming_call_ended", "Call ended")["value"] == "continue"
+    assert row("routing_attempt_failed", "Routing failed")["value"] == "retry_in_5m"
+    assert row("physician_status_changed", "Status set: In Meeting")["value"] == "In Meeting"
+    assert row("physician_status_changed", "Status: not available")["value"] == "Temporarily Unavailable"
+    with pytest.raises(ValueError, match="receipt"):
+        row("consult_received", "Consult request received")  # no type: rejected and reported, not guessed
+    with pytest.raises(ValueError, match="status"):
+        row("physician_status_changed", "Status changed")
