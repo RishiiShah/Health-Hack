@@ -202,3 +202,30 @@ def _causes(refs, ops, views, hid, at, surge, received, here, now):
         causes.append(f"surge: {trailing_count(received, at)} consults in 60 min vs p90 {ops.p90(hid, at):g} (+1 required)")
     causes += [f"relies on {s.label}" for s in here if not s.confirmed]
     return tuple(causes)
+
+
+UNASSIGNED = {"Received", "Triaged"}
+
+
+def joiners_now(accepted, hospital_id: str, now: datetime) -> int:
+    """Accepted split shifts at this hospital that start within the horizon: they are the fix for a current gap."""
+    return sum(1 for _, start, end, hospitals in accepted if hospital_id in hospitals and start < now + HORIZON and now < end)
+
+
+def remaining_need(state: State, refs: Refs, ops: OpsRefs, views: dict[str, PhysicianView], now: datetime, accepted,
+                   hospitals, start: datetime, end: datetime) -> dict[str, int]:
+    """Physicians still missing per hospital during [start, end), accepted joiners counted. The forecast's hard
+    shortfall, or with consults waiting now the current shortfall. 0 everywhere means the gap is filled."""
+    now = utc(now)
+    gaps = project(state, refs, ops, views, now, accepted)
+    current = {c.hospital_id: c for c in current_coverage(state, refs, ops, views, now)}
+    waiting = {c.hospital_id for c in state.consults.values() if c.stage in UNASSIGNED and c.owner == "Unassigned"}
+    out = {}
+    for h in hospitals:
+        short = max((g.required - g.confirmed - g.scheduled for g in gaps
+                     if g.hospital_id == h and g.kind == "hard" and g.start < end and start < g.end), default=0)
+        c = current.get(h)
+        if c is not None and c.gap and h in waiting and start < now + HORIZON:
+            short = max(short, c.required - len(c.available) - joiners_now(accepted, h, now))
+        out[h] = max(0, short)
+    return out

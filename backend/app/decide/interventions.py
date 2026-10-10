@@ -1,10 +1,10 @@
 """G15/G16: choose the cheapest safe fix per problem, name the approver and rank the queue. Pure."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from app.decide.eligibility import Candidate, OfferHistory, Proposal, evaluate, evaluate_proposal
 from app.decide.routing_sim import routing_order, trap_check
 from app.engine.replay import State
-from app.ops.coverage import SIGNAL_BUSY, Gap, Surge, current_coverage, outlook_end, project, surges
+from app.ops.coverage import SIGNAL_BUSY, Gap, Surge, current_coverage, joiners_now, outlook_end, project, surges
 from app.ops.detect import SEVERITY, Finding, detect, owner_can_act, views_at
 from app.ops.refs import ET, OpsRefs
 from app.references import Refs
@@ -315,7 +315,7 @@ def _merge_offers(items, refs, ops, now, history, gaps):
     return [replaced.get(i.id, i) for i in items if replaced.get(i.id, i) is not None]
 
 
-def _current_gap_items(state, refs, ops, views, now, hard, history):
+def _current_gap_items(state, refs, ops, views, now, hard, history, accepted=()):
     """Short right now by signals [B p4]: available = on shift, credentialed and not busy."""
     items, probes, end = [], [], outlook_end(refs, now)
     waiting = {}
@@ -324,8 +324,8 @@ def _current_gap_items(state, refs, ops, views, now, hard, history):
             waiting.setdefault(c.hospital_id, []).append(c.consult_id)
     free = [v for v in views.values() if "off_shift" not in v.exclusion_reasons and v.derived_state not in SIGNAL_BUSY]
     for cc in current_coverage(state, refs, ops, views, now):
-        if not cc.gap:
-            continue
+        if not cc.gap or len(cc.available) + joiners_now(accepted, cc.hospital_id, now) >= cc.required:
+            continue  # short by signals, but an accepted split shift is already the fix
         hid = cc.hospital_id
         elsewhere = [f"{v.physician_id} is free but not credentialed here" for v in free if hid not in v.credentialed_hospitals]
         causes = (*_who_blocks(views, hid), *(["surge: +1 required"] if cc.surge else []), *elsewhere)
@@ -371,13 +371,19 @@ def _with_trap_guard(item: Item, state, refs, ops, views, now, service, accepted
 
 def decide(state: State, refs: Refs, ops: OpsRefs, now: datetime, history: OfferHistory = OfferHistory(), accepted=(),
            service=None) -> Decisions:
-    """`service`: observed_service(events, state), median busy minutes per consult; enables the trap check on offers."""
+    """`service`: observed_service(events, state), median busy minutes per consult; enables the trap check on offers.
+    `accepted` split shifts always count against R4/R5, even if `history` was built without them."""
+    windows = {}
+    for pid, start, end, _ in accepted:
+        windows.setdefault(pid, set(history.accepted.get(pid, ()))).add((start, end))
+    if windows:
+        history = replace(history, accepted={**history.accepted, **{p: tuple(sorted(w)) for p, w in windows.items()}})
     views = views_at(state, refs, now)
     findings = detect(state, refs, views, now)
     gaps = project(state, refs, ops, views, now, accepted)
     hard = [g for g in gaps if g.kind == "hard"]
     items = _incidents(_merge(findings, views, refs, ops, now), refs)
-    current, probes = _current_gap_items(state, refs, ops, views, now, hard, history)
+    current, probes = _current_gap_items(state, refs, ops, views, now, hard, history, accepted)
     short_now = {p.hospital_id for p in probes}
     for g in gaps:
         if g.kind == "at_risk" or (g.start == now and g.hospital_id in short_now):
