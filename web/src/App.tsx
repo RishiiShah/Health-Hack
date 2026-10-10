@@ -12,6 +12,8 @@ import { OfferTracker } from "./act/OfferTracker.tsx";
 import { clockTime, headerDate } from "./act/time.ts";
 import type { Dataset, Offer } from "./act/types.ts";
 import { Login } from "./auth/Login.tsx";
+import { LandingPage } from "./LandingPage.tsx";
+import "./landing.css";
 import { PAGES_BY_ROLE, SIGNED_OUT, clearSession, isUser, readSession, saveSession, type Session, type User } from "./auth/session.ts";
 import { CoverageGrid } from "./forecast/CoverageGrid.tsx";
 import { DemandPanel } from "./forecast/DemandPanel.tsx";
@@ -39,6 +41,12 @@ export default function App() {
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const [notice, setNotice] = useState<string>();
+  const [signingIn, setSigningIn] = useState(() => location.hash === "#signin");
+  useEffect(() => {
+    const onHash = () => setSigningIn(location.hash === "#signin");
+    addEventListener("hashchange", onHash);
+    return () => removeEventListener("hashchange", onHash);
+  }, []);
   useEffect(() => {
     const onSignOut = (event: Event) => {
       setSession(null);
@@ -79,6 +87,11 @@ export default function App() {
     return () => { clearTimeout(timer); removeEventListener("focus", check); };
   }, [session]);
 
+  // Signed-out visitors start on the landing page; its buttons lead to sign-in (#signin). A session-ended notice goes straight to sign-in.
+  if (!session && !notice && !signingIn) {
+    const toSignIn = () => { location.hash = "signin"; };
+    return <div className="landing"><LandingPage onEnter={toSignIn} onGoToSignIn={toSignIn} /></div>;
+  }
   if (!session) return <Login notice={notice} onSignedIn={(next) => { setNotice(undefined); setChecking(false); setSession(next); }} />;
   if (checking) return <main className="signin-page"><div className="signin-main"><div className="signin">
     <h1>Welcome back</h1>

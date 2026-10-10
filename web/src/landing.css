@@ -1,0 +1,12 @@
+/* Tailwind for the landing page only. Its global reset (preflight) is left out so the rest of the app keeps its
+   own styles; the small reset below applies inside .landing alone. Utilities are !important so the app's plain
+   element rules in styles.css (h1 size, fonts) don't override them. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) important;
+
+@layer base {
+  :where(.landing) :where(*, ::before, ::after) { box-sizing: border-box; border: 0 solid; margin: 0; padding: 0; }
+  :where(.landing) :where(button) { background: none; font: inherit; color: inherit; cursor: pointer; }
+  :where(.landing) :where(svg) { display: block; }
+}
