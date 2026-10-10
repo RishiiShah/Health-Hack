@@ -32,17 +32,16 @@ class MutationCoordinator:
             as_of = self.clock.now()
             received_at = self.receipt_clock.now()
             accepted, quarantined = [], []
-            existing = {e.event_id: e for e in self.db.events()}
+            stored_events = self.db.events()
+            existing = {e.event_id: e for e in stored_events}
             seen: dict[str, Event] = {}
-            duplicate = conflicts = pending = 0
+            duplicate = conflicts = 0
             for row in rows:
                 try:
                     row.validate_semantics()
                     canonical = row.model_dump(mode="json")
                     canonical["received_at"] = received_at.isoformat()
                     canonical["ingested_at"] = (row.ingested_at or received_at).isoformat()
-                    canonical["source"] = row.source
-                    canonical["adapter_version"] = row.adapter_version
                     canonical["raw_json"] = row.raw_json or row.model_dump(mode="json")
                     event = Event(**canonical)
                 except Exception as exc:
@@ -58,19 +57,19 @@ class MutationCoordinator:
                         duplicate += 1
                     continue
                 seen[event.event_id] = event
-                if event.event_time > as_of: pending += 1
                 accepted.append(event)
             receipts: dict[str, datetime] = {}
-            for e in (*self.db.events(), *accepted):
+            for e in (*stored_events, *accepted):
                 if e.event_type == "consult_received" and e.consult_id:
                     receipts[e.consult_id] = min(receipts.get(e.consult_id, e.event_time), e.event_time)
             unresolved = [e for e in accepted if e.consult_id and e.event_type != "consult_received" and
                           (e.consult_id not in receipts or e.event_time < receipts[e.consult_id])]
             for event in unresolved:
-                accepted.remove(event)
-                if event.event_time > as_of: pending -= 1
                 reason = "G4 event precedes consult receipt" if event.consult_id in receipts else "G4 unresolved consult; orphan holding is not implemented"
                 quarantined.append((reason, json.dumps(event.raw_json, sort_keys=True)))
+            unresolved_ids = {e.event_id for e in unresolved}
+            accepted = [e for e in accepted if e.event_id not in unresolved_ids]
+            pending = sum(e.event_time > as_of for e in accepted)
             reordered = late = 0
             watermark = self.watermark
             for event in accepted:
@@ -78,7 +77,7 @@ class MutationCoordinator:
                     reordered += 1
                     if (watermark - event.event_time).total_seconds() > self.late_lag_s: late += 1
                 watermark = max(watermark, event.event_time) if watermark else event.event_time
-            candidate = (*self.db.events(), *accepted)
+            candidate = (*stored_events, *accepted)
             candidate_state = replay(tuple(e for e in candidate if e.event_time <= as_of))
             revision = self.db.commit_batch(accepted, quarantined, received_at.isoformat())
             self.watermark = watermark

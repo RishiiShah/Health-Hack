@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Request
-from starlette.concurrency import run_in_threadpool
 from app.config import settings
 from app.clock import make_clock
 from app.db import EventDatabase
@@ -38,11 +37,11 @@ def create_app(db_path: str | None = None, test_clock=None) -> FastAPI:
                 "coverage_forecast":False,"websocket":False,"authentication":False}}
 
     @api.post("/events")
-    async def ingest(request: Request, payload: EventInput | list[EventInput]):
+    def ingest(request: Request, payload: EventInput | list[EventInput]):
         rows = payload if isinstance(payload, list) else [payload]
         if len(rows) > settings.max_batch_rows: raise HTTPException(413, "batch exceeds configured row limit")
         coordinator = request.app.state.coordinator
-        report = await run_in_threadpool(coordinator.ingest, rows)
+        report = coordinator.ingest(rows)
         if report["unresolved"]:
             report["capability_warning"] = "Unresolved consult events were quarantined because G4 orphan holding is not implemented."
         return report

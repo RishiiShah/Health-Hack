@@ -31,15 +31,16 @@ class EventDatabase:
     def commit_batch(self, events: list[Event], quarantined: list[tuple[str,str]], received_at: str = "") -> int:
         self.conn.execute("BEGIN IMMEDIATE")
         try:
+            generation = self.generation
             for e in events:
                 values = e.model_dump(mode="json")
                 for column in ("event_time", "ingested_at", "received_at"):
                     values[column] = getattr(e, column).isoformat(timespec="microseconds")
                 values["raw_json"] = json.dumps(e.raw_json, sort_keys=True)
                 cols = list(values)
-                self.conn.execute(f"INSERT INTO events(dataset_generation,{','.join(cols)}) VALUES({','.join('?' for _ in range(len(cols)+1))})", [self.generation]+[values[c] for c in cols])
+                self.conn.execute(f"INSERT INTO events(dataset_generation,{','.join(cols)}) VALUES({','.join('?' for _ in range(len(cols)+1))})", [generation]+[values[c] for c in cols])
             for reason, raw in quarantined:
-                self.conn.execute("INSERT INTO quarantine(dataset_generation,received_at,reason,raw_json) VALUES(?,?,?,?)", (self.generation, received_at, reason, raw))
+                self.conn.execute("INSERT INTO quarantine(dataset_generation,received_at,reason,raw_json) VALUES(?,?,?,?)", (generation, received_at, reason, raw))
             revision = self.revision + 1
             self.conn.execute("UPDATE metadata SET value=? WHERE key='revision'", (str(revision),))
             self.conn.commit()

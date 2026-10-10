@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Literal
 from pydantic import BaseModel, ConfigDict, field_validator
 from app.clock import utc
 
@@ -64,14 +63,3 @@ class EventInput(BaseModel):
         if self.event_type == "physician_status_changed" and self.value not in {"Available", "In Meeting", "Temporarily Unavailable"}: raise ValueError("unsupported physician status")
         if self.event_type in {"incoming_call_ended", "outgoing_call_ended"} and self.value not in {"phone_complete", "continue"}: raise ValueError("call end requires phone_complete or continue")
         if self.event_type == "routing_attempt_failed" and self.value != "retry_in_5m": raise ValueError("routing failure requires retry_in_5m")
-
-
-class IngestReport(BaseModel):
-    accepted: int = 0
-    pending_future: int = 0
-    duplicates: int = 0
-    conflicts: int = 0
-    reordered: int = 0
-    late: int = 0
-    quarantined: list[dict] = []
-    revision: int

@@ -327,7 +327,7 @@ services:
 
 `app/__main__.py` reads `PORT` and launches one worker on `0.0.0.0`. The implemented image includes a `/ready` health probe, persistent `/data` defaults and an excluded local build context. Provider order is Render, AWS EC2 + EBS, then Azure VM + managed disk. See [Deployment](Deployment.md); avoid SQLite WAL on shared network filesystems. Future managed-container scaling needs a different durable coordination/storage implementation.
 
-**Dependencies** (`pyproject.toml`): fastapi, uvicorn\[standard\], pydantic, pydantic-settings, pyyaml, pandas, python-multipart. Dev: pytest, httpx.
+**Dependencies** (`pyproject.toml`): FastAPI for the ASGI/OpenAPI API, plain Uvicorn for serving it, and Pydantic for validated event contracts. Tests: pytest and httpx. Prefer standard-library `csv`, `json`, `sqlite3`, `dataclasses`, `os`, `datetime` and `urllib` for the remaining work. Add dependencies only when an implemented requirement needs them; multipart upload and WebSocket transport packages are deferred until those routes exist. Benchmark before adding optional server accelerators.
 
 ## H0 to H2 checklist
 

@@ -44,7 +44,7 @@ FastAPI backend on Render, Vite + React dashboard on Vercel, one deterministic e
 | Layer | Choice | Why |
 | --- | --- | --- |
 | Backend | Python 3.14.7, FastAPI, Pydantic v2 | Native async and WebSockets; OpenAPI schema lets frontend generate types and work in parallel |
-| Engine | Pure Python replay functions, pandas for reference loads | Deterministic, testable against snapshots |
+| Engine | Pure Python replay functions, stdlib csv for reference loads | Deterministic, testable against snapshots |
 | Storage | SQLite on a persistent disk | Event log, quarantine, audit; append-only |
 | Dashboard | Vite, React, TypeScript, Tailwind, ECharts | Client-only app; server rendering adds nothing |
 | Contract | `openapi-typescript` | Frontend types generated from backend schema |
