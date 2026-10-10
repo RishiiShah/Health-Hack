@@ -101,13 +101,14 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot | null; now
     }
   }
 
-  // JSON goes to POST /events; anything else is sent as CSV rows for the server to parse.
+  // JSON goes to POST /events; anything else is sent as CSV rows for the server to parse. A CSV moves the clock to its
+  // latest event, so a test file dated after the current time shows up at once instead of waiting for the clock.
   const send = (body: string) =>
     run(async () => {
       const trimmed = body.trim();
       const result = trimmed.startsWith("[") || trimmed.startsWith("{")
         ? await post<IngestReport>("/events", JSON.parse(trimmed))
-        : await api<IngestReport>("/events/csv", { method: "POST", body: trimmed, headers: { "Content-Type": "text/csv" } });
+        : await api<IngestReport>("/events/csv?advance_clock=true", { method: "POST", body: trimmed, headers: { "Content-Type": "text/csv" } });
       setReport(result);
     });
 
@@ -139,6 +140,8 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot | null; now
         <p className="report">
           Accepted <b>{report.accepted}</b> · duplicates <b>{report.duplicates}</b> · quarantined <b>{report.quarantined.length}</b>
           {report.held_orphans > 0 && <> · held <b>{report.held_orphans}</b></>}
+          {report.pending_future > 0 && <> · waiting for the clock <b>{report.pending_future}</b></>}
+          {report.clock_advanced_to && <> · clock moved to <b>{clockTimeSeconds(report.clock_advanced_to)}</b></>}
           {report.quarantined.length > 0 && <span className="muted"> ({report.quarantined.map((q) => q.reason).join("; ")})</span>}
         </p>
       )}

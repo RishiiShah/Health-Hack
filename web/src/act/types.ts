@@ -80,6 +80,8 @@ export type IngestReport = {
   held_orphans: number;
   quarantined: { reason: string }[];
   revision: number;
+  pending_future: number;
+  clock_advanced_to?: string;
 };
 
 export type DataQuality = {

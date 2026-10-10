@@ -137,7 +137,7 @@ export function createDemoServer(localNow: () => number = Date.now) {
       if (url.pathname === "/events" || url.pathname === "/events/csv") {
         const rows = url.pathname === "/events" ? [json].flat().length : (body ?? "").trim().split("\n").filter((l) => l && !l.startsWith("event_id")).length;
         revision += 1;
-        return { accepted: rows, duplicates: 0, conflicts: 0, reordered: 0, late: 0, held_orphans: 0, quarantined: [], revision } satisfies IngestReport;
+        return { accepted: rows, duplicates: 0, conflicts: 0, reordered: 0, late: 0, held_orphans: 0, quarantined: [], revision, pending_future: 0 } satisfies IngestReport;
       }
       if (url.pathname === "/admin/clock") {
         if (json.advance_s) advancedMs += json.advance_s * 1000;
