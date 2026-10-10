@@ -1,39 +1,46 @@
-"""Single-writer SQLite transactions for accepted, held and rejected events."""
+"""Single-writer PostgreSQL transactions for accepted, held and rejected events."""
 import json
-import sqlite3
-from datetime import datetime
-from pathlib import Path
+import psycopg
+from psycopg.rows import dict_row
 from app.models import Event
 
+# Serializes schema creation when an old and a new instance start together.
+SCHEMA_LOCK = 7_310_001
 SCHEMA = """
-PRAGMA journal_mode=WAL;
-PRAGMA synchronous=FULL;
 CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS events (dataset_generation INTEGER NOT NULL, event_id TEXT NOT NULL, event_time TEXT NOT NULL, ingested_at TEXT NOT NULL, received_at TEXT NOT NULL, event_type TEXT NOT NULL, consult_id TEXT, physician_id TEXT, hospital_id TEXT, consult_type TEXT, value TEXT, source TEXT NOT NULL, time_offset TEXT, raw_json TEXT NOT NULL, adapter_version TEXT NOT NULL, PRIMARY KEY(dataset_generation,event_id));
+CREATE TABLE IF NOT EXISTS events (dataset_generation INTEGER NOT NULL, event_id TEXT NOT NULL, event_time TIMESTAMPTZ NOT NULL, ingested_at TIMESTAMPTZ NOT NULL, received_at TIMESTAMPTZ NOT NULL, event_type TEXT NOT NULL, consult_id TEXT, physician_id TEXT, hospital_id TEXT, consult_type TEXT, value TEXT, source TEXT NOT NULL, time_offset TEXT, raw_json TEXT NOT NULL, adapter_version TEXT NOT NULL, PRIMARY KEY(dataset_generation,event_id));
 CREATE INDEX IF NOT EXISTS events_by_time ON events(dataset_generation,event_time,ingested_at,event_id);
-CREATE TABLE IF NOT EXISTS quarantine (id INTEGER PRIMARY KEY, dataset_generation INTEGER NOT NULL, received_at TEXT NOT NULL, reason TEXT NOT NULL, raw_json TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS held_events (dataset_generation INTEGER NOT NULL, event_id TEXT NOT NULL, event_json TEXT NOT NULL, expires_at TEXT NOT NULL, expired INTEGER NOT NULL, PRIMARY KEY(dataset_generation,event_id));
+CREATE TABLE IF NOT EXISTS quarantine (id BIGSERIAL PRIMARY KEY, dataset_generation INTEGER NOT NULL, received_at TIMESTAMPTZ, reason TEXT NOT NULL, raw_json TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS held_events (dataset_generation INTEGER NOT NULL, event_id TEXT NOT NULL, event_json TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, expired BOOLEAN NOT NULL, PRIMARY KEY(dataset_generation,event_id));
+INSERT INTO metadata VALUES('revision','0'),('dataset_generation','1') ON CONFLICT DO NOTHING;
 """
+EVENT_COLUMNS = tuple(Event.model_fields)
+
+
+class StaleRevision(RuntimeError):
+    """Another writer committed since this process last loaded the event log."""
 
 
 class EventDatabase:
-    def __init__(self, path: str):
-        self.path = path
-        if path != ":memory:": Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(path, check_same_thread=False, timeout=5)
-        self.conn.row_factory = sqlite3.Row
+    def __init__(self, url: str):
+        self.url = url
+        self.conn = self._connect()
         try:
-            self.conn.executescript(SCHEMA)
-            self.conn.execute("INSERT OR IGNORE INTO metadata VALUES('revision','0')")
-            self.conn.execute("INSERT OR IGNORE INTO metadata VALUES('dataset_generation','1')")
-            self.conn.commit()
+            with self.conn.transaction():
+                self.conn.execute("SELECT pg_advisory_xact_lock(%s)", (SCHEMA_LOCK,))
+                for statement in filter(str.strip, SCHEMA.split(";")):
+                    self.conn.execute(statement)
         except Exception:
             self.conn.close()
             raise
 
+    def _connect(self):
+        # Autocommit outside explicit transactions keeps reads from leaving a transaction open.
+        return psycopg.connect(self.url, autocommit=True, row_factory=dict_row, options="-c timezone=UTC")
+
     def metadata(self, key, default=None):
-        row = self.conn.execute("SELECT value FROM metadata WHERE key=?", (key,)).fetchone()
-        return json.loads(row[0]) if row else default
+        row = self.conn.execute("SELECT value FROM metadata WHERE key=%s", (key,)).fetchone()
+        return json.loads(row["value"]) if row else default
 
     @property
     def revision(self): return self.metadata("revision", 0)
@@ -42,36 +49,30 @@ class EventDatabase:
     def generation(self): return self.metadata("dataset_generation", 1)
 
     def events(self):
-        rows = self.conn.execute("SELECT * FROM events WHERE dataset_generation=? ORDER BY event_time,ingested_at,event_id", (self.generation,)).fetchall()
-        return tuple(Event(**{**dict(row), "raw_json": json.loads(row["raw_json"])}) for row in rows)
+        rows = self.conn.execute("SELECT * FROM events WHERE dataset_generation=%s ORDER BY event_time,ingested_at,event_id", (self.generation,)).fetchall()
+        return tuple(Event(**{**{k: row[k] for k in EVENT_COLUMNS}, "raw_json": json.loads(row["raw_json"])}) for row in rows)
 
     def holds(self):
-        rows = self.conn.execute("SELECT * FROM held_events WHERE dataset_generation=?", (self.generation,)).fetchall()
-        return {r["event_id"]: (Event.model_validate_json(r["event_json"]), datetime.fromisoformat(r["expires_at"]), bool(r["expired"])) for r in rows}
+        rows = self.conn.execute("SELECT * FROM held_events WHERE dataset_generation=%s", (self.generation,)).fetchall()
+        return {r["event_id"]: (Event.model_validate_json(r["event_json"]), r["expires_at"], r["expired"]) for r in rows}
 
-    def commit_batch(self, events: list[Event], quarantined: list[tuple[str, str]], received_at: str = "", *, holds=None, stats=None, references=None) -> int:
-        self.conn.execute("BEGIN IMMEDIATE")
-        try:
-            generation = self.generation
-            for e in events:
-                values = e.model_dump(mode="json")
-                for column in ("event_time", "ingested_at", "received_at"):
-                    values[column] = getattr(e, column).isoformat(timespec="microseconds")
-                values["raw_json"] = json.dumps(e.raw_json, sort_keys=True)
-                cols = list(values)
-                self.conn.execute(f"INSERT INTO events(dataset_generation,{','.join(cols)}) VALUES({','.join('?' for _ in range(len(cols)+1))})", [generation] + [values[c] for c in cols])
-            for reason, raw in quarantined:
-                self.conn.execute("INSERT INTO quarantine(dataset_generation,received_at,reason,raw_json) VALUES(?,?,?,?)", (generation, received_at, reason, raw))
+    def commit_batch(self, events: list[Event], quarantined: list[tuple[str, str]], received_at=None, *, holds=None, stats=None, references=None, expected_revision: int | None = None) -> int:
+        """Commit in a few round trips; with expected_revision, refuse to write over another writer's commits."""
+        if self.conn.broken: self.conn = self._connect()
+        with self.conn.transaction(), self.conn.cursor() as cur:
+            cur.execute("SELECT key, value FROM metadata WHERE key IN ('revision','dataset_generation') FOR UPDATE")
+            current = {r["key"]: json.loads(r["value"]) for r in cur.fetchall()}
+            revision, generation = current["revision"], current["dataset_generation"]
+            if expected_revision is not None and revision != expected_revision:
+                raise StaleRevision(f"database revision {revision}, expected {expected_revision}")
+            cur.executemany(f"INSERT INTO events(dataset_generation,{','.join(EVENT_COLUMNS)}) VALUES(%s{',%s' * len(EVENT_COLUMNS)})",
+                            [(generation, *(json.dumps(e.raw_json, sort_keys=True) if c == "raw_json" else getattr(e, c) for c in EVENT_COLUMNS)) for e in events])
+            cur.executemany("INSERT INTO quarantine(dataset_generation,received_at,reason,raw_json) VALUES(%s,%s,%s,%s)",
+                            [(generation, received_at, reason, raw) for reason, raw in quarantined])
             if holds is not None:
-                self.conn.execute("DELETE FROM held_events WHERE dataset_generation=?", (generation,))
-                self.conn.executemany("INSERT INTO held_events VALUES(?,?,?,?,?)", [(generation, eid, e.model_dump_json(), deadline.isoformat(), expired) for eid, (e, deadline, expired) in holds.items()])
-            for key, value in (("ingest_stats", stats), ("references", references)):
-                if value is not None:
-                    self.conn.execute("INSERT INTO metadata VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, json.dumps(value, sort_keys=True)))
-            revision = self.revision + 1
-            self.conn.execute("UPDATE metadata SET value=? WHERE key='revision'", (str(revision),))
-            self.conn.commit()
-            return revision
-        except Exception:
-            self.conn.rollback()
-            raise
+                cur.execute("DELETE FROM held_events WHERE dataset_generation=%s", (generation,))
+                cur.executemany("INSERT INTO held_events VALUES(%s,%s,%s,%s,%s)", [(generation, eid, e.model_dump_json(), deadline, expired) for eid, (e, deadline, expired) in holds.items()])
+            updates = [(key, json.dumps(value, sort_keys=True)) for key, value in (("ingest_stats", stats), ("references", references)) if value is not None]
+            updates.append(("revision", str(revision + 1)))
+            cur.executemany("INSERT INTO metadata VALUES(%s,%s) ON CONFLICT(key) DO UPDATE SET value=excluded.value", updates)
+        return revision + 1

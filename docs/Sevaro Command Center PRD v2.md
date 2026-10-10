@@ -53,7 +53,7 @@ FastAPI backend on Render, Vite + React dashboard on Vercel, one deterministic e
 | --- | --- | --- |
 | Backend | Python 3.14.7, FastAPI, Pydantic v2 | Native async and WebSockets; OpenAPI schema lets frontend generate types and work in parallel |
 | Engine | Pure Python replay functions, stdlib csv for reference loads | Deterministic, testable against snapshots |
-| Storage | SQLite on a persistent disk | Event log, quarantine, audit; append-only |
+| Storage | Amazon RDS for PostgreSQL | Event log, quarantine, audit; append-only |
 | Dashboard | Vite, React, TypeScript, Tailwind, ECharts | Client-only app; server rendering adds nothing |
 | Contract | `openapi-typescript` | Frontend types generated from backend schema |
 | Physician app (stretch) | Flutter web | Judges open a URL on any phone |
@@ -61,10 +61,10 @@ FastAPI backend on Render, Vite + React dashboard on Vercel, one deterministic e
 
 **Hosting**
 
-- Backend: Render paid web service, 1 uvicorn worker, persistent disk. Free tier loses SQLite on restart and spins down after 15 min idle.
+- Backend: Render paid web service in Virginia, 1 uvicorn worker, events in RDS PostgreSQL (us-east-1). The free tier spins down after 15 min idle.
 - Dashboard and Flutter web: Vercel, preview URL per pull request.
 - First fallback: AWS EC2 with the same Docker image and a local-filesystem EBS data volume.
-- Last resort: Azure Linux VM with the same image and a managed data disk. Azure Container Apps/Azure Files is not a drop-in SQLite WAL deployment. See [Deployment](Deployment.md) for configurations and storage constraints.
+- Last resort: Azure Linux VM with the same image and a managed data disk. See [Deployment](Deployment.md) for configurations and storage constraints.
 
 **Clock**
 

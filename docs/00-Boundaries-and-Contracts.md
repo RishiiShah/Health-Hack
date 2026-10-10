@@ -66,7 +66,8 @@ Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already
 - **If ElevenLabs fails:** the endpoint returns 503, the clients hide the play button, and the text is still shown. The loop never waits on audio.
 
 ## Decision record: Amazon RDS for PostgreSQL
-- **Context:** the user requested RDS. The current SQLite-on-disk design ties storage to a single host's disk.
+- **Status:** accepted and implemented in the backend; the RDS instance itself is not provisioned yet.
+- **Context:** the app will be stress tested, and the earlier SQLite-on-disk design tied storage to a single host's disk.
 - **Decision:**
   - One RDS PostgreSQL instance, single availability zone for the demo, in us-east-1.
   - Driver: `psycopg[binary]` only. No ORM and no migration tool: a `schema.sql` file using `CREATE TABLE IF NOT EXISTS` runs at startup.
@@ -75,7 +76,9 @@ Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already
   - The `CC_DATABASE_URL` environment variable replaces `CC_DB_PATH`.
 - **Consequences:**
   - The backend is still **one process**: replay state lives in memory, and RDS only makes data durable.
-  - Every commit is a network round trip, so measure p95 ingest time after switching.
+  - Each commit is a few network round trips (inserts are batched), so measure p95 ingest time against RDS.
+  - Each commit checks the revision this process loaded; if another instance wrote first (deploy overlap), it reloads from RDS and retries once.
+  - Caching is in process: `/snapshot` reuses its encoded response until a commit, a newly visible event or the next clock second. Redis/ElastiCache was rejected: with one process it only adds a network hop.
   - CI uses a `postgres` service container, and local development uses a Postgres service in Compose.
   - Deployment.md, render.yaml, Compose and CI change in the same PR.
   - The backend can run on Render's Virginia region or on EC2 in us-east-1. Limit the RDS security group to the backend's outbound addresses.

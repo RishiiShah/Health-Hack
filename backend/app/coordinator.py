@@ -7,7 +7,7 @@ from threading import Lock
 from types import MappingProxyType
 from typing import Mapping
 from app.config import DEFAULT_LATE_LAG_S, DEFAULT_ORPHAN_HOLD_S
-from app.db import EventDatabase
+from app.db import EventDatabase, StaleRevision
 from app.models import Event, EventInput
 from app.engine.replay import State, replay
 from app.clock import Clock, ServerReceiptClock
@@ -39,6 +39,10 @@ class MutationCoordinator:
         self.orphan_hold_s = orphan_hold_s
         self.receipt_clock = receipt_clock or ServerReceiptClock()
         self.lock = Lock()
+        self._load(refs)
+
+    def _load(self, refs=None):
+        db, clock = self.db, self.clock
         saved_refs = db.metadata("references")
         if saved_refs:
             self.refs = Refs.from_payload(saved_refs["payload"])
@@ -95,6 +99,14 @@ class MutationCoordinator:
             return self._mutate([], refs)
 
     def _mutate(self, rows, refs=None, rejected=()):
+        try:
+            return self._mutate_once(rows, refs, rejected)
+        except StaleRevision:
+            # Another instance wrote (e.g. a deploy overlap): reload the durable log, then retry once.
+            self._load()
+            return self._mutate_once(rows, refs, rejected)
+
+    def _mutate_once(self, rows, refs=None, rejected=()):
         as_of, received_at = self.clock.now(), self.receipt_clock.now()
         active_refs = refs if refs is not None else self.refs
         holds, stats = dict(self._holds), dict(self._stats)
@@ -161,7 +173,7 @@ class MutationCoordinator:
         unresolved_history = self._unknown_history(candidate, active_refs) if refs is not None else self._unresolved_history
         ref_revision = self.reference_revision + int(refs is not None and (self.refs is None or refs.payload() != self.refs.payload()))
         saved_refs = {"revision": ref_revision, "payload": active_refs.payload()} if refs is not None else None
-        revision = self.db.commit_batch(accepted, quarantined, received_at.isoformat(), holds=holds, stats=stats, references=saved_refs)
+        revision = self.db.commit_batch(accepted, quarantined, received_at, holds=holds, stats=stats, references=saved_refs, expected_revision=self.published.revision)
         self._events, self._holds, self._stats = candidate, holds, stats
         self._visible_count, self.watermark = visible_count, watermark
         self.refs, self.reference_revision = active_refs, ref_revision

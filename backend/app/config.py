@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 import os
-from pathlib import Path
 
 
 DEFAULT_LATE_LAG_S = 60
@@ -11,7 +10,7 @@ DEFAULT_COOLDOWN_S = 120
 
 @dataclass(frozen=True)
 class Settings:
-    db_path: str = os.getenv("CC_DB_PATH", str(Path(__file__).resolve().parents[1] / "cc.db"))
+    database_url: str = os.getenv("CC_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/postgres")
     clock_mode: str = os.getenv("CC_CLOCK_MODE", "auto")
     clock_fixed: str | None = os.getenv("CC_CLOCK_FIXED")
     late_lag_s: int = int(os.getenv("CC_LATE_LAG_S", str(DEFAULT_LATE_LAG_S)))

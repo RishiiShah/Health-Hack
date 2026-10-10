@@ -33,11 +33,10 @@ def replay_rows(*rows):
     return replay(tuple(Event(**{**r.model_dump(), "received_at": at(), "raw_json": r.raw_json or {}}) for r in rows))
 
 
-def test_orphan_release_converges_across_batch_order_and_restart(tmp_path):
-    path = str(tmp_path / "holds.db")
+def test_orphan_release_converges_across_batch_order_and_restart(db_url, new_db_url):
     clock = FixedClock(at(30))
     server = FixedClock(at())
-    db = EventDatabase(path)
+    db = EventDatabase(db_url)
     coord = MutationCoordinator(db, clock, refs=refs(), receipt_clock=server)
     child, parent = row("child", "consult_triaged", 2), row("parent")
     report = coord.ingest([child])
@@ -47,21 +46,20 @@ def test_orphan_release_converges_across_batch_order_and_restart(tmp_path):
     assert coord.ingest([child])["duplicates"] == 1
     assert db.holds()["child"][1] == deadline
     db.conn.close()
-    reopened = EventDatabase(path)
+    reopened = EventDatabase(db_url)
     recovered = MutationCoordinator(reopened, clock, receipt_clock=server)
     report = recovered.ingest([parent])
     assert report["accepted"] == 2 and report["released_orphans"] == 1
     assert report["held_orphans"] == 0
-    both = MutationCoordinator(EventDatabase(":memory:"), clock, refs=refs(), receipt_clock=server)
+    both = MutationCoordinator(EventDatabase(new_db_url()), clock, refs=refs(), receipt_clock=server)
     both.ingest([parent, child])
     assert recovered.published.state == both.published.state
     assert recovered.refs == both.refs
     reopened.conn.close()
 
 
-def test_orphan_expiry_uses_server_clock_at_exact_deadline_and_stays_expired(tmp_path):
-    path = str(tmp_path / "expiry.db")
-    db = EventDatabase(path)
+def test_orphan_expiry_uses_server_clock_at_exact_deadline_and_stays_expired(db_url):
+    db = EventDatabase(db_url)
     simulation, server = FixedClock(at(30)), FixedClock(at())
     coord = MutationCoordinator(db, simulation, receipt_clock=server)
     child = row("child", "consult_triaged", 1)
@@ -75,18 +73,17 @@ def test_orphan_expiry_uses_server_clock_at_exact_deadline_and_stays_expired(tmp
     coord.sweep()
     assert coord.published.stats["expired_orphans"] == 1
     db.conn.close()
-    reopened = EventDatabase(path)
+    reopened = EventDatabase(db_url)
     coord = MutationCoordinator(reopened, simulation, receipt_clock=server)
     report = coord.ingest([row("parent"), child])
     assert report["duplicates"] == 1 and report["accepted"] == 1
     assert coord.published.state.consults["C"].stage == "Received"
-    assert reopened.conn.execute("SELECT COUNT(*) FROM quarantine").fetchone()[0] == 1
+    assert reopened.conn.execute("SELECT COUNT(*) FROM quarantine").fetchone()["count"] == 1
     reopened.conn.close()
 
 
-def test_reference_activation_releases_known_ids_atomically_and_survives_restart(tmp_path):
-    path = str(tmp_path / "refs.db")
-    db = EventDatabase(path)
+def test_reference_activation_releases_known_ids_atomically_and_survives_restart(db_url):
+    db = EventDatabase(db_url)
     clock, server = FixedClock(at(30)), FixedClock(at())
     coord = MutationCoordinator(db, clock, refs=refs(), receipt_clock=server)
     unknown = row("unknown", cid="C2").model_copy(update={"hospital_id": "H2"})
@@ -97,15 +94,15 @@ def test_reference_activation_releases_known_ids_atomically_and_survives_restart
     assert report["accepted"] == 1 and coord.published.reference_revision == 2
     assert coord.published.state.consults["C2"].hospital_id == "H2"
     db.conn.close()
-    reopened = EventDatabase(path)
+    reopened = EventDatabase(db_url)
     recovered = MutationCoordinator(reopened, clock, receipt_clock=server)
     assert recovered.refs == new_refs
     assert recovered.published == coord.published
     reopened.conn.close()
 
 
-def test_failed_hold_or_reference_commit_does_not_publish(monkeypatch):
-    db = EventDatabase(":memory:")
+def test_failed_hold_or_reference_commit_does_not_publish(db_url, monkeypatch):
+    db = EventDatabase(db_url)
     coord = MutationCoordinator(db, FixedClock(at(30)), refs=refs(), receipt_clock=FixedClock(at()))
     original = coord.published
     def fail(*args, **kwargs): raise RuntimeError("disk failed")
@@ -119,9 +116,8 @@ def test_failed_hold_or_reference_commit_does_not_publish(monkeypatch):
     assert not db.holds()
 
 
-def test_quality_metrics_persist_and_do_not_recount_on_replay(tmp_path):
-    path = str(tmp_path / "quality.db")
-    db = EventDatabase(path)
+def test_quality_metrics_persist_and_do_not_recount_on_replay(db_url):
+    db = EventDatabase(db_url)
     clock = FixedClock(at(30))
     coord = MutationCoordinator(db, clock)
     coord.ingest([row("latest", minute=10), row("earlier", minute=2, cid="C2"), row("latest", minute=10)])
@@ -132,7 +128,7 @@ def test_quality_metrics_persist_and_do_not_recount_on_replay(tmp_path):
     clock.value = at(3)
     assert dict(coord.current_publication().stats) == expected
     db.conn.close()
-    reopened = EventDatabase(path)
+    reopened = EventDatabase(db_url)
     recovered = MutationCoordinator(reopened, clock)
     assert dict(recovered.published.stats) == expected
     reopened.conn.close()
@@ -222,10 +218,10 @@ def test_reference_immutability_overlap_and_unknown_credentials():
 
 DATA = Path(__file__).resolve().parents[2] / "data"
 @pytest.mark.skipif(not (DATA / "event_stream.csv").exists(), reason="local source data is deliberately not committed")
-def test_full_local_fixture_parity_all_physician_and_consult_fields():
+def test_full_local_fixture_parity_all_physician_and_consult_fields(db_url):
     reference = load_refs(DATA, date(2026, 3, 17))
     now = datetime.fromisoformat("2026-03-17T18:20:00-04:00")
-    coord = MutationCoordinator(EventDatabase(":memory:"), FixedClock(now), refs=reference)
+    coord = MutationCoordinator(EventDatabase(db_url), FixedClock(now), refs=reference)
     report = coord.ingest(load_fixture(DATA / "event_stream.csv"))
     assert report["accepted"] == 1163 and report["duplicates"] == 1
     assert report["held_orphans"] == 0 and not report["quarantined"]
@@ -261,8 +257,8 @@ def test_full_local_fixture_parity_all_physician_and_consult_fields():
     assert not reference.physicians["PHY-011"].shifts
 
 
-def test_unknown_physician_and_removed_reference_history_are_explicit():
-    coord = MutationCoordinator(EventDatabase(":memory:"), FixedClock(at(30)), refs=refs(), receipt_clock=FixedClock(at()))
+def test_unknown_physician_and_removed_reference_history_are_explicit(db_url):
+    coord = MutationCoordinator(EventDatabase(db_url), FixedClock(at(30)), refs=refs(), receipt_clock=FixedClock(at()))
     coord.ingest([row("received"), row("unknown", "physician_assigned", 1, pid="not_in_roster")])
     assert coord.published.held_orphans == 1
     assert coord.published.state.consults["C"].owner == "Unassigned"
@@ -305,18 +301,18 @@ def test_reference_csv_overnight_and_invalid_duplicates(tmp_path):
         load_refs(tmp_path, date(2026, 3, 17))
 
 
-def test_raw_g1_rows_quarantine_individually_without_losing_valid_rows():
-    coord = MutationCoordinator(EventDatabase(":memory:"), FixedClock(at(30)))
+def test_raw_g1_rows_quarantine_individually_without_losing_valid_rows(db_url):
+    coord = MutationCoordinator(EventDatabase(db_url), FixedClock(at(30)))
     valid = row("valid").model_dump(mode="json")
     invalid = {**valid, "event_id": "bad", "event_time": "2026-03-17T12:00:00"}
     report = coord.ingest_raw([invalid, valid, {"unexpected": "fields"}])
     assert report["accepted"] == 1 and len(report["quarantined"]) == 2
     assert coord.published.stats["rejected"] == 2
-    assert coord.db.conn.execute("SELECT COUNT(*) FROM quarantine").fetchone()[0] == 2
+    assert coord.db.conn.execute("SELECT COUNT(*) FROM quarantine").fetchone()["count"] == 2
 
 
-def test_sample_adapter_unknown_description_is_quarantined_and_raw_is_preserved():
-    coord = MutationCoordinator(EventDatabase(":memory:"), FixedClock(at(30)))
+def test_sample_adapter_unknown_description_is_quarantined_and_raw_is_preserved(db_url):
+    coord = MutationCoordinator(EventDatabase(db_url), FixedClock(at(30)))
     raw = {"event_id": "good", "event_time": at().isoformat(), "ingested_at": at().isoformat(),
            "event_type": "consult_received", "consult_id": "C", "hospital_id": "H", "physician_id": "",
            "description": "Stroke consult request received"}
@@ -327,8 +323,8 @@ def test_sample_adapter_unknown_description_is_quarantined_and_raw_is_preserved(
     assert event.consult_type == "Stroke" and event.physician_id is None
 
 
-def test_legacy_event_log_reports_incomplete_quality_history():
-    db = EventDatabase(":memory:")
+def test_legacy_event_log_reports_incomplete_quality_history(db_url):
+    db = EventDatabase(db_url)
     source = row("legacy")
     db.commit_batch([Event(**{**source.model_dump(), "received_at": at(), "raw_json": {}})], [])
     coord = MutationCoordinator(db, FixedClock(at(30)))
@@ -340,8 +336,8 @@ def test_legacy_event_log_reports_incomplete_quality_history():
     assert restarted.published.stats["history_complete"] is False
 
 
-def test_late_session_start_repairs_prior_unmatched_end_by_replay():
-    coord = MutationCoordinator(EventDatabase(":memory:"), FixedClock(at(30)), refs=refs())
+def test_late_session_start_repairs_prior_unmatched_end_by_replay(db_url):
+    coord = MutationCoordinator(EventDatabase(db_url), FixedClock(at(30)), refs=refs())
     coord.ingest([row("r"), row("end", "incoming_call_ended", 3, pid="P1", value="phone_complete")])
     assert "unmatched_session:end" in coord.published.state.consults["C"].flags
     coord.ingest([row("start", "incoming_call_started", 1, pid="P1")])
@@ -352,12 +348,12 @@ def test_late_session_start_repairs_prior_unmatched_end_by_replay():
 
 
 @pytest.mark.parametrize("service_date", [date(2026, 4, 7), date(2026, 11, 2)])
-def test_independent_day_and_id_prefix_are_not_bound_to_original_fixture(service_date):
+def test_independent_day_and_id_prefix_are_not_bound_to_original_fixture(db_url, service_date):
     start = datetime.combine(service_date, datetime.min.time(), tzinfo=timezone.utc) + timedelta(hours=12)
     reference = Refs({"H-T0001": Hospital("Practice Hospital", "America/New_York")},
                      {"PHY-T0001": Physician("Practice Physician", (Shift(start, start + timedelta(hours=1)),))},
                      {"PHY-T0001": frozenset({"H-T0001"})})
-    coord = MutationCoordinator(EventDatabase(":memory:"), FixedClock(start + timedelta(minutes=10)), refs=reference)
+    coord = MutationCoordinator(EventDatabase(db_url), FixedClock(start + timedelta(minutes=10)), refs=reference)
     events = []
     for i, (kind, value) in enumerate((("consult_received", None), ("physician_assigned", None),
                                        ("incoming_call_started", None), ("incoming_call_ended", "phone_complete"))):
@@ -374,9 +370,9 @@ def test_independent_day_and_id_prefix_are_not_bound_to_original_fixture(service
     assert eligible_for_hospital(view, "H-T0001")
 
 
-def test_march17_judging_extension_appends_without_reset_and_respects_clock():
+def test_march17_judging_extension_appends_without_reset_and_respects_clock(db_url):
     clock = FixedClock(at(10))
-    coord = MutationCoordinator(EventDatabase(":memory:"), clock, refs=refs())
+    coord = MutationCoordinator(EventDatabase(db_url), clock, refs=refs())
     coord.ingest([row("base-receipt"), row("base-assignment", "physician_assigned", 1, pid="P1")])
     old_consult = coord.published.state.consults["C"]
     extension = [row("EVT-J0001", minute=10, cid="CON-J0001"),

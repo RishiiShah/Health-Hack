@@ -21,7 +21,7 @@
 - Keep it simple: no speculative abstractions, no configuration nobody asked for, no dead code.
 
 ## Commands
-- Backend: `cd backend && pytest`
+- Backend: `cd backend && pytest` (needs Postgres: `docker run -d --name cc-pg -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:5432:5432 postgres:17`)
 - Web: `cd web && npm run gen:api && npm test && npm run build`
 - Mobile: `cd mobile && flutter test && flutter build web`
 - Synthetic data: `python3 scripts/synth/generate.py --seed 1 --date 2026-04-07 --now 18:20 --prefix T --out data/synthetic/practice-0407`, then `python3 -m unittest discover scripts/synth`

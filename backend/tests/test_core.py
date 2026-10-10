@@ -24,8 +24,8 @@ def test_replay_stage_is_monotonic_and_assignment_is_current_owner():
     assert c.stage == "Imaging Pending" and c.owner == "P1"
     assert len(c.history) == 3
 
-def test_coordinator_deduplicates_and_publishes_after_durable_commit():
-    db = EventDatabase(":memory:")
+def test_coordinator_deduplicates_and_publishes_after_durable_commit(db_url):
+    db = EventDatabase(db_url)
     coordinator = MutationCoordinator(db, FixedClock(t("2026-03-17T13:00:00")))
     row = EventInput(event_id="1", event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id="C1", hospital_id="H", consult_type="Stroke")
     report = coordinator.ingest([row, row])
@@ -33,8 +33,8 @@ def test_coordinator_deduplicates_and_publishes_after_durable_commit():
     assert coordinator.published.revision == report["revision"] == db.revision
     assert coordinator.published.state.consults["C1"].stage == "Received"
 
-def test_future_event_is_durable_but_not_replayed_until_clock_reaches_it():
-    db = EventDatabase(":memory:")
+def test_future_event_is_durable_but_not_replayed_until_clock_reaches_it(db_url):
+    db = EventDatabase(db_url)
     coordinator = MutationCoordinator(db, FixedClock(t("2026-03-17T12:00:00")))
     row = EventInput(event_id="f", event_time=t("2026-03-17T12:01:00"), event_type="consult_received", consult_id="C2", hospital_id="H", consult_type="Stroke")
     report = coordinator.ingest([row])
@@ -43,13 +43,13 @@ def test_future_event_is_durable_but_not_replayed_until_clock_reaches_it():
     assert len(db.events()) == 1
 
 @pytest.mark.skipif(not (Path(__file__).resolve().parents[2] / "data" / "event_stream.csv").exists(), reason="local source fixture is not part of the repository")
-def test_all_base_fixture_rows_have_explicit_adapter_metadata_and_validate():
+def test_all_base_fixture_rows_have_explicit_adapter_metadata_and_validate(db_url):
     root = Path(__file__).resolve().parents[2]
     rows = load_fixture(root / "data" / "event_stream.csv")
     assert len(rows) == 1164
     assert all(r.source == "base" and r.adapter_version == "sample-csv-v1" for r in rows)
     assert sum(r.event_id == "EVT-00529" for r in rows) == 2
-    db = EventDatabase(":memory:")
+    db = EventDatabase(db_url)
     coordinator = MutationCoordinator(db, FixedClock(t("2026-03-17T22:20:00")))
     report = coordinator.ingest(rows)
     assert report["accepted"] == 1163 and report["duplicates"] == 1
@@ -57,8 +57,8 @@ def test_all_base_fixture_rows_have_explicit_adapter_metadata_and_validate():
     assert len(coordinator.published.state.consults) == 103
     assert sum(c.stage != "Signed Off" for c in coordinator.published.state.consults.values()) == 18
 
-def test_api_contract_reports_incomplete_capabilities():
-    api = create_app(":memory:", FixedClock(t("2026-03-17T13:00:00")))
+def test_api_contract_reports_incomplete_capabilities(db_url):
+    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")))
     with TestClient(api) as client:
         ready = client.get("/ready").json()
         snapshot = client.get("/snapshot").json()
@@ -66,8 +66,8 @@ def test_api_contract_reports_incomplete_capabilities():
     assert snapshot["physicians"]["supported"] is False
     assert snapshot["coverage"]["supported"] is False
 
-def test_failed_commit_keeps_published_state_unchanged():
-    db = EventDatabase(":memory:")
+def test_failed_commit_keeps_published_state_unchanged(db_url):
+    db = EventDatabase(db_url)
     coordinator = MutationCoordinator(db, FixedClock(t("2026-03-17T13:00:00")))
     before = coordinator.published
     def fail(*args, **kwargs): raise RuntimeError("disk unavailable")
@@ -81,29 +81,29 @@ def test_failed_commit_keeps_published_state_unchanged():
     assert not coordinator.current_publication().state.consults
     assert db.revision == before.revision
 
-def test_future_event_becomes_visible_when_simulation_clock_advances():
+def test_future_event_becomes_visible_when_simulation_clock_advances(db_url):
     class MutableClock:
         mode = "fixed"
         value = t("2026-03-17T12:00:00")
         def now(self): return self.value
     clock = MutableClock()
-    db = EventDatabase(":memory:")
+    db = EventDatabase(db_url)
     coordinator = MutationCoordinator(db, clock)
     row = EventInput(event_id="future", event_time=t("2026-03-17T12:01:00"), event_type="consult_received", consult_id="C3", hospital_id="H", consult_type="Stroke")
     assert coordinator.ingest([row])["pending_future"] == 1
     clock.value = t("2026-03-17T12:02:00")
     assert "C3" in coordinator.current_publication().state.consults
 
-def test_duplicate_source_and_ingestion_metadata_do_not_create_semantic_conflict():
-    db = EventDatabase(":memory:")
+def test_duplicate_source_and_ingestion_metadata_do_not_create_semantic_conflict(db_url):
+    db = EventDatabase(db_url)
     coordinator = MutationCoordinator(db, FixedClock(t("2026-03-17T13:00:00")))
     first = EventInput(event_id="same", event_time=t("2026-03-17T12:00:00"), ingested_at=t("2026-03-17T12:00:01"), event_type="consult_received", consult_id="C4", hospital_id="H", consult_type="Stroke", source="base", adapter_version="sample-csv-v1", raw_json={"description":"fixture"})
     second = first.model_copy(update={"ingested_at":t("2026-03-17T12:00:05"), "source":"api", "raw_json":{"different_delivery":True}})
     report = coordinator.ingest([first, second])
     assert report["accepted"] == 1 and report["duplicates"] == 1 and report["conflicts"] == 0
 
-def test_held_orphan_timestamp_does_not_advance_event_watermark():
-    db = EventDatabase(":memory:")
+def test_held_orphan_timestamp_does_not_advance_event_watermark(db_url):
+    db = EventDatabase(db_url)
     coordinator = MutationCoordinator(db, FixedClock(t("2026-03-17T15:00:00")))
     orphan = EventInput(event_id="orphan", event_time=t("2026-03-17T14:00:00"), event_type="consult_triaged", consult_id="missing")
     report = coordinator.ingest([orphan])
@@ -112,8 +112,8 @@ def test_held_orphan_timestamp_does_not_advance_event_watermark():
     receipt = EventInput(event_id="receipt", event_time=t("2026-03-17T13:00:00"), event_type="consult_received", consult_id="missing", hospital_id="H", consult_type="Stroke")
     assert coordinator.ingest([receipt])["reordered"] == 0
 
-def test_event_before_receipt_is_causally_quarantined():
-    db = EventDatabase(":memory:")
+def test_event_before_receipt_is_causally_quarantined(db_url):
+    db = EventDatabase(db_url)
     coordinator = MutationCoordinator(db, FixedClock(t("2026-03-17T15:00:00")))
     child = EventInput(event_id="child", event_time=t("2026-03-17T12:00:00"), event_type="consult_triaged", consult_id="C5")
     parent = EventInput(event_id="receipt", event_time=t("2026-03-17T12:01:00"), event_type="consult_received", consult_id="C5", hospital_id="H", consult_type="Stroke")
@@ -122,17 +122,18 @@ def test_event_before_receipt_is_causally_quarantined():
     assert "C5" in coordinator.published.state.consults
     assert coordinator.published.state.consults["C5"].stage == "Received"
 
-def test_database_order_preserves_fractional_seconds():
-    db = EventDatabase(":memory:")
+def test_database_order_preserves_fractional_seconds(db_url):
+    db = EventDatabase(db_url)
     early = event("early", "consult_received", "2026-03-17T12:00:00", hospital_id="H", consult_type="Stroke")
     later = early.model_copy(update={"event_id":"later", "consult_id":"C2", "event_time":early.event_time.replace(microsecond=100000)})
     db.commit_batch([later, early], [])
     assert [e.event_id for e in db.events()] == ["early", "later"]
     stored = db.conn.execute("SELECT event_time FROM events ORDER BY event_time").fetchall()
-    assert [r[0] for r in stored] == ["2026-03-17T12:00:00.000000+00:00", "2026-03-17T12:00:00.100000+00:00"]
+    assert [r["event_time"] for r in stored] == [early.event_time, later.event_time]
+    assert stored[1]["event_time"].microsecond == 100000
 
-def test_conflicting_duplicate_is_durably_quarantined():
-    db = EventDatabase(":memory:")
+def test_conflicting_duplicate_is_durably_quarantined(db_url):
+    db = EventDatabase(db_url)
     coord = MutationCoordinator(db, FixedClock(t("2026-03-17T13:00:00")))
     first = EventInput(event_id="same", event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id="C", hospital_id="H", consult_type="Stroke")
     report = coord.ingest([first, first.model_copy(update={"consult_type":"General Neuro"})])
@@ -140,24 +141,23 @@ def test_conflicting_duplicate_is_durably_quarantined():
     assert coord.published.state.consults["C"].consult_type == "Stroke"
     rejected = db.conn.execute("SELECT reason, received_at FROM quarantine").fetchone()
     assert "G2 conflicting payload" in rejected["reason"]
-    assert datetime.fromisoformat(rejected["received_at"]).utcoffset().total_seconds() == 0
+    assert rejected["received_at"].utcoffset().total_seconds() == 0
 
-def test_restart_restores_committed_consult_state(tmp_path):
-    path = str(tmp_path / "restart.db")
+def test_restart_restores_committed_consult_state(db_url):
     clock = FixedClock(t("2026-03-17T13:00:00"))
-    db = EventDatabase(path)
+    db = EventDatabase(db_url)
     original = MutationCoordinator(db, clock)
     row = EventInput(event_id="r", event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id="C", hospital_id="H", consult_type="Stroke")
     original.ingest([row])
     expected = original.published
     db.conn.close()
-    reopened = EventDatabase(path)
+    reopened = EventDatabase(db_url)
     recovered = MutationCoordinator(reopened, clock).published
     assert recovered == expected
     reopened.conn.close()
 
-def test_snapshot_reuses_state_when_only_time_changes():
-    db = EventDatabase(":memory:")
+def test_snapshot_reuses_state_when_only_time_changes(db_url):
+    db = EventDatabase(db_url)
     coord = MutationCoordinator(db, FixedClock(t("2026-03-17T13:00:00")))
     row = EventInput(event_id="r", event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id="C", hospital_id="H", consult_type="Stroke")
     coord.ingest([row])
@@ -165,8 +165,8 @@ def test_snapshot_reuses_state_when_only_time_changes():
     coord.clock.value = t("2026-03-17T13:05:00")
     assert coord.current_publication().state is state
 
-def test_invalid_routing_retry_is_quarantined():
-    db = EventDatabase(":memory:")
+def test_invalid_routing_retry_is_quarantined(db_url):
+    db = EventDatabase(db_url)
     coord = MutationCoordinator(db, FixedClock(t("2026-03-17T13:00:00")))
     row = EventInput(event_id="bad", event_time=t("2026-03-17T12:00:00"), event_type="routing_attempt_failed", consult_id="C", value="unsupported")
     report = coord.ingest([row])
@@ -183,8 +183,8 @@ def test_signed_off_consult_is_unchanged_by_later_events():
 
 
 @pytest.mark.parametrize("field", ["event_id", "consult_id", "physician_id", "hospital_id"])
-def test_api_rejects_blank_identifiers_without_mutation(field):
-    api = create_app(":memory:", FixedClock(t("2026-03-17T13:00:00")))
+def test_api_rejects_blank_identifiers_without_mutation(db_url, field):
+    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")))
     row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z",
            "event_type": "consult_received", "consult_id": "C", "hospital_id": "H", "consult_type": "Stroke"}
     row[field] = "   "
@@ -193,8 +193,8 @@ def test_api_rejects_blank_identifiers_without_mutation(field):
         assert client.get("/ready").json()["event_count"] == 0
 
 
-def test_api_rejects_unknown_fields_instead_of_silently_ignoring_them():
-    api = create_app(":memory:", FixedClock(t("2026-03-17T13:00:00")))
+def test_api_rejects_unknown_fields_instead_of_silently_ignoring_them(db_url):
+    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")))
     row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z",
            "event_type": "consult_received", "consult_id": "C", "hospital_id": "H",
            "consult_type": "Stroke", "physican_id": "P1"}
@@ -203,8 +203,8 @@ def test_api_rejects_unknown_fields_instead_of_silently_ignoring_them():
         assert client.get("/ready").json()["event_count"] == 0
 
 
-def test_clock_rewind_and_late_insert_rebuild_the_correct_visible_prefix():
-    db = EventDatabase(":memory:")
+def test_clock_rewind_and_late_insert_rebuild_the_correct_visible_prefix(db_url):
+    db = EventDatabase(db_url)
     clock = FixedClock(t("2026-03-17T12:00:00"))
     coord = MutationCoordinator(db, clock)
     receipt = EventInput(event_id="r", event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id="C", hospital_id="H", consult_type="Stroke")
@@ -222,9 +222,9 @@ def test_clock_rewind_and_late_insert_rebuild_the_correct_visible_prefix():
     assert not coord.current_publication().state.consults
 
 
-def test_concurrent_ingest_and_snapshots_preserve_committed_state():
+def test_concurrent_ingest_and_snapshots_preserve_committed_state(db_url):
     from concurrent.futures import ThreadPoolExecutor
-    db = EventDatabase(":memory:")
+    db = EventDatabase(db_url)
     coord = MutationCoordinator(db, FixedClock(t("2026-03-17T13:00:00")))
     def write(i):
         row = EventInput(event_id=str(i), event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id=f"C{i}", hospital_id="H", consult_type="Stroke")
@@ -240,12 +240,12 @@ def test_concurrent_ingest_and_snapshots_preserve_committed_state():
     assert len(db.events()) == 24
 
 
-def test_batch_row_limit_rejects_entire_request(monkeypatch):
+def test_batch_row_limit_rejects_entire_request(db_url, monkeypatch):
     from dataclasses import replace
     from importlib import import_module
     main = import_module("app.main")
     monkeypatch.setattr(main, "settings", replace(main.settings, max_batch_rows=1))
-    api = create_app(":memory:", FixedClock(t("2026-03-17T13:00:00")))
+    api = create_app(db_url, FixedClock(t("2026-03-17T13:00:00")))
     row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z", "event_type": "consult_received",
            "consult_id": "C", "hospital_id": "H", "consult_type": "Stroke"}
     with TestClient(api) as client:
@@ -253,16 +253,41 @@ def test_batch_row_limit_rejects_entire_request(monkeypatch):
         assert client.get("/ready").json()["event_count"] == 0
 
 
-def test_failed_startup_closes_database(monkeypatch):
-    import sqlite3
+def test_failed_startup_closes_database(db_url, monkeypatch):
+    import psycopg
     from dataclasses import replace
     from importlib import import_module
     main = import_module("app.main")
-    db = EventDatabase(":memory:")
-    monkeypatch.setattr(main, "EventDatabase", lambda path: db)
+    db = EventDatabase(db_url)
+    monkeypatch.setattr(main, "EventDatabase", lambda url: db)
     monkeypatch.setattr(main, "settings", replace(main.settings, clock_mode="fixed", clock_fixed=None))
     with pytest.raises(ValueError, match="fixed clock requires"):
         with TestClient(create_app()):
             pass
-    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+    with pytest.raises(psycopg.OperationalError, match="closed"):
         db.conn.execute("SELECT 1")
+
+
+def test_snapshot_cache_reuses_bytes_within_a_second_but_never_hides_new_events(db_url):
+    clock = FixedClock(t("2026-03-17T13:00:00"))
+    api = create_app(db_url, clock)
+    row = {"event_id": "r", "event_time": "2026-03-17T12:00:00Z", "event_type": "consult_received",
+           "consult_id": "C", "hospital_id": "H", "consult_type": "Stroke"}
+    with TestClient(api) as client:
+        first = client.get("/snapshot").content
+        clock.value = t("2026-03-17T13:00:00.900000")
+        assert client.get("/snapshot").content == first
+        client.post("/events", json=row)
+        assert client.get("/snapshot").json()["headline"]["open_consults"] == 1
+        clock.value = t("2026-03-17T13:01:00")
+        assert client.get("/snapshot").json()["consults"][0]["minutes_in_stage"] == 61
+
+
+def test_second_writer_reloads_committed_log_instead_of_overwriting_it(db_url):
+    clock = FixedClock(t("2026-03-17T13:00:00"))
+    old, new = MutationCoordinator(EventDatabase(db_url), clock), MutationCoordinator(EventDatabase(db_url), clock)
+    receipt = lambda cid: EventInput(event_id=cid, event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id=cid, hospital_id="H", consult_type="Stroke")
+    old.ingest([receipt("from-old")])
+    report = new.ingest([receipt("from-new"), receipt("from-old")])
+    assert report["accepted"] == 1 and report["duplicates"] == 1 and report["revision"] == 2
+    assert set(new.published.state.consults) == {"from-old", "from-new"}
