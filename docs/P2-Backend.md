@@ -49,7 +49,7 @@ P3 consumes the published state, reference revision, shifts, credentials, assign
 
 Synthetic tests cover G1 rejection, exact adapters, G2 dedupe, persistent G3 metrics, G4 release/expiry/restart/reference activation/failed commits, matched concurrent sessions, G5 history and timers, G6 precedence, G7 ring/cooldown/shift boundaries, G8 distinct counters, overnight/DST reference validation and immutable references. Source-data tests additionally compare every supplied field in all eight physician and eighteen open-consult rows at March 17, 2026, 18:20 ET. They remain skipped in CI when the deliberately gitignored data is absent; synthetic boundary tests run without it.
 
-The full local suite passes 54 tests on Python 3.14.7, including two source-data tests; the other 52 use synthetic inputs. No dependencies were added. Full replay remains the correctness oracle; operational latency and throughput remain unmeasured; a limited local domain timing check is recorded below. Container/cloud verification is separate from these domain checks.
+The full local suite passes 57 tests on Python 3.14.7, including two source-data tests; the other 55 use synthetic inputs. No dependencies were added. Full replay remains the correctness oracle; operational latency and throughput remain unmeasured; a limited local domain timing check is recorded below. Container/cloud verification is separate from these domain checks.
 
 ### Local domain timing check
 
@@ -61,3 +61,9 @@ On Python 3.14.7, macOS arm64, with in-memory SQLite and pre-normalized rows:
 | 10× cloned sample | 11,630 | 213.72 ms | 0.002 ms | 1.57 ms |
 
 These are small local domain checks, not deployment benchmarks. They exclude CSV parsing, HTTP validation/serialization, network traffic, disk durability and concurrent-client load. The ingest/view columns each contain one observation; only the cached refresh column samples multiple reads. The 10× rows retain the same reference physicians and duplicate pattern while assigning unique consult/event suffixes. Do not treat these measurements as proof of the PRD's operational p95 targets.
+
+## Organizer insights and judging rehearsal
+
+Carl confirmed a held-out March 17 calls/consults extension and said single-day scenarios are sufficient. His recommendation for independently generated datasets is another date and distinct ID prefixes. The domain has no fixed service date or prefix check; regression tests now run complete consult/call sequences on April 7 and November 2 using `EVT-T*`, `CON-T*`, `PHY-T*` and `H-T*` IDs. Another test appends March 17 events without reset, retains the earlier consult, advances visibility with the injected clock and verifies duplicate redelivery. These use disposable synthetic references and do not modify the supplied files.
+
+P1 still needs to test the actual judging delivery path end to end, including reference activation and clock control. Organizer confirmation is needed for transport, schema/description compatibility, timestamp conventions and whether new physician/hospital IDs bring reference updates. P3 projections should retain explicit roster/baseline assumptions; fabricated multi-day history is not evidence for prediction accuracy.

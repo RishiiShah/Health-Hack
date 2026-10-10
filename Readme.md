@@ -2,7 +2,7 @@
 
 Hospital physician operations: reconstruct consult activity, identify bottlenecks and workload risk, and make credential-aware dispatch decisions explainable.
 
-- [PRD v2.1](docs/Sevaro%20Command%20Center%20PRD%20v2.md): scope, corrected fixture expectations, acceptance tests and operations priorities.
+- [PRD v2.2](docs/Sevaro%20Command%20Center%20PRD%20v2.md): scope, corrected fixture expectations, acceptance tests and operations priorities.
 - [Backend architecture](docs/Command%20Center%20Backend%20Scaffold.md): target interfaces, state consistency and performance requirements.
 - [Fixture review](docs/Backend%20Scaffold%20Review.md): source-data findings and outstanding decisions.
 - [Backend foundation](backend/README.md): implemented features, local setup and deferred gates.

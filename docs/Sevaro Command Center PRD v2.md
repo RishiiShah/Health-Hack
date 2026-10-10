@@ -1,8 +1,16 @@
-# Sevaro Command Center PRD v2.1
+# Sevaro Command Center PRD v2.2
 
 Oct 10, 2026 · @Rishabh
 
 Updated against the supplied March 17, 2026 fixtures. [Backend Scaffold Review](Backend%20Scaffold%20Review.md) records the original discrepancies; [Command Center Backend Scaffold](Command%20Center%20Backend%20Scaffold.md) defines the implementation contract. The source CSVs remain unchanged. Expected values below describe this dataset; synthetic cases are explicitly identified.
+
+## Organizer clarification and testing data
+
+Carl Dugart confirmed that judging will introduce held-out data covering the same operational scenarios, including additional March 17, 2026 calls/consults. Longer-term history is unnecessary: these scenarios can occur within one day. For team-generated dataset extensions, he recommends a different date and different ID prefixes, such as `EVT-T0001`. Exact delivery format, clock control, reference changes and schema/value compatibility have not yet been confirmed.
+
+Maintain three separate uses: the unchanged March 17 base/snapshot fixtures; controlled March 17 append rehearsals in a disposable test database to prepare for judging; and independently generated single-day practice datasets on another service date with unique event/consult prefixes and consistent references. Generated rows must preserve scenario/schema relationships, not add invented external factors. Do not mix practice data into the judging base or replace it with a generated history.
+
+Generality is tested with other dates and ID prefixes. Live correctness is tested by appending new events without restart/reset, preserving prior state, enforcing event-time visibility, and handling repeated/late deliveries. No seven-day/month-long synthetic history is required. Near-term operational projections use current workload, roster intervals and supplied baseline/coverage inputs with explicit assumptions; synthetic history does not establish trained-model validity or prove assignment improvements. [P2 handoff](P2-Backend.md) distinguishes domain verification from the P1/P3 integration still required.
 
 ## Overview
 
@@ -288,7 +296,7 @@ Core is done when T1–T12 and T23–T28 pass with no restart between base load 
 
 **Live test (new synthetic `live_test_events.csv`, fed one at a time)**
 
-This file is absent from the supplied data and must be authored separately using March 17 timestamps. Record explicit clock advancement per test; it must pass events' times and delivery times consistently. T23 count assertions require that no prior Suncrest receipt expires from the trailing window during the two injections.
+This file is absent from the supplied data. The cases below are a controlled March 17 append rehearsal in a disposable test database, reflecting the announced judging extension; they are not a generated replacement/extension distributed with the official dataset. Independent generated practice datasets must use another service date and a distinct event/consult ID namespace, following the organizer guidance. Record explicit clock advancement per test; it must pass events' times and delivery times consistently. T23 count assertions require that no prior Suncrest receipt expires from the trailing window during the two injections.
 
 | # | Events | Expected |
 | --- | --- | --- |
@@ -348,7 +356,9 @@ Each assumption lives in one config value or one function, so it can change in o
 
 **Open questions**
 
-- [ ] How will test data arrive: live stream, replayed CSV, or both? Decides default clock mode.
+- [ ] How will the held-out March 17 data arrive: CSV upload, API batch or event stream? How is simulation time advanced during judging?
+- [ ] Will new physician/hospital IDs come with updated rosters and credentials, or will the extension use existing reference IDs?
+- [ ] Will held-out columns, event types, description values and timestamp offsets follow the supplied CSV conventions?
 - [ ] What are the judging criteria and their weights? Decides whether live test work moves before H24.
 - [ ] How long is a Temporarily Unavailable status trusted before it is flagged stale?
 - [ ] What clears an unanswered ring when no answer/cancel event arrives? Until a policy is configured, retain the routing exclusion and expose its age.
