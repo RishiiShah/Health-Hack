@@ -60,3 +60,4 @@ button, input, textarea { font: inherit; color: inherit; }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn.block { width: 100%; }
 .error { color: var(--red); font-size: 14px; margin: 8px 0 0; }
+.topbar .signout { margin-left: 8px; background: none; border: 1px solid #3a4652; color: #e8ecef; border-radius: 6px; padding: 5px 10px; font-size: 13px; cursor: pointer; }

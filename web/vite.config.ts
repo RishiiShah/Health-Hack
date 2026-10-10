@@ -6,6 +6,6 @@ const api = process.env.API_URL ?? "http://127.0.0.1:8000";
 export default defineConfig({
   esbuild: { jsx: "automatic" },
   server: {
-    proxy: { "^/(snapshot|events|gaps|offers|interventions|audit|admin|alerts|consults|ready|health)": api },
+    proxy: { "^/(auth|me|snapshot|events|gaps|offers|interventions|audit|admin|alerts|consults|ready|health)": api },
   },
 });

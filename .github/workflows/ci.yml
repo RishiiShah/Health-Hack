@@ -34,7 +34,7 @@ jobs:
         ports: ["5432:5432"]
         options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
     env:
-      RUN: docker run -d --name cc-backend --network host -e PORT=10000 -e CC_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres cc-backend:ci
+      RUN: docker run -d --name cc-backend --network host -e PORT=10000 -e CC_AUTH=off -e CC_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres cc-backend:ci
     steps:
       - uses: actions/checkout@v4
       - name: Build the portable image

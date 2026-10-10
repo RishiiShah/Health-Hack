@@ -6,6 +6,7 @@ The seed operation writes synthetic test data. Use only a disposable test databa
 import argparse
 from datetime import datetime, timezone
 import json
+import os
 import time
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -13,7 +14,9 @@ from urllib.request import Request, urlopen
 
 def request(url, payload=None):
     data = json.dumps(payload).encode() if payload is not None else None
-    req = Request(url, data=data, headers={"Content-Type":"application/json"})
+    headers = {"Content-Type":"application/json"}
+    if os.environ.get("CC_TOKEN"): headers["Authorization"] = f"Bearer {os.environ['CC_TOKEN']}"
+    req = Request(url, data=data, headers=headers)
     with urlopen(req, timeout=3) as response:
         return json.load(response)
 

@@ -11,6 +11,10 @@ services:
     envVars:
       - key: CC_DATABASE_URL  # RDS URL with sslmode=verify-full; set in the dashboard
         sync: false
+      - key: CC_USERS  # JSON accounts with PBKDF2 hashes (python -m app.auth); set in the dashboard
+        sync: false
+      - key: CC_AUTH_SECRET  # 32+ random characters for signing sign-in tokens
+        sync: false
       - key: CC_CLOCK_MODE
         value: auto
       - key: CC_DATA_DIR

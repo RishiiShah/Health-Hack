@@ -9,8 +9,8 @@ import type { Candidate, Candidates as CandidatesData, Offer, TrapCheck as TrapC
 import "./act.css";
 
 // Coordinator view of one gap: who was checked, the trap check, the proposal form and the audit trail.
-export function GapPanel({ gapId, reloadKey, onClose, onProposed }: {
-  gapId: string; reloadKey: unknown; onClose: () => void; onProposed: (o: Offer) => void;
+export function GapPanel({ gapId, reloadKey, canPropose, onClose, onProposed }: {
+  gapId: string; reloadKey: unknown; canPropose: boolean; onClose: () => void; onProposed: (o: Offer) => void;
 }) {
   const id = encodeURIComponent(gapId);
   const candidates = useApi<CandidatesData>(`/gaps/${id}/candidates`, reloadKey);
@@ -29,7 +29,7 @@ export function GapPanel({ gapId, reloadKey, onClose, onProposed }: {
       <section>
         <h2>Off-shift physicians</h2>
         {candidates.data ? (
-          <Candidates data={candidates.data} onPropose={setProposing} />
+          <Candidates data={candidates.data} onPropose={canPropose ? setProposing : null} />
         ) : (
           candidates.error && <p className="unavailable">{unavailableText(candidates.error, "GET /gaps/{gap_id}/candidates")}</p>
         )}
