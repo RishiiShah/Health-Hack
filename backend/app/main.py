@@ -18,7 +18,7 @@ def create_app(db_path: str | None = None, test_clock=None) -> FastAPI:
             clock = test_clock or make_clock(settings.clock_mode, settings.fixed_datetime(), max((e.event_time for e in events), default=None))
             api.state.db = db
             api.state.clock = clock
-            api.state.coordinator = MutationCoordinator(db, clock, settings.late_lag_s)
+            api.state.coordinator = MutationCoordinator(db, clock, settings.late_lag_s, orphan_hold_s=settings.orphan_hold_s)
             yield
         finally:
             db.conn.close()
@@ -33,7 +33,7 @@ def create_app(db_path: str | None = None, test_clock=None) -> FastAPI:
         p = request.app.state.coordinator.published
         return {"ready":True, "revision":p.revision, "event_count":p.event_count, "clock_mode":request.app.state.clock.mode,
             "capabilities":{"event_ingest":True,"durable_event_log":True,"consult_replay":True,"fixture_adapter":True,
-                "orphan_holding":False,"reference_validation":False,"physician_state":False,"detection":False,
+                "orphan_holding":True,"reference_validation":False,"physician_state":False,"detection":False,
                 "coverage_forecast":False,"websocket":False,"authentication":False}}
 
     @api.post("/events")
@@ -43,7 +43,7 @@ def create_app(db_path: str | None = None, test_clock=None) -> FastAPI:
         coordinator = request.app.state.coordinator
         report = coordinator.ingest(rows)
         if report["unresolved"]:
-            report["capability_warning"] = "Unresolved consult events were quarantined because G4 orphan holding is not implemented."
+            report["capability_warning"] = "Unresolved events remain held until dependencies arrive or the server-time deadline expires."
         return report
 
     @api.get("/snapshot")
@@ -61,7 +61,7 @@ def create_app(db_path: str | None = None, test_clock=None) -> FastAPI:
             "clock":{"mode":request.app.state.clock.mode, "now":p.as_of.isoformat()}, "headline":{"open_consults":len(open_rows)}, "consults":open_rows,
             "physicians":{"supported":False,"items":[]}, "hospitals":{"supported":False,"items":[]},
             "queue":{"supported":False,"items":[]}, "coverage":{"supported":False},
-            "capabilities":{"orphan_holding":False,"reference_validation":False,"physician_state":False,"detection":False},
+            "capabilities":{"orphan_holding":True,"reference_validation":False,"physician_state":False,"detection":False},
             "data_quality":{"supported":False,"accepted_events":p.event_count}}
 
     @api.get("/consults/{consult_id}")

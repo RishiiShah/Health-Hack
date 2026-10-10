@@ -62,7 +62,7 @@ def test_api_contract_reports_incomplete_capabilities():
     with TestClient(api) as client:
         ready = client.get("/ready").json()
         snapshot = client.get("/snapshot").json()
-    assert ready["capabilities"]["orphan_holding"] is False
+    assert ready["capabilities"]["orphan_holding"] is True
     assert snapshot["physicians"]["supported"] is False
     assert snapshot["coverage"]["supported"] is False
 
@@ -102,12 +102,13 @@ def test_duplicate_source_and_ingestion_metadata_do_not_create_semantic_conflict
     report = coordinator.ingest([first, second])
     assert report["accepted"] == 1 and report["duplicates"] == 1 and report["conflicts"] == 0
 
-def test_quarantined_orphan_timestamp_does_not_advance_event_watermark():
+def test_held_orphan_timestamp_does_not_advance_event_watermark():
     db = EventDatabase(":memory:")
     coordinator = MutationCoordinator(db, FixedClock(t("2026-03-17T15:00:00")))
     orphan = EventInput(event_id="orphan", event_time=t("2026-03-17T14:00:00"), event_type="consult_triaged", consult_id="missing")
     report = coordinator.ingest([orphan])
-    assert report["accepted"] == 0 and report["unresolved"] == 1
+    assert report["accepted"] == 0 and report["held_orphans"] == 1
+    assert not report["quarantined"]
     receipt = EventInput(event_id="receipt", event_time=t("2026-03-17T13:00:00"), event_type="consult_received", consult_id="missing", hospital_id="H", consult_type="Stroke")
     assert coordinator.ingest([receipt])["reordered"] == 0
 
