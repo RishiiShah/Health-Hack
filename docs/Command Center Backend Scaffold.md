@@ -12,6 +12,8 @@ One FastAPI process, one uvicorn worker, one serialized mutation coordinator, an
 
 A late event is inserted by normalized UTC `event_time`. Initially replay once per accepted **batch**, rather than once per row. Full replay is a reasonable starting point for 1,163 unique sample events; its latency is unmeasured. Benchmark before claiming milliseconds. Keep the full replay as a correctness oracle if incremental updates are introduced later.
 
+Routing and allocation use deterministic rules and explicit constraints/costs. No AI/ML model, training pipeline, inference service or model-provider dependency is part of the architecture.
+
 The operations objective is to reduce unassigned waiting time and SLA breaches while balancing eligible physicians' workload and preserving coverage. Queue score orders attention; it does not select the best physician or prove staffing sufficiency. Keep assignment eligibility separate from workload ranking and from forecast assumptions.
 
 ## Repo layout

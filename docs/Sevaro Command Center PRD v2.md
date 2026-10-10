@@ -10,7 +10,7 @@ Carl Dugart confirmed that judging will introduce held-out data covering the sam
 
 Maintain three separate uses: the unchanged March 17 base/snapshot fixtures; controlled March 17 append rehearsals in a disposable test database to prepare for judging; and independently generated single-day practice datasets on another service date with unique event/consult prefixes and consistent references. Generated rows must preserve scenario/schema relationships, not add invented external factors. Do not mix practice data into the judging base or replace it with a generated history.
 
-Generality is tested with other dates and ID prefixes. Live correctness is tested by appending new events without restart/reset, preserving prior state, enforcing event-time visibility, and handling repeated/late deliveries. No seven-day/month-long synthetic history is required. Near-term operational projections use current workload, roster intervals and supplied baseline/coverage inputs with explicit assumptions; synthetic history does not establish trained-model validity or prove assignment improvements. [P2 handoff](P2-Backend.md) distinguishes domain verification from the P1/P3 integration still required.
+Generality is tested with other dates and ID prefixes. Live correctness is tested by appending new events without restart/reset, preserving prior state, enforcing event-time visibility, and handling repeated/late deliveries. No seven-day/month-long synthetic history is required. Near-term operational projections use current workload, roster intervals and supplied baseline/coverage inputs with explicit assumptions; synthetic scenarios verify rule/constraint behavior; they do not prove real-world assignment improvements. [P2 handoff](P2-Backend.md) distinguishes domain verification from the P1/P3 integration still required.
 
 ## Overview
 
@@ -248,11 +248,13 @@ The sample's source snapshot shows PHY-007 with 6 calls, not an unanswered-ring 
 
 ## Operations recommendations after core
 
+**Implementation constraint:** routing is a deterministic constrained-allocation problem. Use current state, credentials, shift membership, availability and explicit per-physician capacity to define feasible assignments; use documented operational costs and stable tie-breakers to compare them. No AI/ML model, training pipeline, inference service or model-provider dependency is required or allowed in this design. Coverage forecasts are explicit schedule/demand scenarios. Pydantic schemas validate input data and are unrelated to learned models. This does not expand P2 beyond eligibility and state/counters; recommendation ranking remains with the team.
+
 Provide a read-only recommendation for each waiting consult with feasible physician IDs, every exclusion and the state revision used. Filter credentials and G7 first. Rank feasible candidates by active work, open consults, unfinished notes, remaining shift and lost coverage; show component values so an operator can understand the choice. Define and version any weights with operations rather than inventing them from this small sample.
 
 When multiple consults are waiting, evaluate them together with an explicit per-physician assignment capacity. Preserve a feasible unassigned outcome and avoid repeatedly recommending the same sole eligible physician. A shared-capacity feasibility view must account for physicians credentialed at several hospitals. Automated dispatch remains outside scope; any future assignment command revalidates the revision/eligibility and reserves capacity transactionally.
 
-Success measures: arrival-to-assignment, assignment-to-first-contact, oldest unassigned age, stage breaches, unfinished work after shift end and workload distribution. Establish a replay baseline first; the sample does not establish a counterfactual improvement or enough history for a validated service-time prediction.
+Success measures: arrival-to-assignment, assignment-to-first-contact, oldest unassigned age, stage breaches, unfinished work after shift end and workload distribution. Establish a replay baseline first; the sample does not establish a counterfactual improvement or validated evidence for service-time estimates.
 
 ## Stretch: intervention loop
 
@@ -320,7 +322,7 @@ Six people, 36 hours, five parallel workstreams. Pydantic schemas freeze at H2 s
 | --- | --- | --- |
 | P1 Backend lead | API, WebSockets, clock modes, ingest endpoints, deploy, reset | Integration |
 | P2 Backend | G1 to G8 replay engine, quarantine, column map | T1 to T6, T12, T24, T25 |
-| P3 AI/data | G8b to G15, alert reasons | T7 to T11, T23, T26 to T28 |
+| P3 Operations/data | G8b to G15, alert reasons | T7 to T11, T23, T26 to T28 |
 | P4 Frontend | Consult board, physician board, attention queue | Visual |
 | P5 Frontend | Workload, heatmap, data quality, live injector | Visual |
 | P6 Flutter | H0 to H20: test harness, live-test runner, demo script. After H20: Flutter offer app (stretch) | Harness for all |
