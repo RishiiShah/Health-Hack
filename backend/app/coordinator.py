@@ -1,3 +1,4 @@
+from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import datetime
 import json
@@ -23,7 +24,8 @@ class MutationCoordinator:
         events = db.events()
         initial_as_of = clock.now()
         visible = tuple(e for e in events if e.event_time <= initial_as_of)
-        self._visible_ids = tuple(e.event_id for e in visible)
+        self._events = events
+        self._visible_count = len(visible)
         self.published = Published(replay(visible), db.revision, initial_as_of, len(events))
         self.watermark = max((e.event_time for e in events), default=None)
 
@@ -32,7 +34,7 @@ class MutationCoordinator:
             as_of = self.clock.now()
             received_at = self.receipt_clock.now()
             accepted, quarantined = [], []
-            stored_events = self.db.events()
+            stored_events = self._events
             existing = {e.event_id: e for e in stored_events}
             seen: dict[str, Event] = {}
             duplicate = conflicts = 0
@@ -77,11 +79,13 @@ class MutationCoordinator:
                     reordered += 1
                     if (watermark - event.event_time).total_seconds() > self.late_lag_s: late += 1
                 watermark = max(watermark, event.event_time) if watermark else event.event_time
-            candidate = (*stored_events, *accepted)
-            candidate_state = replay(tuple(e for e in candidate if e.event_time <= as_of))
+            candidate = tuple(sorted((*stored_events, *accepted), key=lambda e: (e.event_time, e.ingested_at, e.event_id)))
+            visible_count = bisect_right(candidate, as_of, key=lambda e: e.event_time)
+            candidate_state = replay(candidate[:visible_count])
             revision = self.db.commit_batch(accepted, quarantined, received_at.isoformat())
             self.watermark = watermark
-            self._visible_ids = tuple(e.event_id for e in sorted(candidate, key=lambda e:(e.event_time,e.ingested_at,e.event_id)) if e.event_time <= as_of)
+            self._events = candidate
+            self._visible_count = visible_count
             self.published = Published(candidate_state, revision, as_of, len(candidate))
             return {"accepted":len(accepted), "pending_future":pending, "duplicates":duplicate, "conflicts":conflicts,
                     "reordered":reordered, "late":late, "unresolved":len(unresolved), "quarantined":[{"reason":r} for r,_ in quarantined], "revision":revision}
@@ -90,10 +94,8 @@ class MutationCoordinator:
         """Refresh time-dependent state from one clock sample; fixed clocks stay fixed."""
         with self.lock:
             as_of = self.clock.now()
-            all_events = self.db.events()
-            visible = tuple(e for e in all_events if e.event_time <= as_of)
-            visible_ids = tuple(e.event_id for e in visible)
-            state = self.published.state if visible_ids == self._visible_ids else replay(visible)
-            self._visible_ids = visible_ids
-            self.published = Published(state, self.db.revision, as_of, len(all_events))
+            visible_count = bisect_right(self._events, as_of, key=lambda e: e.event_time)
+            state = self.published.state if visible_count == self._visible_count else replay(self._events[:visible_count])
+            self._visible_count = visible_count
+            self.published = Published(state, self.published.revision, as_of, len(self._events))
             return self.published

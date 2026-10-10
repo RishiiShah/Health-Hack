@@ -63,7 +63,7 @@ The Docker build excludes local environments, databases, caches and `.env` files
 
 ## Verification performed
 
-The Python 3.14.7 suite passes 20 tests, including real HTTP server startup on nondefault ports, synthetic ingestion, graceful SIGTERM shutdown and event recovery after replacement of the server process. The launcher uses its active Python interpreter rather than depending on a globally installed `uvicorn` executable. Render manifest paths/health configuration and Compose configuration validation pass.
+The Python 3.14.7 suite passes 30 tests, including real HTTP server startup on nondefault ports, synthetic ingestion, graceful SIGTERM shutdown and event recovery after replacement of the server process. The launcher uses its active Python interpreter rather than depending on a globally installed `uvicorn` executable. Render manifest paths/health configuration and Compose configuration validation pass.
 
 The `python:3.14.7-slim` tag was verified against Docker Hub and includes Linux deployment images. The rebuilt local 3.14.7 environment also passes `pip check`.
 
