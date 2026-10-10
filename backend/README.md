@@ -24,7 +24,17 @@ The Render configuration runs one worker and reads `CC_DATABASE_URL` from the da
 
 Implemented now: canonical event contracts and validation; sample description normalization; PostgreSQL persistence and dedupe; batch ordering and watermark quality counts; future-event persistence; unresolved events are durably held for five server-time minutes and causal conflicts are quarantined; deterministic monotonic consult stage/ownership replay; commit-before-publication serialization; time refresh without replay when the visible event prefix is unchanged; health, readiness, event ingest, consult snapshot and consult detail routes.
 
-Readiness and snapshot responses expose capabilities. API wiring for physician activity and reference loading/validation, detections G8b–G15, coverage forecasts, WebSockets, upload endpoints, authentication, reset/clock administration, and stretch assignment/offer workflows are not implemented. The empty panel payloads are marked unsupported and must not be read as zero alerts, healthy staffing, or validated eligibility. Readiness means the durable consult-replay service started, not that the complete command center is operational. Serve this unauthenticated foundation locally while those features are pending.
+**API (step 9).** Every route in the API contract of [00-Boundaries](../docs/00-Boundaries-and-Contracts.md) is implemented: `/me`, `/snapshot` (queue, coverage, physicians, hospitals, offers), `WS /ws?token=`, `/gaps/{id}/candidates`, `/gaps/{id}/trap-check`, `/interventions` (+ `/authorize`), `/offers` (propose, approve-and-send, reject, accept, decline, audio), `/audit`, `/alerts/{id}/audio`, `/events`, `/events/csv`, `/admin/reset`, `/admin/clock`, `/admin/physician-tokens`. Every route except `/health` and `/ready` needs `Authorization: Bearer <token>`; the server checks the permission table on each request (401 bad token, 403 wrong role, 404 for another physician's offer). Commands accept an `Idempotency-Key` header. Decisions need the reference CSVs in `CC_DATA_DIR`; without them `/ready` reports detection unavailable and decision routes return 503. See [Deployment](../docs/Deployment.md) for all settings, and [Decision engine](../docs/Decision-Engine.md) for the rules.
+
+Run against a scenario pack, then load its events:
+
+```sh
+CC_DATA_DIR=../test_data/01_development/inputs CC_CLOCK_MODE=anchored CC_CLOCK_FIXED=2026-03-17T18:20:00-04:00 \
+CC_COORDINATOR_TOKEN=c CC_LEAD_TOKEN=l CC_ADMIN_TOKEN=a CC_TOKEN_SECRET=s .venv/bin/python -m app
+curl -H 'Authorization: Bearer a' -H 'Content-Type: text/csv' --data-binary @../test_data/01_development/inputs/event_stream.csv localhost:8000/events/csv
+```
+
+Measured locally (Postgres in Docker, development pack): ingest of the 1,710-row base file 53 ms; one appended event 6 ms; `/snapshot` recompute median 20 ms, cached 0.5 ms.
 
 JSON rejects unknown top-level fields and blank identifiers with 422 before ingestion. Signed Off consults retain their final owner and history when later events arrive. JSON may omit `ingested_at`; the coordinator supplies server receipt time. CSV rows require both source timestamps. Structural HTTP validation failures return 422 before coordinator ingestion; semantic failures are durably quarantined; unresolved rows are held with fixed first-receipt deadlines. `ingest_raw` adds per-row G1 quarantine and persistent quality metrics for P1 upload integration. The current typed HTTP route still returns structural 422 errors before coordinator ingestion. The sample is not automatically loaded: `app.fixture.load_fixture` supplies typed rows for `MutationCoordinator.ingest`; CSV upload is pending.
 

@@ -341,7 +341,7 @@ One row per transition and per decision pass that produced a recommendation: gap
 | 6 | `decide/interventions.py` + `rank.py`: fix choice, alternatives, incidents, queue | Top item at 18:20 with plain reason; order invariance |
 | 7 ✅ | `decide/routing_sim.py`: three runs and pass criteria; clock sweep and metrics | Trap shown unguarded, contained guarded; `test_routing_sim.py`, `test_pack_sweep.py` |
 | 8 ✅ | `act/offers.py` + schema: state machine, commands, sweep, audit | `test_offers.py` (all section 7 flow cases, atomicity, concurrency) |
-| 9 | Wire into snapshot and API contract with P1 (endpoints already listed in 00-Boundaries) | API tests; live-append and idempotent-ingest decision tests |
+| 9 ✅ | Wire into snapshot and API contract (every endpoint in 00-Boundaries, auth and RBAC, WebSocket, sweep, ElevenLabs) | `test_api.py`: live append equals full replay at every checkpoint on both packs; re-ingest changes no decision; roles; offer loop over HTTP |
 | 10 | Generator-driven property tests (Krish's synthetic data): assert behavior, not IDs | Runs on two practice datasets |
 
 Steps 1-7 are pure functions and can be tested without the database. Step 8 needs Postgres.

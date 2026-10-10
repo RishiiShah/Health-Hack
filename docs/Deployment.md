@@ -76,10 +76,16 @@ Use an Azure Linux VM with Docker Engine and Compose and the same commands. The 
 | --- | --- | --- |
 | `PORT` | HTTP port; integer 1–65535 | 8000; Render supplies its own |
 | `CC_DATABASE_URL` | PostgreSQL URL (RDS in deployment) | local `postgres:postgres@127.0.0.1:5432/postgres` |
-| `CC_DATA_DIR` | Reference-file location for future reference support; not durable without a disk | `/data/ref` |
+| `CC_DATA_DIR` | Reference CSVs (hospitals, shifts, off-shift roster, credentials, baseline volume, coverage requirements), sample or scenario-pack layout. Missing: the API runs, `/ready` reports detection unavailable, decision routes return 503 | `/data/ref` |
 | `CC_CLOCK_MODE` | `auto`, `wall`, `anchored`, `fixed` | `auto` |
 | `CC_CLOCK_FIXED` | Offset-aware fixed/anchor time, when needed | unset |
-| `CC_SERVICE_DATE` | Service date used by future time-only schedule normalization | fixture default March 17, 2026; schedule normalization pending |
+| `CC_OFFER_HISTORY` | Offers sent outside this tool (`offer_id, physician_id, sent_at, status`), counted for R7/R8 | unset |
+| `CC_COORDINATOR_TOKEN`, `CC_LEAD_TOKEN`, `CC_ADMIN_TOKEN` | Fixed demo tokens per role; an unset token means that role cannot sign in | unset |
+| `CC_LEAD_NAME` | Clinical lead's display name, written to the audit log as approver | `Clinical lead` |
+| `CC_TOKEN_SECRET` | Signs physician tokens (`POST /admin/physician-tokens`); unset = no physician sign-in | unset |
+| `CC_SWEEP_S` | Seconds between background sweeps (offer expiry, orphan deadlines); 0 = only on requests | `5` |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL_ID` | Text-to-speech; unset = audio routes return 503 and clients show the text | unset |
+| `CC_SERVICE_DATE` | Service date for the sample layout, whose shift times have no date (pack layout ignores it) | unset |
 
 Backups use RDS automated backups and snapshots. To move providers, point the new host at the same RDS instance, stop the old one, and verify replay before switching traffic.
 
