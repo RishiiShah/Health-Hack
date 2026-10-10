@@ -1,0 +1,16 @@
+{
+  "user_id": "brennan@demo.sevaro",
+  "role": "physician",
+  "display_name": "Dr. Lucy Brennan",
+  "physician_id": "PHY-013",
+  "permissions": [
+    "offer.respond",
+    "preferences.update"
+  ],
+  "split_shift_opt_in": false,
+  "offers_received_7d": 0,
+  "weekly_offer_limit": 3,
+  "on_shift": false,
+  "shift_end": null,
+  "server_now": "2026-03-17T18:20:00-04:00"
+}

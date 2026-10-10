@@ -1,0 +1,18 @@
+{
+  "user_id": "lead@demo.sevaro",
+  "role": "clinical_lead",
+  "display_name": "Clinical lead on duty",
+  "physician_id": null,
+  "permissions": [
+    "proposal.approve",
+    "proposal.reject",
+    "escalation.authorize",
+    "audit.read"
+  ],
+  "split_shift_opt_in": null,
+  "offers_received_7d": null,
+  "weekly_offer_limit": null,
+  "on_shift": null,
+  "shift_end": null,
+  "server_now": "2026-03-17T18:20:00-04:00"
+}

@@ -1,0 +1,23 @@
+{
+  "items": [
+    {
+      "notification_id": "N-0012",
+      "kind": "offer",
+      "title": "Extra shift tonight at Suncrest",
+      "body": "19:00 to 23:00 ET, approved by your clinical lead. Please answer within 10 min.",
+      "at": "2026-03-17T18:25:00-04:00",
+      "offer_id": "OFF-0007",
+      "unread": true
+    },
+    {
+      "notification_id": "N-0009",
+      "kind": "schedule",
+      "title": "Sevaro",
+      "body": "Your next shift: Wed 18 Mar, 19:00.",
+      "at": "2026-03-16T08:02:00-04:00",
+      "offer_id": null,
+      "unread": false
+    }
+  ],
+  "server_now": "2026-03-17T18:25:04-04:00"
+}

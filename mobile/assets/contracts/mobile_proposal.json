@@ -1,0 +1,104 @@
+{
+  "proposal_id": "PRP-0003",
+  "gap_id": "GAP-SYN-005-1900",
+  "gap": {
+    "hospitals": [
+      {
+        "hospital_id": "SYN-005",
+        "name": "Suncrest Medical Pavilion"
+      }
+    ],
+    "start": "2026-03-17T19:00:00-04:00",
+    "end": "2026-03-17T23:00:00-04:00",
+    "hours": 4.0,
+    "required": 2,
+    "counted": 1,
+    "shortfall": 1
+  },
+  "recipients": [
+    {
+      "physician_id": "PHY-009",
+      "display_name": "Dr. Grace Okafor",
+      "rank": 1,
+      "rank_reason": "Covers the gap hospital, online in 15 min, 1 decline in 30 days"
+    }
+  ],
+  "excluded": [
+    {
+      "physician_id": "PHY-010",
+      "display_name": "Dr. Ben Alvarez",
+      "failed_rule": "R2",
+      "detail": "Not credentialed at Suncrest Medical Pavilion"
+    },
+    {
+      "physician_id": "PHY-011",
+      "display_name": "Dr. Hannah Cho",
+      "failed_rule": "R5",
+      "detail": "Already scheduled from 19:00"
+    },
+    {
+      "physician_id": "PHY-012",
+      "display_name": "Dr. Omar Haddad",
+      "failed_rule": "R1",
+      "detail": "Opted out of split shifts"
+    },
+    {
+      "physician_id": "PHY-013",
+      "display_name": "Dr. Lucy Brennan",
+      "failed_rule": "R1",
+      "detail": "Opted out of split shifts"
+    },
+    {
+      "physician_id": "PHY-014",
+      "display_name": "Dr. Ravi Menon",
+      "failed_rule": "R4",
+      "detail": "63 h in 7 days with this offer, limit 60"
+    }
+  ],
+  "trap_check": {
+    "result": "pass",
+    "explanation": "Joiner limited to Suncrest and seeded at 12 consults; gap closes, no other hospital worsens."
+  },
+  "coverage_preview": {
+    "times": [
+      "2026-03-17T19:00:00-04:00",
+      "2026-03-17T19:15:00-04:00",
+      "2026-03-17T19:30:00-04:00"
+    ],
+    "without": [
+      {
+        "staffed": 1,
+        "required": 2
+      },
+      {
+        "staffed": 1,
+        "required": 2
+      },
+      {
+        "staffed": 1,
+        "required": 2
+      }
+    ],
+    "with": [
+      {
+        "staffed": 2,
+        "required": 2
+      },
+      {
+        "staffed": 2,
+        "required": 2
+      },
+      {
+        "staffed": 2,
+        "required": 2
+      }
+    ]
+  },
+  "status": "proposed",
+  "proposed_by": "Coordinator on duty",
+  "proposed_at": "2026-03-17T18:21:00-04:00",
+  "decided_by": null,
+  "decided_at": null,
+  "reject_reason": null,
+  "server_now": "2026-03-17T18:22:00-04:00"
+}

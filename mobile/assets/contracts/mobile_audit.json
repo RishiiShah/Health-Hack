@@ -1,0 +1,30 @@
+{
+  "gap_id": "GAP-SYN-005-1900",
+  "entries": [
+    {
+      "at": "2026-03-17T18:20:00-04:00",
+      "actor": "System",
+      "action": "gap_detected",
+      "detail": "Suncrest projected 1 of 2 from 19:00"
+    },
+    {
+      "at": "2026-03-17T18:21:00-04:00",
+      "actor": "System",
+      "action": "eligibility_checked",
+      "detail": "6 off-shift physicians checked, 1 eligible"
+    },
+    {
+      "at": "2026-03-17T18:21:00-04:00",
+      "actor": "Coordinator on duty",
+      "action": "proposal_created",
+      "detail": "Offer to Dr. Grace Okafor, 19:00-23:00 ET"
+    },
+    {
+      "at": "2026-03-17T18:24:00-04:00",
+      "actor": "Clinical lead on duty",
+      "action": "proposal_approved",
+      "detail": "Sent to 1 physician"
+    }
+  ],
+  "server_now": "2026-03-17T18:30:00-04:00"
+}
