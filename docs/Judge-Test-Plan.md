@@ -19,16 +19,17 @@
 | Two eligible physicians / changed winner | Ranked by covered gap minutes → minutes to online → declines → 7-day hours → offers this week → ID; each input flips the winner; runner-up shown | `test_two_eligible_candidates_rank_by_the_stated_order_and_the_winner_changes_with_the_data` |
 | Two doctors accept within a minute | First committed wins, the other is told "already filled" | `test_double_accept…`, `test_concurrent_commands_from_two_instances_serialize` |
 | Full loop through the web UI | Coordinator proposes → lead approves and sends → physician accepts; grid, tracker and audit update | manual run on 2026-10-10 (backend + Joy's web, development pack) |
+| Judge file through the web | `make backend` stack + Joy's Data page: base kit 1,163/1/23/1; pasted judge CSV accepted 3, duplicate 1, clock moved to 18:30, Suncrest surge 6 | manual run on 2026-10-10 |
 
 ## Demo-day run sheet
-1. Start the backend with the kit's references: `CC_DATA_DIR=<repo>/data CC_SERVICE_DATE=2026-03-17 CC_CLOCK_MODE=fixed CC_CLOCK_FIXED=2026-03-17T18:20:00-04:00`, plus accounts (`make backend`, or `CC_USERS`/`CC_AUTH_SECRET`).
+1. `make backend`: it mounts `data/` as `CC_DATA_DIR` and reads the root `.env` (from `.env.example`: service date 2026-03-17, fixed clock at 18:20, ElevenLabs key). Then `cd web && npm ci && npm run dev`.
 2. Load the base day: Data page upload of `data/event_stream.csv` (or `POST /events/csv`). Check the data-quality panel shows 1 duplicate, 23 reordered, 1 late, 0 rejected.
 3. Walk the eight demonstrations at 18:20.
-4. Judges' file: upload it on the Data page **with the clock advanced to its latest event** (`/events/csv?advance_clock=true`), or upload, then use "+5 min" / Resume to let it play forward. Never restart the server.
+4. Judges' file: upload it on the Data page; a CSV upload moves the clock to its latest event (`/events/csv?advance_clock=true`, never backwards) and the report says where the clock moved. Never restart the server.
 5. If something looks wrong, `POST /admin/reset` starts a clean generation (the old one stays in the database).
 
 ## Open items for teammates
-- **Web (Joy/Anish):** the Data page should call `/events/csv?advance_clock=true` (or show `pending_future` and offer to advance), otherwise a judge file dated after 18:20 shows nothing until the clock moves.
-- **Web build:** `npm ci` fails on a clean checkout: `typescript@7.0.2` conflicts with `openapi-typescript@7.13.0` (peer `typescript@^5`). Works only with `--legacy-peer-deps`.
+- **Web Detect screens (Anish):** `web/src/detect/` does not exist, so the web has no attention queue, consult board, physician board, stuck-consult panel, signal flags or voice alerts (demonstrations 2–3). The backend serves all of it in `/snapshot` (`queue`, `consults`, `physicians`).
 - **Web dev proxy** does not forward `/ws`; the app polls `/snapshot` every 2 s, which is fine.
+- Fixed: the Data page uploads with `advance_clock=true`; TypeScript is pinned to 5.9.3 so `npm ci` installs cleanly (7.0.2 conflicted with `openapi-typescript`).
 - **Mobile (Hitanshu/Chandan):** calls `/lead/queue`, `/lead/offers` and `/notifications`, which the backend does not serve; not checked against the backend yet.
