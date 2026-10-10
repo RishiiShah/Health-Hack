@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# The repo root ignores data/ (source CSVs). These are Dart source folders.
+!/lib/data/
+!/test/data/
