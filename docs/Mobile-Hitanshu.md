@@ -41,6 +41,8 @@ abstract class AuthRepository {
   Future<PreferencesResult> setOptIn(bool optIn, {bool declineOpenOffer = false});
   String? takeInitialOfferId();
   Stream<void> get signedOut;
+  ValueListenable<Me?> get me;
+  Future<void> refreshMe();
 }
 abstract class OfferRepository {
   Future<OfferList> listOffers();
@@ -68,15 +70,15 @@ abstract class LeadRepository {
   Future<LeadSchedule> schedule(DateTime date);
 }
 abstract class PhysicianFeed {
-  ValueListenable<AsyncSnapshot<OfferList>> get offers;
-  ValueListenable<AsyncSnapshot<NotificationList>> get notifications;
+  ValueListenable<FeedState<OfferList>> get offers;
+  ValueListenable<FeedState<NotificationList>> get notifications;
   Stream<Offer> get newOffer;
   Stream<Offer> get offerChanged;
   void start(); void stop(); Future<void> refreshNow();
 }
 abstract class LeadFeed {
-  ValueListenable<AsyncSnapshot<LeadQueue>> get queue;
-  ValueListenable<AsyncSnapshot<BroadcastList>> get activeOffers;
+  ValueListenable<FeedState<LeadQueue>> get queue;
+  ValueListenable<FeedState<BroadcastList>> get activeOffers;
   Stream<AnswerEvent> get answers;
   void start(); void stop(); Future<void> refreshNow();
 }
@@ -266,7 +268,7 @@ Integration after the data handoff:
    contents, not additional scaffolds. Supply the configured web dashboard action.
    Dashboard content, lock screen, account, approvals, shift/schedule/coverage,
    deep-link handling, and live feed subscriptions remain to be implemented.
-4. Map DTO enum names to `OfferDetailScreen.status`, `statusReason`, `outcome`,
+4. Map DTO enum `.wire` values to `OfferDetailScreen.status`, `statusReason`, `outcome`,
    and `allowedActions`. Use `ValueKey(offer.offerId)` for each detail screen.
    Supply an owned `ValueNotifier<Duration>` updated from `ServerClock.ticks` via
    `clock.remaining(expiresAt)`; dispose it and the tick subscription with the page.
@@ -345,5 +347,32 @@ Both schedule previews use `screens/schedule_timeline.dart`: shared ET time axes
 rounded labeled bars, dashed grid lines, hatched future time, and an orange
 current-time marker supplied from the sample clock. Colors consistently identify
 Day (green), Night (purple), Away (orange), and Offer (blue), with text legends.
-Exact time ranges remain listed below the chart. At large text sizes, the chart
-can scroll inside its card while the surrounding page stays within the viewport.
+Exact time ranges remain listed below the chart. The connected schedule keeps
+the axis within its card at large text sizes; labels below preserve exact ranges.
+
+## Connected implementation completion — 10 October 2026
+
+This section supersedes the integration TODOs and unrun-test notes in the earlier
+presentation/gallery handoff. Auth and deployment remain explicitly excluded.
+
+`ServiceSession` now consumes the merged AppServices and Me, with repository-backed
+pages for all physician and lead tabs. It connects notification takeover, clock
+updates, offer actions/results/release, preferences, schedules, coverage, proposal
+decisions, all candidate rules, trap checks, audit, escalation, broadcast tracking,
+answer toasts, stale/error feedback, permissions and session cleanup. Feed restarts
+discard old requests. No screen writes HTTP code or determines eligibility.
+
+Use `.wire` when adapting enums, `FeedState<T>` for feeds, `auth.me` for current
+user changes and `formatEtLabel`/`formatEtRange` for ET labels. The shared contract
+is restored at [Mobile-App-Contract.md](Mobile-App-Contract.md).
+
+Run with FVM, tap **Open working demo**, and choose one of the four demo accounts.
+This debug entry uses the existing FakeServices; roles share its backend within
+one workspace. **Preview screens** remains for isolated design review only.
+
+Validation: **131 tests passed**, including integrated fake workflows, errors,
+lead toast, 390px/200% layouts and session polling regressions. Static analysis
+passed. No app build or launch was run. Manual phone/screen-reader/web-alert checks,
+live backend contract checks, auth entry and deployment remain pending.
+See [Mobile-Readiness-Review.md](Mobile-Readiness-Review.md) and
+[demo-mobile.md](demo-mobile.md) before merging to `mobile`.

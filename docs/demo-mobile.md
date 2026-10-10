@@ -1,6 +1,57 @@
 # Mobile demo script
 
-Draft from contract section 11 (v1.1). Anything marked `TODO(screens)` depends on Hitanshu's UI and gets filled in at rehearsal; `TODO(backend)` waits on the backend owner.
+The local connected workflow is available now. The live four-device script below
+is the acceptance/rehearsal plan for when the backend, auth and deployment are
+available; its URLs and backend TODOs are not claims of a deployed app.
+
+## Local phone review (no authentication required)
+
+From the `mobile/` directory:
+
+```powershell
+fvm flutter run -d R5CY70TKP4B
+```
+
+Hot restart (`R`) if needed. Tap **Open working demo** on sign-in, then select an
+account. This opens the actual repository-backed screens with Chandan's fakes.
+**Preview screens** remains an independent design gallery.
+
+1. **Physician · off shift (Okafor):** the initial sent offer opens the simulated
+   notification screen. **Open request** → **Accept, I'll cover it** → Cancel
+   keeps the offer open. Repeat and **Confirm acceptance** → **You're on** with
+   routing hospitals, next steps and coverage. Release, when allowed, requires
+   **Notify clinical lead**, then shows **Released**.
+2. Return to tabs. Visit **Offers**, **Schedule**, **Account**. With a sent offer,
+   opting out prompts **Decline and opt out**; Cancel preserves opt-in and offer.
+   Confirm saves the returned preference and declines the request.
+3. App-bar **Demo controls** → **Send new demo request** tests takeover from any
+   physician tab. To test expiry, use **Advance demo clock 11 min**, then inspect
+   the request's **Missed** state and Recent list. This is a local fake-clock
+   operation, not a backend administrator request.
+4. **Demo controls** → **Choose another role**. Choose **Clinical lead**. Open
+   **Review proposal**, inspect **See all candidates**, **Trap check**, and
+   **View audit log**. Rejection stays disabled until a reason is typed; canceling
+   a decision changes nothing. Approve and confirm to update the shared fake
+   backend. After about 15 fake seconds, Okafor answers automatically; observe
+   the lead toast, Sent tracker, and Coverage update. Authorize an escalation
+   only after its confirmation.
+5. Choose **Physician · opted out (Brennan)**, turn **Available for extra shifts**
+   on, then return to lead and inspect the candidate/proposal changes. Roles
+   share state within this workspace. Return to sign-in and reopen **Open working
+   demo** to reset all fake data; **Reset demo clock** resets time only.
+6. Choose **Physician · on shift (Shah)**. Review consult IDs/types/hospitals,
+   status colors, time left, Schedule, and the highlighted You timeline row.
+7. Check all tabs at phone width with enlarged text and a screen reader.
+
+Fake state is private to one app instance: separate phones do not share it.
+For a real simultaneous acceptance race, use the live backend script below.
+The contract targets Flutter web. Android native can review screen workflows;
+browser chime/vibration/title checks require phone Chrome. Native alerts are
+currently recording stubs, and Account explains why Enable sound is disabled.
+The debug working-demo entry is absent from release/profile runs; release auth
+entry and deployment remain deferred.
+
+## Live rehearsal plan
 
 The story: the lead approves one broadcast, two physicians race for the Suncrest 19:00 gap, one wins, the lead sees it happen. Then a second broadcast nobody answers, which becomes **Missed**. Last, Shah's phone shows an on-shift physician's view.
 
@@ -39,7 +90,7 @@ What the lead's candidate list shows at the start (this matches the brief's answ
 3. **Devices.** Four phones, or four browser windows (use a separate window or private tab per person, because the session token lives in `sessionStorage` per tab). At least **one Android phone** for vibration (Okafor's, ideally). iPhone shows the chime and the title badge but never vibrates.
 4. **Open the live link** on each: `https://<live-app>.vercel.app`. TODO: fill in the Vercel URL.
 5. **Sign in** on each device with its email and password `demo`.
-6. **Enable sound on Okafor's and Brennan's phones** and on the lead's: Account tab → **Enable sound**. Browsers only allow audio after a tap, so the chime will not play without this. Turn the phones' ringers up. `TODO(screens)`: confirm the button label and where it sits.
+6. **Enable sound on Okafor's and Brennan's phones** and on the lead's: Account tab → **Enable sound**. Browsers only allow audio after a tap, so the chime will not play without this. Turn the phones' ringers up. This button is wired in both role accounts.
 7. Put the lead's phone on **Approvals** and Okafor's and Brennan's on the **Offers** tab. Shah's phone on **My shift**.
 8. Optional: a QR code for each physician (`https://<live-app>.vercel.app/?token=<session token>&offer=<offer id>`) to show the "opened by link" path. TODO(backend): how demo tokens are issued; contract section 9 says real sign-in links are deferred.
 
@@ -55,7 +106,7 @@ What the lead's candidate list shows at the start (this matches the brief's answ
 - The before/after table: without the offer 1 of 2 from 19:00, with it 2 of 2.
 - Open the card → **See all candidates** shows the table above: Okafor passes all eight rules; the other five each fail one, with the reason.
 - Trap check shows **pass**.
-- `TODO(screens)`: exact card text, section order, and where "See all candidates" sits.
+- Tap **Review proposal** for detail, then **See all candidates** below the recipient/exclusion list; each physician has eight explicit rule results.
 
 **Say:** "One physician, Okafor, is eligible. Everyone else is excluded, with a reason you can read."
 
@@ -68,7 +119,7 @@ What the lead's candidate list shows at the start (this matches the brief's answ
 - The switch stays on after the server confirms (the app does not show it on before the server says so).
 - Within one poll (5 s) the lead's candidate list shows **two eligible**: Okafor rank 1, Brennan rank 2. Brennan's R1 now passes.
 - On the lead's phone the proposal now reads "2 physicians for Suncrest" and the button reads **Approve and send to 2 physicians**.
-- `TODO(screens)`: whether the lead's open card refreshes live or needs a pull. `TODO(backend)`: the proposal must be rebuilt (or rebuilt on read) when Brennan opts in; contract 5.1 says recipients are fixed when the proposal is built, so confirm the backend rebuilds it.
+- The open proposal and candidate list refresh every 5 seconds. `TODO(backend)`: the proposal must be rebuilt (or rebuilt on read) when Brennan opts in; contract 5.1 says recipients are fixed when the proposal is built, so confirm the backend rebuilds it.
 
 **Say:** "Brennan wasn't available. She flips one switch, and within seconds the lead has a second candidate."
 
@@ -81,7 +132,7 @@ What the lead's candidate list shows at the start (this matches the brief's answ
 - The lead's phone shows "approved", with no skipped recipients.
 - **Okafor's and Brennan's phones both** show the simulated lock-screen takeover within one poll (5 s): "Okafor's phone · off shift · simulated", a notification "Extra shift tonight at Suncrest · 19:00 to 23:00 ET, approved by your clinical lead. Please answer within 10 min." Chime plays, and an Android phone vibrates. The browser tab title becomes "(1) New coverage request".
 - The lead's **Sent** section lists both recipients, each with a countdown from 10:00.
-- `TODO(screens)`: lock-screen layout; how the countdown reads.
+- The takeover shows server time and notification cards; **Open request** opens detail, where the countdown is minutes:seconds.
 
 ### 4. Both tap Accept (Okafor's and Brennan's phones)
 
@@ -91,7 +142,7 @@ What the lead's candidate list shows at the start (this matches the brief's answ
 - **The winner:** "Confirmed. You're on at Suncrest Medical Pavilion tonight." Hours 19:00–23:00 ET, "Sign in by 18:55", "You'll only be routed Suncrest Medical Pavilion consults during these hours", "Suncrest now shows 2 of 2 from 19:00", the next steps list (18:50 reminder, 19:00 consults start, 23:00 shift ends).
 - **The other:** "Already filled, thank you." Nothing changed on their schedule.
 - **The lead:** a toast "Dr. <winner> accepted · Suncrest 19:00–23:00 ET" and a chime. The **Sent** list shows one filled and the other withdrawn. In **Coverage**, Suncrest turns **2/2** at 19:00.
-- The winner could be either physician; the demo works both ways. `TODO(screens)`: both end-state screens, the toast, and the Coverage cell.
+- The winner could be either physician; the demo works both ways. Both outcome screens, lead toast and server-driven Coverage cells are connected.
 
 **Say:** "Both got the offer at the same instant. The server decided in one transaction. The loser was told right away and nothing changed for them."
 
@@ -111,7 +162,8 @@ Waiting 10 real minutes is long on stage. Two ways to shorten it:
 - Do the expiry run first, start the countdown, and talk through step 6 (Shah) while it runs.
 - `TODO(backend)`: advance the demo clock with `POST /admin/clock` (mode and anchor per the backend's clock design). Confirm the app handles a jump: its clock follows `server_now`, so a forward jump is fine.
 
-`TODO(screens)`: Expiring… and Missed layouts; whether the Offers tab keeps the Missed card under Recent.
+At zero the detail disables actions and shows **Expiring…** until the server
+returns a status. **Missed** offers remain under **Recent** on Offers.
 
 ### 6. Shah's phone (Shah's phone)
 
@@ -122,7 +174,7 @@ Waiting 10 real minutes is long on stage. Two ways to shorten it:
 - An update banner (for example "CON-2114, a stroke consult from Suncrest, was assigned to you.") and consult cards, each with ID, type, badge, hospital and status text, colored by level.
 - Footer "1 h 36 min left · 15 consults today" (the time left comes from the server clock, so it matches whatever the demo clock says).
 - Consult IDs and types appear here, because this is the on-shift view; they never appear in any offer or notification.
-- `TODO(screens)`: card layout and the exact footer text.
+- Cards show consult ID/type, badge, hospital and server status text; the footer uses server-clock time left and the returned consult count.
 
 **Say:** "A physician already on shift sees their work, not the coverage requests."
 
@@ -150,8 +202,9 @@ What changes, and what to tell the room:
 - After the lead approves, Okafor "answers" automatically about 15 seconds later, so the lead still sees the "accepted" toast and Coverage.
 - A physician sees their open offer right after sign-in (Okafor has OFF-0007 waiting), so use Okafor's sign-in to show the lock screen, Accept, Already filled and Missed.
 - **Reload the page to reset** the fake data.
-- The expiry run takes 10 real minutes here too.
-- The sign-in screen and every email and password are the same.
+- The local debug workspace can advance the fake clock 11 minutes for expiry.
+- The eventual deployed fake app still needs its auth entry wired; the current
+  debug workspace uses the role picker described above.
 
 Decision rule: if the live link fails the pre-demo contract check, or a phone shows "Can't reach Sevaro" with Retry that doesn't clear, switch to the fake link and say so.
 
@@ -164,5 +217,5 @@ Decision rule: if the live link fails the pre-demo contract check, or a phone sh
 - [ ] Step 4 race run twice (once each winner)
 - [ ] Expiry run timed (10:00)
 - [ ] Fake URL opens on a phone over HTTPS
-- [ ] Every `TODO(screens)` above filled in with Hitanshu
+- [x] Screen taps and local fake review steps documented
 - [ ] Rehearsed once end to end with Hitanshu
