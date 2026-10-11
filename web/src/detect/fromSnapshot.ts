@@ -32,6 +32,7 @@ export function detectFromSnapshot(snapshot: Row): DetectSnapshot | null {
   const physicians = snapshot.physicians as Section | undefined;
   if (!queue?.supported || !physicians?.supported) return null;
   const hospitals = Object.fromEntries(((snapshot.hospitals as Section)?.items ?? []).map((h) => [h.hospital_id, String(h.name)]));
+  const workload = new Map(((snapshot.workload as Section)?.items ?? []).map((w) => [String(w.physician_id), w]));
   const names = Object.fromEntries(((snapshot.workload as Section)?.items ?? []).map((w) => [w.physician_id, String(w.name)]));
   const name = (id: unknown) => names[String(id)] ?? String(id);
 
@@ -57,23 +58,41 @@ export function detectFromSnapshot(snapshot: Row): DetectSnapshot | null {
     const consultId = str((raw.where as Row | undefined)?.consult_id);
     if (consultId && !byConsult.has(consultId)) byConsult.set(consultId, { ...items[i], raw });
   });
+  const publishedAt = Date.parse(String((snapshot.clock as Row | undefined)?.now));
+  const stageMinutes = (at: unknown, fallback: unknown) => {
+    const enteredAt = Date.parse(String(at));
+    return Number.isFinite(publishedAt) && Number.isFinite(enteredAt)
+      ? Math.max(0, (publishedAt - enteredAt) / 60_000) : Number(fallback);
+  };
   const consults: Consult[] = ((snapshot.consults as Row[]) ?? []).map((c) => {
     const flagged = byConsult.get(String(c.consult_id));
     const why = (flagged?.raw.why ?? {}) as Row;
     return {
       id: String(c.consult_id), hospital: hospitals[String(c.hospital_id)] ?? String(c.hospital_id), type: String(c.consult_type),
-      stage: String(c.current_stage), minutesInStage: Number(c.minutes_in_stage), minutesSinceReceived: Number(c.minutes_since_received),
+      stage: String(c.current_stage), minutesInStage: stageMinutes(c.stage_entered_at, c.minutes_in_stage), minutesSinceReceived: Number(c.minutes_since_received),
+      physicianId: str(c.physician_id) && c.physician_id !== "Unassigned" ? String(c.physician_id) : null,
+      physicianName: str(c.physician_id) && c.physician_id !== "Unassigned" ? name(c.physician_id) : null,
+      routingFailures: num(c.routing_failures) ?? 0,
+      warningMinutes: num(why.warning_min), criticalMinutes: num(why.critical_min), standardAge: num(why.age_min),
+      standardClock: str(why.interaction_ended) ? "Since interaction ended" : "Time in stage",
       level: flagged?.level ?? "Normal", limit: num(why.warning_min) !== null ? `${why.warning_min} / ${why.critical_min} min` : "–",
     };
   });
 
   const onShift = (physicians.items ?? []).filter((p) => !list(p.exclusion_reasons).includes("off_shift"));
-  const doctors: Physician[] = onShift.map((p) => ({
-    id: String(p.physician_id), name: name(p.physician_id), status: String(p.self_reported_status), derived: String(p.derived_state),
-    camera: list(p.flags).includes("external_platform") ? "Active, no session" : "–", helper: String(p.desktop_agent),
-    canTakeCalls: Boolean(p.routable), workload: `${p.consults_this_shift} consults · ${p.open_consults} open`,
-    reason: list(p.exclusion_reasons).join(", ") || "–",
-  }));
+  const doctors: Physician[] = onShift.map((p) => {
+    const work = workload.get(String(p.physician_id));
+    return {
+      id: String(p.physician_id), name: name(p.physician_id), status: String(p.self_reported_status), derived: String(p.derived_state),
+      camera: list(p.flags).includes("external_platform") ? "Active, no session" : "–", helper: String(p.desktop_agent),
+      canTakeCalls: Boolean(p.routable), workload: `${p.consults_this_shift} consults · ${p.open_consults} open`,
+      reason: list(p.exclusion_reasons).join(", ") || "–", flags: list(p.flags),
+      calls: num(p.calls_this_shift) ?? num(work?.calls), consults: num(p.consults_this_shift), openConsults: num(p.open_consults),
+      pendingNotes: consults.filter((c) => c.physicianId === p.physician_id && ["Note Pending", "Documentation"].includes(c.stage)).length,
+      minutesToShiftEnd: num(p.minutes_to_shift_end),
+      hospitals: list(p.credentialed_hospitals).map((id) => ({ id, name: hospitals[id] ?? id })),
+    };
+  });
 
   const headline = (snapshot.headline ?? {}) as Row;
   return {

@@ -37,3 +37,42 @@ test("why reads as a sentence and never invents numbers", () => {
 test("an unsupported snapshot gives no detect data", () => {
   assert.equal(detectFromSnapshot({ queue: { supported: false }, physicians: { supported: false } }), null);
 });
+
+test("live workload keeps current activity, shift totals and consult ownership separate", () => {
+  const kim = detect.physicians.find((p) => p.id === "PHY-002")!;
+  assert.equal(kim.derived, "Video Consult");
+  assert.equal(kim.calls, 16);
+  assert.equal(kim.consults, 14);
+  assert.equal(kim.openConsults, 3);
+  assert.equal(kim.pendingNotes, 1);
+  assert.equal(detect.consults.find((c) => c.id === "CON-2117")!.physicianName, kim.name);
+  assert.equal(detect.consults.find((c) => c.id === "CON-2105")!.physicianName, null);
+  assert.ok(kim.hospitals.some((h) => h.name === "Northfield Medical"));
+});
+
+test("missing call totals remain unknown instead of becoming zero", () => {
+  const copy = structuredClone(snapshot);
+  const p = copy.physicians.items.find((p) => p.physician_id === "PHY-002")!;
+  copy.workload.items = copy.workload.items.filter((w) => w.physician_id !== p.physician_id);
+  assert.equal(detectFromSnapshot(copy)!.physicians.find((d) => d.id === p.physician_id)!.calls, null);
+});
+
+test("documentation flags retain the cumulative interaction clock, separate from stage time", () => {
+  const result = detectFromSnapshot({
+    queue: { supported: true, items: [{ id: "note_overdue:C1", rank: 1, severity: "Critical", what: "Overdue note", where: { consult_id: "C1" },
+      why: { age_min: 51, warning_min: 30, critical_min: 45, interaction_ended: "2026-03-17T17:00:00-04:00" } }] },
+    physicians: { supported: true, items: [] },
+    consults: [{ consult_id: "C1", current_stage: "Documentation", minutes_in_stage: 9, minutes_since_received: 70, consult_type: "Stroke" }],
+  })!;
+  assert.equal(result.consults[0].minutesInStage, 9);
+  assert.equal(result.consults[0].standardAge, 51);
+  assert.equal(result.consults[0].standardClock, "Since interaction ended");
+});
+
+test("stage timers use publication timestamps without inventing seconds for rounded totals", () => {
+  const copy = structuredClone(snapshot);
+  copy.clock.now = "2026-03-17T22:20:30+00:00";
+  const c = detectFromSnapshot(copy)!.consults.find((c) => c.id === "CON-2102")!;
+  assert.equal(c.minutesInStage, 26.5);
+  assert.equal(c.minutesSinceReceived, 36);
+});
