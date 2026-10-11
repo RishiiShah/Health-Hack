@@ -1,0 +1,228 @@
+{
+  "revision": 1,
+  "epoch": "synthetic-demo",
+  "clock": {
+    "mode": "fixed",
+    "now": "2026-03-17T22:20:00+00:00"
+  },
+  "dataset": {
+    "name": "Synthetic UI examples",
+    "description": "Hand-authored fixtures; not source data or algorithm validation",
+    "reference_files": 0
+  },
+  "headline": {
+    "open_consults": 3,
+    "critical": 1,
+    "hard_gaps_in_horizon": 1
+  },
+  "queue": {
+    "supported": true,
+    "items": [
+      {
+        "rank": 1,
+        "id": "stranded:CON-2110",
+        "severity": "Critical",
+        "what": "Synthetic demonstration item",
+        "where": {
+          "consult_id": "CON-2110",
+          "hospital_id": "SYN-002",
+          "physician_id": "PHY-005"
+        },
+        "why": {
+          "stage": "Assigned",
+          "warning_min": 3,
+          "critical_min": 8,
+          "age_min": 9
+        },
+        "fix": {
+          "kind": "reassign",
+          "action": "Review the synthetic example",
+          "approver": "coordinator",
+          "reason": "Synthetic fixture, not a decision-engine result",
+          "alternatives": [],
+          "physician_id": "PHY-005"
+        }
+      },
+      {
+        "rank": 2,
+        "id": "unassigned:CON-2105",
+        "severity": "Warning",
+        "what": "Synthetic demonstration item",
+        "where": {
+          "consult_id": "CON-2105",
+          "hospital_id": "SYN-005",
+          "physician_id": null
+        },
+        "why": {},
+        "fix": {
+          "kind": "escalate",
+          "action": "Review the synthetic example",
+          "approver": "coordinator",
+          "reason": "Synthetic fixture, not a decision-engine result",
+          "alternatives": [],
+          "physician_id": null
+        }
+      },
+      {
+        "rank": 3,
+        "id": "now_gap:SYN-005",
+        "severity": "Warning",
+        "what": "Synthetic demonstration item",
+        "where": {
+          "consult_id": null,
+          "hospital_id": "SYN-005",
+          "physician_id": "PHY-009"
+        },
+        "why": {},
+        "fix": {
+          "kind": "split_shift",
+          "action": "Review the synthetic example",
+          "approver": "clinical_lead",
+          "reason": "Synthetic fixture, not a decision-engine result",
+          "alternatives": [],
+          "physician_id": "PHY-009"
+        }
+      }
+    ]
+  },
+  "consults": [
+    {
+      "consult_id": "CON-2110",
+      "hospital_id": "SYN-002",
+      "physician_id": "PHY-002",
+      "consult_type": "Stroke",
+      "current_stage": "Assigned",
+      "minutes_in_stage": 9,
+      "minutes_since_received": 10,
+      "level": "Critical",
+      "limit_min": [
+        3,
+        8
+      ]
+    },
+    {
+      "consult_id": "CON-2105",
+      "hospital_id": "SYN-005",
+      "physician_id": "Unassigned",
+      "consult_type": "Stroke",
+      "current_stage": "Provider Contacted",
+      "minutes_in_stage": 1,
+      "minutes_since_received": 10,
+      "level": null,
+      "limit_min": null
+    },
+    {
+      "consult_id": "CON-2102",
+      "hospital_id": "SYN-005",
+      "physician_id": "PHY-005",
+      "consult_type": "Stroke",
+      "current_stage": "Provider Contacted",
+      "minutes_in_stage": 1,
+      "minutes_since_received": 10,
+      "level": null,
+      "limit_min": null
+    }
+  ],
+  "hospitals": {
+    "supported": true,
+    "items": [
+      {
+        "hospital_id": "SYN-005",
+        "name": "Suncrest Medical Pavilion"
+      },
+      {
+        "hospital_id": "SYN-002",
+        "name": "Harbor Regional"
+      }
+    ]
+  },
+  "physicians": {
+    "supported": true,
+    "items": [
+      {
+        "physician_id": "PHY-005",
+        "derived_state": "Available",
+        "self_reported_status": "Available",
+        "desktop_agent": "Online",
+        "routable": true,
+        "exclusion_reasons": [],
+        "flags": [],
+        "consults_this_shift": 1,
+        "open_consults": 1,
+        "credentialed_hospitals": [
+          "SYN-005"
+        ]
+      },
+      {
+        "physician_id": "PHY-009",
+        "derived_state": "Available",
+        "self_reported_status": "Available",
+        "desktop_agent": "Unknown",
+        "routable": false,
+        "exclusion_reasons": [
+          "off_shift"
+        ],
+        "flags": [],
+        "consults_this_shift": 0,
+        "open_consults": 0,
+        "credentialed_hospitals": [
+          "SYN-005"
+        ]
+      }
+    ]
+  },
+  "workload": {
+    "supported": true,
+    "items": [
+      {
+        "physician_id": "PHY-005",
+        "name": "Dr. Priya Shah",
+        "shift_end": "2026-03-18T00:20:00+00:00",
+        "minutes_to_shift_end": 120
+      }
+    ]
+  },
+  "coverage": {
+    "supported": true,
+    "steps": [
+      "2026-03-17T22:20:00+00:00",
+      "2026-03-18T00:20:00+00:00"
+    ],
+    "hospitals": [
+      {
+        "hospital_id": "SYN-005",
+        "hospital_name": "Suncrest Medical Pavilion",
+        "cells": [
+          {
+            "at": "2026-03-17T22:20:00+00:00",
+            "count": 1,
+            "required": 2,
+            "status": "gap",
+            "gap_id": "now_gap:SYN-005",
+            "physician_ids": [],
+            "incomplete_physician_ids": []
+          },
+          {
+            "at": "2026-03-18T00:20:00+00:00",
+            "count": 1,
+            "required": 2,
+            "status": "gap",
+            "gap_id": "now_gap:SYN-005",
+            "physician_ids": [],
+            "incomplete_physician_ids": []
+          }
+        ]
+      }
+    ]
+  },
+  "forecast": {
+    "supported": true,
+    "gaps": [],
+    "surges": []
+  },
+  "demand": {
+    "supported": true,
+    "hospitals": []
+  },
+  "pending_approvals": 1
+}

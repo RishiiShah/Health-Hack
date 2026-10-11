@@ -11,7 +11,7 @@ def test_cloud_launcher_and_database_recovery_across_process_replacement(tmp_pat
     backend = Path(__file__).resolve().parents[1]
     smoke = backend.parent / "scripts" / "hosting_smoke.py"
     env = {**os.environ, "CC_DATABASE_URL": db_url,
-           "CC_CLOCK_MODE": "wall", "CC_CLOCK_FIXED": ""}
+           "CC_CLOCK_MODE": "wall", "CC_CLOCK_FIXED": "", "CC_ADMIN_TOKEN": "smoke-admin", "CC_COORDINATOR_TOKEN": "smoke-coord"}
     for operation in ("seed", "verify"):
         with socket.socket() as socket_probe:
             socket_probe.bind(("127.0.0.1", 0))
@@ -23,7 +23,7 @@ def test_cloud_launcher_and_database_recovery_across_process_replacement(tmp_pat
             try:
                 probe = subprocess.run([sys.executable, str(smoke), operation,
                                         "--url", f"http://127.0.0.1:{port}"],
-                                       capture_output=True, text=True, timeout=50)
+                                       capture_output=True, text=True, timeout=50, env=env)
                 assert probe.returncode == 0, probe.stderr + probe.stdout
             finally:
                 server.terminate()

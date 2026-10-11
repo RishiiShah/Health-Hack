@@ -1,3 +1,5 @@
+> **Document status:** Historical P2 handoff. PostgreSQL replaced SQLite, and the current checkout also implements Detect, Decide, Act and client contracts. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 # P2 backend handoff: G1–G8
 
 Implemented on personal branch `rishi`. This increment owns normalization, event quality, reference IDs, deterministic consult/physician state, routing eligibility and counters. Detection G8b–G15, demand/coverage forecasts, ranking, offers, frontend/mobile, and P1's upload/admin/WebSocket interfaces remain with the team.

@@ -5,13 +5,29 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: starter
-    region: virginia  # same AWS region as the RDS instance (us-east-1)
+    region: oregon  # same AWS region as the RDS instance (us-west-2)
     numInstances: 1
     healthCheckPath: /ready
     envVars:
       - key: CC_DATABASE_URL  # RDS URL with sslmode=verify-full; set in the dashboard
         sync: false
+      - key: CC_USERS  # JSON accounts with PBKDF2 hashes (python -m app.auth); set in the dashboard
+        sync: false
+      - key: CC_AUTH_SECRET  # 32+ random characters for signing sign-in tokens
+        sync: false
       - key: CC_CLOCK_MODE
         value: auto
-      - key: CC_DATA_DIR
-        value: /data/ref
+      - key: CC_COORDINATOR_TOKEN  # demo tokens and the physician-token secret: set in the dashboard, never in Git
+        sync: false
+      - key: CC_LEAD_TOKEN
+        sync: false
+      - key: CC_ADMIN_TOKEN
+        sync: false
+      - key: CC_TOKEN_SECRET
+        sync: false
+      - key: CC_LEAD_NAME
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        sync: false

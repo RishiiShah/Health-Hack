@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "web/src/LandingPage.tsx"
+        ],
+        "createdAt": "2026-10-11T05:36:35.224Z",
+        "reason": "Codex review: line 17 slate-900 (#0F172A) on near-white cream (#F8F6F0) has 16.52:1 contrast; dark foreground is not washed out. Retain incumbent palette."
+      }
+    ]
+  }
+}

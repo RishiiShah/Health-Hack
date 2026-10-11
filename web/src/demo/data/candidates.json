@@ -1,0 +1,130 @@
+{
+  "gap": {
+    "gap_id": "now_gap:SYN-005",
+    "hospital_ids": [
+      "SYN-005"
+    ],
+    "hospital_names": [
+      "Suncrest Medical Pavilion"
+    ],
+    "start": "2026-03-17T22:20:00+00:00",
+    "end": "2026-03-18T00:20:00+00:00",
+    "required": 2,
+    "count": 1,
+    "summary": "Synthetic example: one additional physician needed"
+  },
+  "revision": 1,
+  "rules": [
+    {
+      "id": "R1",
+      "label": "R1"
+    },
+    {
+      "id": "R2",
+      "label": "R2"
+    },
+    {
+      "id": "R3",
+      "label": "R3"
+    },
+    {
+      "id": "R4",
+      "label": "R4"
+    },
+    {
+      "id": "R5",
+      "label": "R5"
+    },
+    {
+      "id": "R6",
+      "label": "R6"
+    },
+    {
+      "id": "R7",
+      "label": "R7"
+    },
+    {
+      "id": "R8",
+      "label": "R8"
+    }
+  ],
+  "candidates": [
+    {
+      "physician_id": "PHY-009",
+      "window": { "start": "2026-03-17T22:20:00+00:00", "end": "2026-03-18T00:20:00+00:00", "ready_at": "2026-03-17T22:20:00+00:00", "hospitals": ["SYN-005"] },
+      "name": "Dr. Grace Okafor",
+      "eligible": true,
+      "rank": 1,
+      "primary_reason": null,
+      "results": [
+        {
+          "rule": "R1",
+          "status": "pass",
+          "explanation": "Synthetic passing example"
+        },
+        {
+          "rule": "R2",
+          "status": "pass",
+          "explanation": "Synthetic passing example"
+        },
+        {
+          "rule": "R3",
+          "status": "pass",
+          "explanation": "Synthetic passing example"
+        },
+        {
+          "rule": "R4",
+          "status": "pass",
+          "explanation": "Synthetic passing example"
+        },
+        {
+          "rule": "R5",
+          "status": "pass",
+          "explanation": "Synthetic passing example"
+        },
+        {
+          "rule": "R6",
+          "status": "pass",
+          "explanation": "Synthetic passing example"
+        },
+        {
+          "rule": "R7",
+          "status": "pass",
+          "explanation": "Synthetic passing example"
+        },
+        {
+          "rule": "R8",
+          "status": "pass",
+          "explanation": "Synthetic passing example"
+        }
+      ],
+      "ranking": {
+        "gap_hospitals": 1,
+        "minutes_to_online": 0,
+        "declines_30d": 0,
+        "hours_7d": 20
+      }
+    },
+    {
+      "physician_id": "PHY-010",
+      "window": { "start": "2026-03-17T22:20:00+00:00", "end": "2026-03-18T00:20:00+00:00", "ready_at": "2026-03-17T22:30:00+00:00", "hospitals": [] },
+      "name": "Example Physician",
+      "eligible": false,
+      "rank": null,
+      "primary_reason": "Not credentialed",
+      "results": [
+        {
+          "rule": "R2",
+          "status": "fail",
+          "explanation": "Synthetic exclusion example"
+        }
+      ],
+      "ranking": {
+        "gap_hospitals": 0,
+        "minutes_to_online": 10,
+        "declines_30d": 0,
+        "hours_7d": 20
+      }
+    }
+  ]
+}

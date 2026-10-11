@@ -1,0 +1,22 @@
+{
+  "applied": false,
+  "outcome": "open_offer_exists",
+  "open_offer_id": "OFF-0007",
+  "me": {
+    "user_id": "okafor@demo.sevaro",
+    "role": "physician",
+    "display_name": "Dr. Grace Okafor",
+    "physician_id": "PHY-009",
+    "permissions": [
+      "offer.respond",
+      "preferences.update"
+    ],
+    "split_shift_opt_in": true,
+    "offers_received_7d": 2,
+    "weekly_offer_limit": 3,
+    "on_shift": false,
+    "shift_end": null,
+    "server_now": "2026-03-17T18:26:00-04:00"
+  },
+  "server_now": "2026-03-17T18:26:00-04:00"
+}

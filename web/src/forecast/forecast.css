@@ -1,0 +1,83 @@
+/* Coverage outlook, demand and workload. */
+.coverage { display: grid; gap: var(--s-3); }
+.coverage-heading { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.coverage-heading p { margin: var(--s-1) 0 0; color: var(--muted); font-size: var(--t-sm); }
+.coverage-horizon, .coverage-count-hint, .coverage-scroll-hint { color: var(--muted); font-size: var(--t-xs); font-family: var(--font-mono); letter-spacing: .06em; }
+.coverage-scroll-hint { display: none; margin: 0 0 var(--s-1); }
+.coverage-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
+.coverage-summary > div {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-3);
+  border-radius: var(--radius); background: var(--surface-2); animation: rise var(--med) var(--ease-out) backwards;
+}
+.coverage-summary > div:nth-child(2) { animation-delay: calc(var(--step) * 1); }
+.coverage-summary > div:nth-child(3) { animation-delay: calc(var(--step) * 2); }
+.coverage-summary strong { font: 760 var(--t-2xl) var(--font-head); font-variant-numeric: tabular-nums; }
+.coverage-summary span { display: grid; font-weight: 600; font-size: var(--t-sm); }
+.coverage-summary small { color: var(--muted); font-weight: 400; font-size: var(--t-xs); }
+.coverage-summary .summary-risk strong { color: var(--critical); }
+.coverage-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-2); }
+.coverage-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 22vw); gap: var(--s-3); align-items: start; }
+.coverage-matrix { min-width: 0; }
+.coverage table th small { display: block; font-size: var(--t-xs); letter-spacing: 0; text-transform: none; color: var(--muted); font-weight: 400; }
+.coverage th.current-time { color: var(--signal); }
+.coverage th.name, .coverage th.hosp { position: sticky; left: 0; z-index: 1; min-width: max(12vw, 20vh); background: var(--surface); text-transform: none; letter-spacing: 0; font: 600 var(--t-sm) var(--font-body); color: var(--text); }
+.coverage th.hosp { background: var(--surface-2); color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+.reachability-label { display: block; color: var(--critical); font-size: var(--t-xs); font-weight: 600; }
+.coverage td.cell { padding: var(--s-1) calc(var(--s-1) / 2); }
+.coverage td.cell button {
+  display: grid; width: 100%; min-width: max(4vw, 6.5vh); padding: var(--s-1) calc(var(--s-1) / 2); border: thin solid transparent; border-radius: var(--radius);
+  background: var(--surface-2); color: var(--text-2); text-align: center;
+}
+.coverage tr td.cell:nth-child(3) button { animation-delay: calc(var(--step) * 1); }
+.coverage tr td.cell:nth-child(4) button { animation-delay: calc(var(--step) * 2); }
+.coverage tr td.cell:nth-child(n + 5) button { animation-delay: calc(var(--step) * 3); }
+.coverage td.cell button strong { font: 600 var(--t-sm) var(--font-mono); }
+.coverage td.cell button small { font-size: var(--t-xs); }
+.coverage td.cell button.gap { background: var(--critical-soft); color: var(--critical); }
+.coverage td.cell button.maybe { background: var(--warning-soft); color: var(--warning); }
+.coverage td.cell button.at { background: var(--accent-soft); color: var(--accent-text); }
+.coverage td.cell button.above { background: var(--ok-soft); color: var(--ok); }
+.coverage td.cell button.unknown { background: var(--surface-3); color: var(--muted); }
+.coverage td.cell button[aria-pressed="true"] { border-color: var(--text); box-shadow: var(--offset) var(--offset) 0 var(--ink-shadow); }
+.legend, .roster-legend { display: flex; gap: var(--s-3); flex-wrap: wrap; margin-top: var(--s-2); color: var(--muted); font-size: var(--t-xs); }
+.legend .key::before, .roster-legend i { content: ""; display: inline-block; width: .8em; height: .8em; margin-right: .5em; border-radius: var(--rule-w); vertical-align: -.05em; }
+.key-gap::before { background: var(--signal); }
+.key-at::before { background: var(--accent-text); }
+.key-above::before { background: var(--ok); }
+.key-maybe::before { background: var(--warning-line); }
+.cell-detail { position: sticky; top: calc(max(4.4vw, 7vh) + var(--s-3)); display: grid; gap: var(--s-2); padding: var(--s-3); border: thin solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2); }
+.cell-detail h3 { font-size: var(--t-lg); }
+.coverage-status { justify-self: start; padding: .3em .8em; border-radius: var(--radius); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .06em; background: var(--surface-3); }
+.coverage-status.gap { background: var(--critical-soft); color: var(--critical); }
+.coverage-status.maybe { background: var(--warning-soft); color: var(--warning); }
+.coverage-status.at { background: var(--accent-soft); color: var(--accent-text); }
+.coverage-status.above { background: var(--ok-soft); color: var(--ok); }
+.coverage-detail-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-1); }
+.coverage-detail-counts div { padding: var(--s-2); border-radius: var(--radius); background: var(--surface); }
+.coverage-detail-counts strong { display: block; font: 760 var(--t-2xl) var(--font-head); }
+.coverage-detail-counts span { color: var(--muted); font-size: var(--t-xs); }
+.coverage-physicians h4 { color: var(--muted); font: 500 var(--t-xs) var(--font-mono); text-transform: uppercase; letter-spacing: .12em; margin-bottom: var(--s-1); }
+.coverage-physicians p, .coverage-detail-note { margin: 0; font-size: var(--t-sm); color: var(--text-2); }
+.coverage-caution { margin: 0; padding: var(--s-1) var(--s-2); border-radius: var(--radius); background: var(--warning-soft); color: var(--warning); font-size: var(--t-xs); }
+.forecast-assumption { font-size: var(--t-sm); }
+.forecast-assumption p { margin: var(--s-1) 0 0; color: var(--text-2); }
+
+/* Demand */
+.demand-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, max(16vw, 26vh)), 1fr)); gap: var(--s-2); }
+.demand-grid li { display: grid; gap: .3em; padding: var(--s-2) var(--s-3); border: thin solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.demand-grid li.surge { border-color: var(--warning-line); background: var(--warning-soft); }
+.demand-name { font-weight: 600; font-size: var(--t-sm); }
+.demand-count { font-size: var(--t-sm); color: var(--text-2); }
+.demand-count strong { font: 600 var(--t-lg) var(--font-mono); color: var(--text); }
+.demand-baseline { color: var(--muted); font-size: var(--t-xs); }
+.demand-grid .badge { justify-self: start; }
+
+/* Workload sits beside signal verification on the Doctors page. */
+.forecast-panels { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--s-3); margin: var(--s-3) 0; align-items: start; }
+
+@media (max-width: 69em) {
+  .coverage-workspace, .forecast-panels { grid-template-columns: minmax(0, 1fr); }
+  .cell-detail { position: static; }
+  .coverage-scroll-hint { display: block; }
+}
+@media (max-width: 37.5em) { .coverage-summary { grid-template-columns: minmax(0, 1fr); } .coverage-heading, .coverage-toolbar { grid-template-columns: minmax(0, 1fr); } }

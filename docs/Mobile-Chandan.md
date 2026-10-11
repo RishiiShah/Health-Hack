@@ -1,3 +1,5 @@
+> **Document status:** Owner design checklist. The live backend adapter scope at the top of Mobile-App-Contract.md overrides design-only v1.1 routes. The server remains the authority for permissions and rules. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 # Mobile — Chandan (data, platform, deploy)
 
 You build everything the screens stand on: the API client, repositories, live feeds, server clock, browser alerts, fakes, sample JSON, deploy and the demo script. Hitanshu builds every screen on top of your interfaces and never writes HTTP code.
@@ -17,7 +19,7 @@ You build everything the screens stand on: the API client, repositories, live fe
 
 Hitanshu owns `mobile/lib/main.dart`, `mobile/lib/screens/*` and `mobile/test/screens/*`. He creates the Flutter project; you add `lib/data/` to it.
 
-**Rules:** no state-management, Firebase or audio plugins. Dependencies are limited to `package:http` and `package:web` (plus Flutter's own `foundation` and `widgets` for `ValueListenable` and `AsyncSnapshot`). Store nothing but the session token. No permission logic in the app; the server decides.
+**Rules:** no state-management, Firebase or audio plugins. Dependencies are limited to `package:http` and `package:web` (plus Flutter's own `foundation` and `widgets` for `ValueListenable` and UI primitives). Store nothing but the session token. No permission logic in the app; the server decides.
 
 ## The interface you hand to Hitanshu
 
@@ -31,7 +33,9 @@ abstract class AuthRepository {
   Future<void> signOut();
   Future<PreferencesResult> setOptIn(bool optIn, {bool declineOpenOffer = false});
   String? takeInitialOfferId();                 // the ?offer= value, returned once, then null
-  Stream<void> get signedOut;                   // fires on any 401 from any call
+  Stream<void> get signedOut;
+  ValueListenable<Me?> get me;
+  Future<void> refreshMe();                   // fires on any 401 from any call
 }
 
 abstract class OfferRepository {
@@ -62,18 +66,18 @@ abstract class LeadRepository {
   Future<LeadSchedule> schedule(DateTime date);
 }
 
-// Live data. AsyncSnapshot carries data, error and loading state.
+// Live data. FeedState retains last-good data alongside error/loading state.
 abstract class PhysicianFeed {
-  ValueListenable<AsyncSnapshot<OfferList>> get offers;
-  ValueListenable<AsyncSnapshot<NotificationList>> get notifications;
+  ValueListenable<FeedState<OfferList>> get offers;
+  ValueListenable<FeedState<NotificationList>> get notifications;
   Stream<Offer> get newOffer;          // a `sent` offer not seen before
   Stream<Offer> get offerChanged;      // any status change on a known offer
   void start(); void stop(); Future<void> refreshNow();
 }
 
 abstract class LeadFeed {
-  ValueListenable<AsyncSnapshot<LeadQueue>> get queue;
-  ValueListenable<AsyncSnapshot<BroadcastList>> get activeOffers;
+  ValueListenable<FeedState<LeadQueue>> get queue;
+  ValueListenable<FeedState<BroadcastList>> get activeOffers;
   Stream<AnswerEvent> get answers;     // a recipient's offer changed status (accepted, declined, expired, released)
   void start(); void stop(); Future<void> refreshNow();
 }
@@ -207,3 +211,20 @@ Send this list early; until each endpoint exists, the fakes cover it.
 - All data tests pass; `bad/` files all fail to parse.
 - Hitanshu's widget tests run on fakes with no network.
 - Both Vercel URLs open on a phone; live mode completes the demo script.
+
+## Merged screen handoff — 10 October 2026
+
+The screen branch now connects the merged repositories through `ServiceSession`.
+The interface blocks above reflect actual `FeedState<T>`, `me` and `refreshMe()`.
+DTO adapters use `.wire`; JSON examples are in `mobile/assets/contracts/` and the
+shared [Mobile-App-Contract.md](Mobile-App-Contract.md) records that location.
+
+The complete mobile test suite passes: **131 tests**, including data, retry,
+connected screens and session restart races. Polling now discards requests from
+previous sessions and avoids starting requests while the browser is hidden.
+The debug working demo shares one existing FakeServices backend across role changes.
+
+Auth entry, build/deployment, backend verification, actual browser alerts and the
+live four-device rehearsal are excluded or still require device/server acceptance.
+No backend code, app build or deployment was performed in this completion pass.
+See [Mobile-Readiness-Review.md](Mobile-Readiness-Review.md) for the full status.

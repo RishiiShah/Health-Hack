@@ -1,0 +1,62 @@
+/* Command: the triage queue beside the selected item's dossier. */
+.command-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--s-3); align-items: start; }
+
+.queue-card { padding: 0; overflow: hidden; }
+.queue-card-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; padding: var(--s-3) var(--s-3) var(--s-2); }
+.queue-count { color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .08em; }
+.queue-filters, .coverage-filters, .roster-filters { display: flex; gap: var(--s-1); flex-wrap: wrap; }
+.queue-filters { padding: 0 var(--s-3) var(--s-2); border-bottom: thin solid var(--line); }
+.queue-filters button, .coverage-filters button, .roster-filters button {
+  display: inline-flex; align-items: center; gap: .6em; padding: .45em .9em; border: thin solid var(--line); border-radius: var(--radius);
+  background: transparent; color: var(--text-2); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+}
+.queue-filters button span, .coverage-filters button span, .roster-filters button span { color: var(--muted); }
+.queue-filters button[aria-pressed="true"], .coverage-filters button[aria-pressed="true"], .roster-filters button[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
+.queue-filters button[aria-pressed="true"] span, .coverage-filters button[aria-pressed="true"] span, .roster-filters button[aria-pressed="true"] span { color: inherit; opacity: .7; }
+.dense-queue { max-height: 62vh; overflow-y: auto; }
+.dense-queue-row {
+  position: relative; display: grid; grid-template-columns: max(2vw, 3.2vh) minmax(0, 1fr) auto; gap: var(--s-2); align-items: start; width: 100%;
+  padding: var(--s-2) var(--s-3); border: 0; border-bottom: thin solid var(--line); background: transparent; text-align: left;
+}
+.dense-queue-row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--rule-w) * 3); background: var(--accent-text); transform: scaleY(0); transition: transform var(--med) var(--ease-spring); }
+.dense-queue-row.level-critical::before { background: var(--signal); }
+.dense-queue-row.level-warning::before { background: var(--warning-line); }
+.dense-queue-row:hover { background: var(--surface-2); }
+.dense-queue-row.active { background: var(--accent-soft); }
+.dense-queue-row.active::before { transform: scaleY(1); }
+.queue-rank { color: var(--muted); font: 500 var(--t-sm) var(--font-mono); }
+.queue-label { display: grid; gap: .15em; min-width: 0; }
+.queue-label strong { font-size: var(--t-sm); font-weight: 600; }
+.queue-label small { color: var(--muted); font-size: var(--t-xs); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.dense-queue .empty-state { margin: var(--s-3); }
+
+.dossier-card { position: sticky; top: calc(max(4.4vw, 7vh) + var(--s-3)); display: grid; gap: var(--s-3); border-left: calc(var(--rule-w) * 4) solid var(--accent-text); }
+.dossier-card.severity-critical { border-left-color: var(--signal); box-shadow: var(--offset) var(--offset) 0 color-mix(in srgb, var(--signal) 35%, transparent); }
+.dossier-card.severity-warning { border-left-color: var(--warning-line); }
+.dossier-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-2); }
+.dossier-head h3 { margin-top: var(--s-1); font-size: var(--t-xl); line-height: 1.25; }
+.critical-mark { position: relative; display: grid; place-items: center; width: max(2.4vw, 4vh); height: max(2.4vw, 4vh); border-radius: 50%; background: var(--critical-soft); color: var(--critical); font-weight: 800; }
+.critical-mark::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: thin solid var(--signal); animation: ring 1.8s var(--ease-out) infinite; }
+.dossier-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin: 0; }
+.dossier-grid > div { padding: var(--s-2) var(--s-3); border-radius: var(--radius); background: var(--surface-2); animation: rise var(--med) var(--ease-out) backwards; }
+.dossier-grid > div:nth-child(2) { animation-delay: calc(var(--step) * 1); }
+.dossier-grid > div:nth-child(3) { animation-delay: calc(var(--step) * 2); }
+.dossier-grid > div:nth-child(4) { animation-delay: calc(var(--step) * 3); }
+.dossier-grid > div:nth-child(5) { animation-delay: calc(var(--step) * 4); }
+.dossier-grid dt { margin-bottom: var(--s-1); color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.dossier-grid dd { margin: 0; font-size: var(--t-sm); }
+.dossier-wide { grid-column: 1 / -1; }
+.decision-alternatives { margin-top: var(--s-1); font-size: var(--t-sm); }
+.decision-alternatives ul { margin: var(--s-1) 0 0; padding-left: var(--s-3); color: var(--text-2); }
+.dossier-message { margin: 0; color: var(--muted); font-size: var(--t-sm); animation: fade var(--med) var(--ease-out); }
+
+/* Dispatch */
+.tracker-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, max(26vw, 40vh)), 1fr)); gap: var(--s-3); }
+.outcome-list { display: grid; }
+.outcome-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-2); padding: var(--s-2) 0; border-top: thin solid var(--line); }
+.outcome-row:first-child { border-top: 0; }
+.outcome-row p { margin: .2em 0 0; color: var(--text-2); font-size: var(--t-sm); }
+.outcome-row small { color: var(--muted); }
+
+@media (max-width: 69em) { .command-grid { grid-template-columns: minmax(0, 1fr); } .dossier-card { position: static; } }
+@media (max-width: 37.5em) { .dossier-grid { grid-template-columns: minmax(0, 1fr); } }

@@ -1,0 +1,27 @@
+{
+  "date_label": "Tue 17 Mar",
+  "now_label": "18:20",
+  "alert": null,
+  "filters": [
+    {
+      "label": "All",
+      "ids": [
+        "PHY-005"
+      ]
+    }
+  ],
+  "doctors": [
+    {
+      "id": "PHY-005",
+      "name": "Dr. Priya Shah",
+      "group": "On shift",
+      "status": "Available",
+      "bar": "18:20\u201320:20",
+      "tone": "day",
+      "detail": "Synthetic example",
+      "avatar": "PS",
+      "workload": "1 consult",
+      "credentialed": "Suncrest Medical Pavilion"
+    }
+  ]
+}

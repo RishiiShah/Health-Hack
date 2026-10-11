@@ -1,8 +1,41 @@
-name: backend-ci
+name: application-ci
 on:
   push:
   pull_request:
 jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the verified Flutter toolchain
+        run: |
+          git clone --depth 1 --branch 3.35.3 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub
+      - name: Compile the connected web application
+        run: flutter build web --release --no-pub --dart-define=API_MODE=live --dart-define=API_BASE_URL=https://backend.example
+      - name: Compile the presentation backup
+        run: flutter build web --release --no-pub --dart-define=API_MODE=fake
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
   backend:
     runs-on: ubuntu-latest
     services:
@@ -23,7 +56,14 @@ jobs:
         with:
           python-version: "3.14.7"
       - run: pip install -e '.[test]'
-      - run: pytest
+      - name: Verify the independent practice-data generator
+        working-directory: .
+        run: python -m unittest discover scripts/synth -v
+      - name: Generate the five public rehearsal datasets
+        working-directory: .
+        run: python scripts/synth/generate.py --suite --out data/synthetic
+      # Protected packs remain local. Synthetic API/auth/offer/recovery tests run in this checkout.
+      - run: pytest -ra
   container:
     runs-on: ubuntu-latest
     services:
@@ -34,7 +74,10 @@ jobs:
         ports: ["5432:5432"]
         options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
     env:
-      RUN: docker run -d --name cc-backend --network host -e PORT=10000 -e CC_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres cc-backend:ci
+      # Throwaway CI tokens; the smoke script reads the same variables.
+      CC_ADMIN_TOKEN: ci-admin
+      CC_COORDINATOR_TOKEN: ci-coordinator
+      RUN: docker run -d --name cc-backend --network host -e PORT=10000 -e CC_ADMIN_TOKEN=ci-admin -e CC_COORDINATOR_TOKEN=ci-coordinator -e CC_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres cc-backend:ci
     steps:
       - uses: actions/checkout@v4
       - name: Build the portable image

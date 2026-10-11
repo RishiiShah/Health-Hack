@@ -1,3 +1,5 @@
+> **Document status:** Owner design checklist. Live mode uses the existing backend adapter; schedule views, preference updates, release and broadcasts below remain design-only features. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 # Mobile — Hitanshu (screens)
 
 You build every screen of the Flutter web app for two roles, physician and clinical lead, following the UI design (`Sevaro Command Center Screens.pdf`) and the theme reference. Chandan builds the data layer; you only call his interfaces.
@@ -39,6 +41,8 @@ abstract class AuthRepository {
   Future<PreferencesResult> setOptIn(bool optIn, {bool declineOpenOffer = false});
   String? takeInitialOfferId();
   Stream<void> get signedOut;
+  ValueListenable<Me?> get me;
+  Future<void> refreshMe();
 }
 abstract class OfferRepository {
   Future<OfferList> listOffers();
@@ -66,15 +70,15 @@ abstract class LeadRepository {
   Future<LeadSchedule> schedule(DateTime date);
 }
 abstract class PhysicianFeed {
-  ValueListenable<AsyncSnapshot<OfferList>> get offers;
-  ValueListenable<AsyncSnapshot<NotificationList>> get notifications;
+  ValueListenable<FeedState<OfferList>> get offers;
+  ValueListenable<FeedState<NotificationList>> get notifications;
   Stream<Offer> get newOffer;
   Stream<Offer> get offerChanged;
   void start(); void stop(); Future<void> refreshNow();
 }
 abstract class LeadFeed {
-  ValueListenable<AsyncSnapshot<LeadQueue>> get queue;
-  ValueListenable<AsyncSnapshot<BroadcastList>> get activeOffers;
+  ValueListenable<FeedState<LeadQueue>> get queue;
+  ValueListenable<FeedState<BroadcastList>> get activeOffers;
   Stream<AnswerEvent> get answers;
   void start(); void stop(); Future<void> refreshNow();
 }
@@ -230,3 +234,145 @@ The offer flow and Approvals are the demo; build them first. Schedule and Covera
 ## Done when
 - Every widget test passes on fakes, with no network.
 - The demo script (`docs/demo-mobile.md`) runs end to end on four phones: lead approves, two physicians race, one Missed run, Shah's My shift.
+
+## Implementation handoff — 10 October 2026
+
+The `mobile-screens` branch now has an initial presentation layer. Merge this
+and Chandan's `mobile-data` branch into `mobile`; do not create a second data
+layer on this branch.
+
+Implemented:
+- `main.dart`: Sevaro theme and retained screen-reader semantics handle. Opens
+  sign-in; authentication is deliberately not simulated.
+- `screens/sign_in_screen.dart`: validated email/password form, subtitle-only
+  role choice, pending state, returned error text, demo accounts, SSO/reset notices.
+- `screens/role_home.dart`: tabs selected from the authenticated role. Only the
+  active page is mounted, allowing tab-owned pollers to stop on disposal. Unknown
+  roles show an error; coordinator/admin get the web dashboard action.
+- `screens/offer_detail_screen.dart`: request details, server-clock countdown,
+  confirmations, action gating, pending state, and all response/end states.
+- `screens/shared.dart`: scrolling page layout, notices, loading/error screens,
+  and confirmation dialog. `web/index.html`: accessible pre-Flutter loading page.
+- Widget tests under `test/screens/` cover login, routing, outcomes, cancellation,
+  pending actions, and expiry/feed changes during confirmation.
+
+Integration after the data handoff:
+1. Replace the default `SignInScreen()` home in `main.dart` with startup calling
+   `AppServices.fromEnvironment()` and `auth.currentUser()`. Subscribe to
+   `auth.signedOut` at the session root, clear the navigation stack on sign-out,
+   and dispose feeds/subscriptions. Startup and session tests remain outstanding.
+2. Supply `SignInScreen.onSignIn`: call `auth.signIn`, route from returned
+   `me.role`, and return null on success or the mapped server message on failure.
+   The screen never receives tokens or chooses an authenticated role.
+3. Supply the four `WidgetBuilder`s for each role in `RoleHome`; these are page
+   contents, not additional scaffolds. Supply the configured web dashboard action.
+   Dashboard content, lock screen, account, approvals, shift/schedule/coverage,
+   deep-link handling, and live feed subscriptions remain to be implemented.
+4. Map DTO enum `.wire` values to `OfferDetailScreen.status`, `statusReason`, `outcome`,
+   and `allowedActions`. Use `ValueKey(offer.offerId)` for each detail screen.
+   Supply an owned `ValueNotifier<Duration>` updated from `ServerClock.ticks` via
+   `clock.remaining(expiresAt)`; dispose it and the tick subscription with the page.
+   Format every time with Chandan's `formatEt` helper; include the ET label.
+   Use `whyYou`, falling back to `reason` when that list is empty.
+5. In `onAction`, call accept/decline/release, update the offer and outcome from
+   the result, then return null. Return mapped error text on failure. Clear the
+   previous action outcome when a later feed event supplies a new offer status.
+   Populate routing hospitals, next steps and coverage text from the DTO.
+   Retry behavior belongs to Chandan's repositories, not the widget.
+
+The supplied v1.1 contract in the chat informed this implementation; its shared
+file still needs to be added to the repository. The design PDF was subsequently
+supplied from Downloads and read for the screen gallery below. The theme uses
+its warm neutral/teal palette with rounded cards from the supplied visual reference.
+No new app dependencies were added. The Dart
+minimum was adjusted to 3.9.2 to match the installed Flutter 3.35.3 toolchain.
+`flutter pub get` refreshed the existing lockfile for that SDK; no packages were
+added. Dart static analysis was run independently of builds and widget tests.
+
+Validation: builds, app launches, and widget-test execution were not run, per the
+device-first workflow. The default app currently shows sign-in with submission
+disabled until the auth callback is connected; it does not claim to authenticate.
+
+### Debug screen gallery
+
+Run the app normally with FVM and tap **Preview screens** near the top of sign-in.
+If it was already running, hot restart (`R`) to refresh the startup widget.
+The preview entry is compiled behind `kDebugMode` and `SCREEN_PREVIEW` (defaults
+to true in debug); release/profile runs cannot open the gallery. To hide the
+entry during debug integration, pass `--dart-define=SCREEN_PREVIEW=false`.
+
+`mobile/lib/screens/preview/` contains isolated sample UI. These samples are
+explicitly authorized for design review and do not implement or replace Chandan's
+DTOs, repositories, auth, fakes, clock, notifications, or feeds. No HTTP calls,
+tokens, browser-only imports, or persistent storage are involved. The app stays
+on sign-in until the user explicitly chooses the preview menu. Every preview route
+has a visible **SCREEN PREVIEW · synthetic data** banner.
+
+The gallery covers all nine pages of `Sevaro Command Center Screens.pdf`:
+sign-in, approvals, coverage, lead schedule, My shift, simulated lock screen,
+offer details, accepted offer, and physician schedule. It also exposes both role
+navigation shells and account controls. Main app screens receive data through
+their existing callbacks; only the isolated preview files embed sample values.
+
+Device review checklist:
+- Open Physician on/off shift or Clinical lead; visit all four navigation tabs.
+- Tap the simulated lock-screen notification to open the actual offer widget.
+- Accept/decline/release, cancel confirmations, and inspect the pending spinner.
+- Select every offer scenario, including a race, late response, and permission
+  error. Use Reset to repeat; Set 0:00 disables both response buttons. The clock
+  is frozen and only moves with the manual controls, so review is repeatable.
+- Approve a proposal or reveal the rejection field; rejection stays disabled
+  until a reason is supplied. Decisions are local visual demonstrations.
+- In Account, opt out and cancel/confirm the open-request prompt. The sound
+  switch is visual only and plays no audio.
+- In schedule previews, select 17 March for the PDF sample; other days explicitly
+  show that no sample roster is available. These are not live schedule queries.
+- Inspect at phone width and enlarged text. Coverage uses stacked hospital cards
+  with the PDF's counts and footnotes to keep it readable at narrow widths.
+
+Samples are independent, not an end-to-end simulation: approvals, offer results,
+and coverage do not synchronize across routes. Reopening a page resets its local
+scenario; the account toggles persist within the current preview dashboard only.
+Production dashboard implementations and AppServices wiring remain outstanding.
+No builds, tests, or app launches were run for this preview work; source formatting
+and static analysis are the available verification.
+
+### Navigation and timeline styling
+
+The reference-style bottom dock has a white notched bar, green selected tab,
+and raised orange plus button. The plus opens quick navigation to the existing
+role tabs; it does not create offers or grant an extra permission.
+
+Both schedule previews use `screens/schedule_timeline.dart`: shared ET time axes,
+rounded labeled bars, dashed grid lines, hatched future time, and an orange
+current-time marker supplied from the sample clock. Colors consistently identify
+Day (green), Night (purple), Away (orange), and Offer (blue), with text legends.
+Exact time ranges remain listed below the chart. The connected schedule keeps
+the axis within its card at large text sizes; labels below preserve exact ranges.
+
+## Connected implementation completion — 10 October 2026
+
+This section supersedes the integration TODOs and unrun-test notes in the earlier
+presentation/gallery handoff. Auth and deployment remain explicitly excluded.
+
+`ServiceSession` now consumes the merged AppServices and Me, with repository-backed
+pages for all physician and lead tabs. It connects notification takeover, clock
+updates, offer actions/results/release, preferences, schedules, coverage, proposal
+decisions, all candidate rules, trap checks, audit, escalation, broadcast tracking,
+answer toasts, stale/error feedback, permissions and session cleanup. Feed restarts
+discard old requests. No screen writes HTTP code or determines eligibility.
+
+Use `.wire` when adapting enums, `FeedState<T>` for feeds, `auth.me` for current
+user changes and `formatEtLabel`/`formatEtRange` for ET labels. The shared contract
+is restored at [Mobile-App-Contract.md](Mobile-App-Contract.md).
+
+Run with FVM, tap **Open working demo**, and choose one of the four demo accounts.
+This debug entry uses the existing FakeServices; roles share its backend within
+one workspace. **Preview screens** remains for isolated design review only.
+
+Validation: **131 tests passed**, including integrated fake workflows, errors,
+lead toast, 390px/200% layouts and session polling regressions. Static analysis
+passed. No app build or launch was run. Manual phone/screen-reader/web-alert checks,
+live backend contract checks, auth entry and deployment remain pending.
+See [Mobile-Readiness-Review.md](Mobile-Readiness-Review.md) and
+[demo-mobile.md](demo-mobile.md) before merging to `mobile`.

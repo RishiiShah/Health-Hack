@@ -38,6 +38,21 @@ class AnchoredClock:
     def now(self) -> datetime: return self.anchor + timedelta(seconds=monotonic() - self.started)
 
 
+def saved_clock(clock: Clock, receipt_at: datetime) -> dict:
+    """Persist an override with its independent receipt time; monotonic origins cannot survive restart."""
+    return {"mode": clock.mode, "at": utc(clock.now()).isoformat(), "saved_at": utc(receipt_at).isoformat()}
+
+
+def restore_clock(saved: dict, receipt_at: datetime) -> Clock:
+    at = utc(datetime.fromisoformat(saved["at"]))
+    if saved["mode"] == "fixed":
+        return FixedClock(at)
+    if saved["mode"] == "anchored":
+        elapsed = max(timedelta(), utc(receipt_at) - utc(datetime.fromisoformat(saved["saved_at"])))
+        return AnchoredClock(at + elapsed)
+    raise ValueError(f"unsupported saved clock mode: {saved['mode']}")
+
+
 def make_clock(mode: str, fixed: datetime | None = None, newest_event_time: datetime | None = None) -> Clock:
     if mode == "fixed":
         if fixed is None: raise ValueError("fixed clock requires a timestamp")

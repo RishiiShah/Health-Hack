@@ -200,6 +200,26 @@ def test_g6_precedence_and_meeting_routability():
     assert physician_view(state, refs(), "P1", at(5)).derived_state == "Video Consult"
 
 
+def test_offline_agent_does_not_leave_stale_camera_exclusion():
+    camera = row("camera", "camera_active", 1, cid=None, pid="P1")
+    lost = row("lost", "agent_heartbeat_lost", 2, cid=None, pid="P1")
+    before = physician_view(replay_rows(camera), refs(), "P1", at(1))
+    assert not before.routable and "external_platform" in before.flags
+    offline = physician_view(replay_rows(camera, lost), refs(), "P1", at(3))
+    assert offline.routable and offline.derived_state == "Available"
+    assert offline.desktop_agent == "Offline" and "unverified" in offline.flags
+    assert "external_platform" not in offline.flags
+    recovered = row("recovered", "camera_active", 4, cid=None, pid="P1")
+    assert not physician_view(replay_rows(camera, lost, recovered), refs(), "P1", at(5)).routable
+
+
+@pytest.mark.parametrize("kind,value", [("incoming_call_started", None), ("video_started", None), ("physician_status_changed", "Temporarily Unavailable")])
+def test_offline_camera_fallback_still_respects_synapse_busy_and_status(kind, value):
+    state = replay_rows(row("receive"), row("camera", "camera_active", 1, cid=None, pid="P1"),
+                        row("busy", kind, 2, pid="P1", value=value), row("lost", "agent_heartbeat_lost", 3, cid=None, pid="P1"))
+    assert not physician_view(state, refs(), "P1", at(4)).routable
+
+
 @pytest.mark.parametrize("day,clock", [(date(2026, 3, 8), "02:30"), (date(2026, 11, 1), "01:30")])
 def test_ambiguous_or_nonexistent_time_only_shifts_are_rejected(day, clock):
     from datetime import time
@@ -389,3 +409,25 @@ def test_march17_judging_extension_appends_without_reset_and_respects_clock(db_u
     assert view.derived_state == "Hospital Call" and view.calls_this_shift == 1
     assert coord.ingest(extension)["duplicates"] == 3
     assert coord.current_publication().event_count == 5
+
+
+def test_new_wording_is_read_by_keyword_and_unreadable_rows_are_rejected():
+    """The judges' file may phrase events differently; known wordings keep their exact meaning."""
+    import pytest
+    from app.ingest.adapters import DESCRIPTION, STATUS, _by_keyword, adapt_fixture
+    for (kind, desc), (consult_type, value) in DESCRIPTION.items():
+        assert _by_keyword(kind, desc) == (consult_type, value), desc  # the fallback agrees with every known wording
+    for desc, status in STATUS.items():
+        assert _by_keyword("physician_status_changed", desc) == (None, status)
+    row = lambda kind, desc: adapt_fixture({"event_type": kind, "description": desc})
+    assert row("consult_received", "Acute stroke consult requested")["consult_type"] == "Stroke"
+    assert row("consult_received", "General neurology consult received")["consult_type"] == "General Neuro"
+    assert row("incoming_call_ended", "Call ended (phone only, no video needed)")["value"] == "phone_complete"
+    assert row("incoming_call_ended", "Call ended")["value"] == "continue"
+    assert row("routing_attempt_failed", "Routing failed")["value"] == "retry_in_5m"
+    assert row("physician_status_changed", "Status set: In Meeting")["value"] == "In Meeting"
+    assert row("physician_status_changed", "Status: not available")["value"] == "Temporarily Unavailable"
+    with pytest.raises(ValueError, match="receipt"):
+        row("consult_received", "Consult request received")  # no type: rejected and reported, not guessed
+    with pytest.raises(ValueError, match="status"):
+        row("physician_status_changed", "Status changed")

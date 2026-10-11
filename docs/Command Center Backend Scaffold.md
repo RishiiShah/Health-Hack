@@ -1,3 +1,5 @@
+> **Document status:** Historical architecture proposal. SQLite, disk hosting, source layout and dependency examples below are retained for context; they are not current setup instructions. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 # Command Center Backend Scaffold
 
 Oct 10, 2026 · @Rishabh
