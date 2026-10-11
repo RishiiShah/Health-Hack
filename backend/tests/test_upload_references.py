@@ -36,7 +36,7 @@ def test_check_does_not_activate_missing_version(tmp_path,monkeypatch):
     with pytest.raises(SystemExit,match='Reference check failed'): upload.main()
 
 
-def test_different_persisted_version_requires_explicit_replace(tmp_path,monkeypatch):
+def test_different_persisted_version_cannot_be_replaced(tmp_path,monkeypatch):
     status=setup(tmp_path,monkeypatch)
     status['manifest']['fingerprint']='different'
     calls=[]
@@ -44,7 +44,7 @@ def test_different_persisted_version_requires_explicit_replace(tmp_path,monkeypa
         calls.append(payload)
         return status
     monkeypatch.setattr(upload,'request',get)
-    with pytest.raises(SystemExit,match='--replace'): upload.main()
+    with pytest.raises(SystemExit,match='Reference data is fixed'): upload.main()
     assert calls==[None]
 
 

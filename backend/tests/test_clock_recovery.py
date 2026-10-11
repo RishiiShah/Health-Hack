@@ -25,7 +25,7 @@ def test_running_clock_recovers_elapsed_time_without_rewinding(monkeypatch):
 
 @pytest.mark.parametrize("csv_advance", [False, True])
 def test_override_and_csv_advance_survive_restart(db_url, monkeypatch, csv_advance):
-    monkeypatch.setattr("app.main.settings", replace(settings, clock_mode="fixed", clock_fixed=AT.isoformat(), reference_dir=None))
+    monkeypatch.setattr("app.main.settings", replace(settings, reference_fingerprint=None, clock_mode="fixed", clock_fixed=AT.isoformat(), reference_dir=None))
     later = AT + timedelta(minutes=20)
     def hosted():
         speech = SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None))
@@ -65,7 +65,7 @@ def test_failed_clock_commit_keeps_previous_clock(db_url, monkeypatch):
 
 
 def test_running_override_survives_restart_with_downtime(db_url, monkeypatch):
-    monkeypatch.setattr("app.main.settings", replace(settings, clock_mode="fixed", clock_fixed=AT.isoformat(), reference_dir=None))
+    monkeypatch.setattr("app.main.settings", replace(settings, reference_fingerprint=None, clock_mode="fixed", clock_fixed=AT.isoformat(), reference_dir=None))
     monkeypatch.setattr("app.clock.monotonic", lambda: 100.0)
     receipt = [AT]
     monkeypatch.setattr("app.clock.ServerReceiptClock.now", lambda self: receipt[0])

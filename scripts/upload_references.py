@@ -1,7 +1,7 @@
 """Upload a folder's six reference CSVs to a running backend (POST /admin/references).
 
 Usage: python scripts/upload_references.py data --url https://<host> --service-date 2026-03-17
-       python scripts/upload_references.py test_data/01_development/inputs --url http://127.0.0.1:8000
+       python scripts/upload_references.py data --url http://127.0.0.1:8000 --service-date 2026-03-17 --check
 --service-date is needed only for the kit's sample layout (shift times without a date).
 Signs in with CC_API_TOKEN if set (an account or admin token), otherwise asks for an account email and password.
 """
@@ -37,7 +37,6 @@ def main():
     parser.add_argument("--service-date")
     parser.add_argument("--name", help="dataset name shown in the apps (default: the folder name)")
     parser.add_argument("--check", action="store_true", help="verify persisted references match this folder without changing anything")
-    parser.add_argument("--replace", action="store_true", help="replace a different persisted reference version (events and offers remain)")
     args = parser.parse_args()
     folder = args.folder.resolve()
     missing = [name for name in FILES if not (folder / name).exists()]
@@ -60,8 +59,8 @@ def main():
         print(f"Verified {status['dataset']['name']}: {status['hospitals']} hospitals, {status['physicians']} physicians. "
               f"SHA-256 {fingerprint}. No changes made.")
         return
-    if status["persisted"] and not args.replace:
-        raise SystemExit("A different reference version is persisted. Use --replace to switch intentionally; existing events and offers remain.")
+    if status["persisted"]:
+        raise SystemExit("A different reference version is persisted. Reference data is fixed; replacement is not permitted.")
     result = request(f"{url}/admin/references", payload, token)
     stored = request(f"{url}/admin/references", token=token)
     if not stored["persisted"] or stored["manifest"]["fingerprint"] != fingerprint:

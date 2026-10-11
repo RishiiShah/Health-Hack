@@ -68,13 +68,13 @@ in the shell. The account needs `admin.inject`. Source CSVs remain local; the
 authenticated HTTPS upload stores them in the hosted database. They are not
 included in the Docker image or committed to Git.
 
-A matching upload is a read-only verification. `--check` never writes. Switching
-an already-persisted version requires `--replace`; the API still supports direct
-authenticated reference replacement. Every successful script upload is followed
-by a readback comparison. The production RDS load above prepares future Render
-hosting; no Render service was deployed during this change. For a running
-backend, use its authenticated upload endpoint so its in-memory operational
-references update together with the database.
+A matching upload is a read-only verification. `--check` never writes. Runtime
+pins the official Sevaro fingerprint, rejects replacement with HTTP 409, and
+checks the fingerprint again at startup. There is no replacement flag. A first
+bootstrap is followed by a readback comparison. The production RDS load above
+prepares future Render hosting; no Render service has been deployed. Synthetic
+test fixtures explicitly override the fingerprint only in disposable test
+processes; their initialized kit is also immutable through the API.
 
 ## Compare environments
 

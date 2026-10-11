@@ -110,6 +110,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
     # (a new key) re-encodes at once; only clock-derived fields may lag by <1 s.
     snapshot_cache = [(None, b"")]
     url = database_url or settings.database_url
+    reference_fingerprint = settings.reference_fingerprint
 
     @asynccontextmanager
     async def lifespan(api: FastAPI):
@@ -120,8 +121,9 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
             override = db.metadata("clock")
             clock = test_clock or (restore_clock(override, WALL.now()) if override else
                                    make_clock(settings.clock_mode, settings.fixed_datetime(), max((e.event_time for e in events), default=None)))
-            refs, ops, dataset = (*references, dataset_of(None)) if references else startup_references(db)
-            coordinator = MutationCoordinator(db, clock, settings.late_lag_s, refs=refs, orphan_hold_s=settings.orphan_hold_s)
+            refs, ops, dataset, source = (*references, dataset_of(None), None) if references else startup_references(db)
+            coordinator = MutationCoordinator(db, clock, settings.late_lag_s, refs=refs, orphan_hold_s=settings.orphan_hold_s,
+                                              reference_source=source, references_locked=True)
             engine = Engine(coordinator, ops, None, InterventionLog(url), dataset)
             conns.append(engine.interventions.conn)
             engine.desk = OfferDesk(url, engine.context, base_history(history_path or settings.offer_history, clock.now()))
@@ -158,16 +160,23 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         source = (db.metadata("references") or {}).get("source")
         directory = settings.reference_dir
         if source:
+            if reference_fingerprint and reference_manifest(source)["fingerprint"] != reference_fingerprint:
+                raise ValueError("Persisted references do not match the fixed Sevaro reference fingerprint")
             if directory:
                 log.warning("using the uploaded references %r from the database; CC_DATA_DIR=%r is ignored", source["name"], directory)
             day = date.fromisoformat(source["service_date"]) if source.get("service_date") else None
-            return *references_from_files(source["files"], day), uploaded_dataset(source)
+            return *references_from_files(source["files"], day), uploaded_dataset(source), source
         if not directory or not (Path(directory) / "hospitals.csv").exists():
             # Loud, not fatal: /ready reports detection unavailable and decision routes answer 503.
             log.warning("no reference files at CC_DATA_DIR=%r; decisions are unavailable until they are uploaded", directory)
-            return None, None, dataset_of(None)
+            return None, None, dataset_of(None), None
         day = date.fromisoformat(settings.service_date) if settings.service_date else None
-        return *load_references(directory, day), dataset_of(directory)
+        source = {"name": "Sevaro official reference kit" if reference_fingerprint else dataset_of(directory)["name"],
+                  "service_date": day.isoformat() if day else None,
+                  "files": {name: (Path(directory) / name).read_text(encoding="utf-8-sig") for name in REFERENCE_FILES}}
+        if reference_fingerprint and reference_manifest(source)["fingerprint"] != reference_fingerprint:
+            raise ValueError("Local references do not match the fixed Sevaro reference fingerprint")
+        return *references_from_files(source["files"], day), uploaded_dataset(source), source
 
     async def sweeper(api, interval):
         while True:
@@ -472,9 +481,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
 
     @api.post("/admin/references")
     def upload_references(body: ReferencesRequest, request: Request, who: Principal = need("admin.inject")):
-        """Load or replace the reference CSVs without a redeploy (a host has no CC_DATA_DIR). Checked by the same loaders,
-        then stored in the database with the switch, so restarts keep them. Loaded events stay: POST /admin/reset to
-        start the new dataset with an empty stream."""
+        """Bootstrap the fixed Sevaro kit; matching uploads only verify it. Replacement is forbidden."""
         if sum(map(len, body.files.values())) > MAX_REFERENCE_CHARS:
             raise HTTPException(413, "reference files exceed the size limit")
         try:
@@ -482,8 +489,15 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         except (ValueError, KeyError, csv.Error) as exc:  # KeyError includes an unknown time zone
             raise HTTPException(422, f"reference files rejected: {exc}") from None
         source = {"name": body.name, "service_date": body.service_date.isoformat() if body.service_date else None, "files": body.files}
-        report = request.app.state.engine.use_references(refs, ops, source, uploaded_dataset(source))
-        return {"activated": True, "dataset": request.app.state.engine.dataset, "revision": report["revision"],
+        if reference_fingerprint and reference_manifest(source)["fingerprint"] != reference_fingerprint:
+            raise HTTPException(409, "Only the fixed Sevaro reference kit is permitted")
+        if reference_fingerprint:
+            source["name"] = "Sevaro official reference kit"
+        try:
+            report = request.app.state.engine.use_references(refs, ops, source, uploaded_dataset(source))
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from None
+        return {"activated": not report.get("unchanged", False), "unchanged": report.get("unchanged", False), "dataset": request.app.state.engine.dataset, "revision": report["revision"],
                 "hospitals": len(refs.hospitals), "physicians": len(refs.physicians), "manifest": reference_manifest(source)}
 
     @api.post("/admin/reset")

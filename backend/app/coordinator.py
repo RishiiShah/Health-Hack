@@ -33,15 +33,16 @@ class Published:
 
 class MutationCoordinator:
     """Synchronous domain work. P1 schedules sweep() using server time."""
-    def __init__(self, db: EventDatabase, clock: Clock, late_lag_s=DEFAULT_LATE_LAG_S, receipt_clock=None, *, refs: Refs | None = None, orphan_hold_s=DEFAULT_ORPHAN_HOLD_S):
+    def __init__(self, db: EventDatabase, clock: Clock, late_lag_s=DEFAULT_LATE_LAG_S, receipt_clock=None, *, refs: Refs | None = None, orphan_hold_s=DEFAULT_ORPHAN_HOLD_S, reference_source=None, references_locked=False):
         if late_lag_s < 0 or orphan_hold_s <= 0: raise ValueError("invalid ingest thresholds")
         self.db, self.clock, self.late_lag_s = db, clock, late_lag_s
         self.orphan_hold_s = orphan_hold_s
         self.receipt_clock = receipt_clock or ServerReceiptClock()
         self.lock = Lock()
-        self._load(refs)
+        self.references_locked = references_locked
+        self._load(refs, reference_source)
 
-    def _load(self, refs=None):
+    def _load(self, refs=None, reference_source=None):
         db, clock = self.db, self.clock
         saved_refs = db.metadata("references")
         if saved_refs:
@@ -49,10 +50,13 @@ class MutationCoordinator:
             if refs is not None and refs.payload() != self.refs.payload():
                 raise ValueError("activate changed references through the coordinator")
             self.reference_revision = saved_refs["revision"]
+            if reference_source and not saved_refs.get("source"):
+                db.commit_batch([], [], references={**saved_refs, "source": reference_source})
         else:
             self.refs, self.reference_revision = refs, int(refs is not None)
             if refs is not None:
-                db.commit_batch([], [], references={"revision": self.reference_revision, "payload": refs.payload()})
+                db.commit_batch([], [], references={"revision": self.reference_revision, "payload": refs.payload(),
+                                                    **({"source": reference_source} if reference_source else {})})
         events = db.events()
         self._holds = db.holds()
         self._stats = {**EMPTY_STATS, **db.metadata("ingest_stats", {})}
@@ -108,6 +112,11 @@ class MutationCoordinator:
             return self._mutate_once(rows, refs, rejected, source)
 
     def _mutate_once(self, rows, refs=None, rejected=(), source=None):
+        if refs is not None and self.references_locked and self.refs is not None:
+            previous = (self.db.metadata("references") or {}).get("source")
+            if refs.payload() != self.refs.payload() or (previous and (not source or
+                    (previous["files"], previous.get("service_date")) != (source["files"], source.get("service_date")))):
+                raise ValueError("Reference data is fixed; replacement is not permitted")
         as_of, received_at = self.clock.now(), self.receipt_clock.now()
         active_refs = refs if refs is not None else self.refs
         holds, stats = dict(self._holds), dict(self._stats)

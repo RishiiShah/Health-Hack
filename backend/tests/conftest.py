@@ -8,6 +8,14 @@ import pytest
 ADMIN_URL = os.getenv("CC_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/postgres")
 
 
+@pytest.fixture(autouse=True)
+def synthetic_reference_policy(monkeypatch):
+    """Disposable synthetic test worlds may bootstrap their own kit; runtime always pins Sevaro."""
+    from dataclasses import replace
+    from app import main
+    monkeypatch.setattr(main, "settings", replace(main.settings, reference_fingerprint=None))
+
+
 @pytest.fixture
 def new_db_url():
     names = []

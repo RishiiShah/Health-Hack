@@ -111,8 +111,15 @@ class Engine:
         self.swap = Lock()  # held while references and their operational tables are replaced together
 
     def use_references(self, refs: Refs, ops: OpsRefs, source: dict, dataset: dict) -> dict:
-        """Switch to uploaded references: readers never see new references with the old operational tables."""
+        """Bootstrap fixed references, or verify an identical upload without writing."""
         with self.swap:
+            previous = (self.coordinator.db.metadata("references") or {}).get("source")
+            if self.coordinator.refs is not None:
+                if refs != self.coordinator.refs or ops != self.ops or (previous and
+                        reference_manifest(previous)["fingerprint"] != reference_manifest(source)["fingerprint"]):
+                    raise ValueError("Reference data is fixed; replacement is not permitted")
+                if previous:
+                    return {"unchanged": True, "revision": self.coordinator.published.revision}
             report = self.coordinator.activate_references(refs, source)
             self.ops, self.dataset = ops, dataset
         return report

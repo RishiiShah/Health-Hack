@@ -7,6 +7,7 @@ DEFAULT_LATE_LAG_S = 60
 DEFAULT_ORPHAN_HOLD_S = 300
 DEFAULT_COOLDOWN_S = 120
 DEFAULT_FORECAST_CLIFF_LOOKAHEAD_MIN = 120
+OFFICIAL_REFERENCE_FINGERPRINT = "81602969911fe81fc1d5db5a51595fb5124d07ac5f5e97623a21e1232701d72d"
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,8 @@ DEFAULT_OVERLOAD = OverloadPolicy()
 
 @dataclass(frozen=True)
 class Settings:
+    # Runtime references are the supplied Sevaro kit. Only in-process synthetic tests override this field.
+    reference_fingerprint: str | None = OFFICIAL_REFERENCE_FINGERPRINT
     database_url: str = os.getenv("CC_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/postgres")
     clock_mode: str = os.getenv("CC_CLOCK_MODE", "auto")
     clock_fixed: str | None = os.getenv("CC_CLOCK_FIXED")

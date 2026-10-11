@@ -24,7 +24,7 @@ def files():
 
 
 def hosted(db_url,monkeypatch):
-    monkeypatch.setattr('app.main.settings',replace(settings,reference_dir=None))
+    monkeypatch.setattr('app.main.settings',replace(settings, reference_fingerprint=None,reference_dir=None))
     return create_app(db_url,FixedClock(START),auth=TEST_AUTH,sweep_s=0,
                       speech=SimpleNamespace(available=False,conn=SimpleNamespace(close=lambda:None)))
 
@@ -66,7 +66,7 @@ def test_directory_reference_count_excludes_event_and_snapshot_csvs(db_url, monk
         (tmp_path / name).write_text(text)
     (tmp_path / 'event_stream.csv').write_text('event_id,event_time\n')
     (tmp_path / 'snapshot_open_consults.csv').write_text('consult_id\n')
-    monkeypatch.setattr('app.main.settings', replace(settings, reference_dir=str(tmp_path), service_date='2026-04-07'))
+    monkeypatch.setattr('app.main.settings', replace(settings, reference_fingerprint=None, reference_dir=str(tmp_path), service_date='2026-04-07'))
     with TestClient(create_app(db_url, FixedClock(START), auth=TEST_AUTH, sweep_s=0,
                               speech=SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None)))) as client:
         status = client.get('/admin/references', headers=ADMIN).json()
@@ -105,3 +105,12 @@ def test_unseen_csv_appends_history_updates_decisions_and_preserves_references(d
         duplicate = client.post('/events/csv?advance_clock=true', headers=COORD, content=body).json()
         assert (duplicate['accepted'], duplicate['duplicates']) == (0, 3)
         assert client.get('/snapshot', headers=COORD).json()['queue'] == snap['queue']
+
+
+def seed(client):
+    response = client.post('/admin/references', headers=ADMIN, json={
+        'files': files(), 'name': 'Fixed reference kit', 'service_date': '2026-04-07'})
+    assert response.status_code == 200, response.text
+    return client.get('/admin/references', headers=ADMIN).json()
+
+
