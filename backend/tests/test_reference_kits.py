@@ -1,6 +1,8 @@
 """Stored reference kits: an events-only CSV whose IDs belong to another stored kit switches to it; unknown IDs are refused."""
 from dataclasses import replace
 from datetime import timedelta
+from threading import Thread
+from time import sleep
 from types import SimpleNamespace
 from fastapi.testclient import TestClient
 from app import main
@@ -83,6 +85,25 @@ def test_a_kit_stored_twice_with_other_line_endings_is_one_match(db_url, monkeyp
         assert stored.json().get('stored'), stored.text
         report = upload(client, events('H2', 'P2', 'NEW', minutes=(-30, -20))).json()
         assert report['dataset_switched_to']['name'] == 'Second kit'
+        assert client.get('/snapshot', headers=COORD).json()['dataset']['name'] == 'Second kit'
+
+
+def test_a_kit_switch_does_not_deadlock_with_a_desk_command(db_url, monkeypatch):
+    """A desk command holds the desk lock while it reads the context; a switching upload must not hold swap meanwhile."""
+    with TestClient(hosted(db_url, monkeypatch)) as client:
+        seed(client)
+        store_second(client)
+        engine = client.app.state.engine
+        with engine.desk.lock:  # as a desk command does, before it calls context()
+            switch = Thread(target=upload, args=(client, events('H2', 'P2', 'NEW', minutes=(-30, -20))), daemon=True)
+            switch.start()
+            sleep(0.3)  # let the upload take whatever it takes first
+            read = Thread(target=engine.context, daemon=True)
+            read.start()
+            read.join(3)
+            assert not read.is_alive(), 'context() blocked behind the upload: lock-order deadlock'
+        switch.join(10)
+        assert not switch.is_alive()
         assert client.get('/snapshot', headers=COORD).json()['dataset']['name'] == 'Second kit'
 
 

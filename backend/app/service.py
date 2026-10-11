@@ -172,7 +172,8 @@ class Engine:
         """Append an events-only CSV, or, when its IDs belong to another stored kit, switch to that kit with a fresh
         stream: the kit, the new generation and the events commit together; offers and interventions start empty."""
         ids = lambda column: {(row.get(column) or "").strip() for row in rows} - {""}
-        with self.swap:
+        # The desk lock first: a desk command holds it while it reads the context (swap), so the reverse order deadlocks.
+        with self.desk.lock, self.swap:
             source = self._kit_for(ids("hospital_id"), ids("physician_id"))
             if source is None:
                 return self.coordinator.ingest_raw(rows, adapter, advance_clock=advance_clock, upload=upload)
