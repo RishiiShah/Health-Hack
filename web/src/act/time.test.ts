@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clockTime, clockTimeSeconds, countdown, duration, etTimeOn, headerDate, minutesUntil, serverNow } from "./time.ts";
+import { clockTime, clockTimeSeconds, countdown, duration, etTimeOn, headerDate, minutesUntil, nextMinute, serverNow } from "./time.ts";
 
 test("edited ET times keep the reference's ET date and offset", () => {
   assert.equal(etTimeOn("2026-03-17T23:00:00+00:00", "19:30"), "2026-03-17T19:30:00-04:00");
@@ -37,4 +37,9 @@ test("a fixed clock does not advance between snapshots", () => {
   const at = "2026-03-17T22:20:00+00:00";
   assert.equal(serverNow(at, "fixed", 1_000, 61_000), Date.parse(at));
   assert.equal(serverNow(at, "anchored", 1_000, 61_000), Date.parse(at) + 60_000);
+});
+
+test("nextMinute is the first whole minute after the moment", () => {
+  assert.equal(nextMinute(Date.parse("2026-03-17T22:19:40Z")), "2026-03-17T22:20:00.000Z");
+  assert.equal(nextMinute(Date.parse("2026-03-17T23:00:00Z") - 1), "2026-03-17T23:00:00.000Z");
 });

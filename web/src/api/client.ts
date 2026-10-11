@@ -37,8 +37,10 @@ async function send<T>(path: string, init: RequestInit, token: string | null, bi
     if (error instanceof Error && error.name === "TimeoutError") throw new Error("The server took too long to respond. Try again.");
     throw new Error("Can't reach the server. Check your connection and try again.");
   }
+  const type = response.headers.get("Content-Type") ?? "";
+  if (response.ok && type.includes("text/html")) throw new ApiError(404, "Not Found");
   if (response.ok && binary) return await response.blob() as T;
-  const body = response.headers.get("Content-Type")?.includes("json") ? await response.json() : await response.text();
+  const body = type.includes("json") ? await response.json() : await response.text();
   if (!response.ok) {
     const detail = typeof body === "object" && body && "detail" in body ? body.detail
       : typeof body === "object" && body && "error" in body ? body.error?.message : body;

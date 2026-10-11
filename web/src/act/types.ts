@@ -82,6 +82,7 @@ export type IngestReport = {
   revision: number;
   pending_future: number;
   clock_advanced_to?: string;
+  latest_event_time?: string | null;
   clock_warning?: string;
   batch_id?: string;
   row_results?: { row_number: number; event_id: string | null; status: string; reason: string | null; expires_at?: string }[];

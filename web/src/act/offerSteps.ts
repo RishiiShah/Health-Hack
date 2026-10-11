@@ -13,8 +13,8 @@ export function offerSteps(offer: Offer, timeLeft: string | null): Step[] {
     { label: "Found", detail: `${offer.proposed_by} · ${clockTime(offer.proposed_at)}`, status: "done" },
     { label: `Checked ${offer.checked_count} people`, detail: `${offer.physician_name} eligible`, status: "done" },
     {
-      label: "Your decision",
-      detail: !decided ? "Approve to send it" : offer.state === "Rejected" ? "Rejected" : `Approved by ${offer.approved_by ?? "lead"}`,
+      label: "Lead approval",
+      detail: !decided ? "Waiting for clinical lead" : offer.state === "Rejected" ? "Rejected" : `Approved by ${offer.approved_by ?? "lead"}`,
       status: decided ? "done" : "current",
     },
     {
@@ -28,7 +28,7 @@ export function offerSteps(offer: Offer, timeLeft: string | null): Step[] {
 
 export function stateBadge(state: OfferState): { text: string; tone: "amber" | "teal" | "green" | "red" | "neutral" } {
   switch (state) {
-    case "Proposed": return { text: "Waiting for you", tone: "amber" };
+    case "Proposed": return { text: "Awaiting lead approval", tone: "amber" };
     case "Approved":
     case "Sent": return { text: state, tone: "teal" };
     case "Accepted": return { text: state, tone: "green" };

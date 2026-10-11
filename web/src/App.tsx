@@ -1,12 +1,12 @@
 // App shell: sign-in gate, Anish's header and pages per role, all fed from the server (or the demo stand-in).
-import { useEffect, useState, type ReactNode } from "react";
+import { Component, useEffect, useState, type ReactNode } from "react";
 import { api, DEMO, post } from "./api/client.ts";
 import { useSnapshot, type Snapshot } from "./api/live.ts";
 import { ApprovalsPage } from "./act/ApprovalsPage.tsx";
 import { DataPage } from "./act/DataPage.tsx";
 import { GapPanel } from "./act/GapPanel.tsx";
 import { unavailableText, useApi, useServerNow } from "./act/hooks.ts";
-import { isOpen } from "./act/offerSteps.ts";
+import { isOpen, stateBadge } from "./act/offerSteps.ts";
 import { OfferTracker } from "./act/OfferTracker.tsx";
 import { clockTime, clockTimeSeconds, headerDate } from "./act/time.ts";
 import type { AuditEntry, Dataset, Offer } from "./act/types.ts";
@@ -17,6 +17,8 @@ import { DemandPanel } from "./forecast/DemandPanel.tsx";
 import type { Coverage, Demand, Workload } from "./forecast/types.ts";
 import { WorkloadPanel } from "./forecast/WorkloadPanel.tsx";
 import { LandingPage } from "./LandingPage.tsx";
+import { ConsultQueues, PhysicianActivity, SignalVerification } from "./detect/LiveWorkload.tsx";
+import "./command.css";
 import { OffersPage } from "./physician/OffersPage.tsx";
 import SchedulePage from "./Schedule.tsx";
 import { SignIn } from "./SignIn.tsx";
@@ -45,6 +47,7 @@ export default function App() {
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const [notice, setNotice] = useState<string>();
+  const [targetRole, setTargetRole] = useState<"coordinator" | "lead" | "physician">("coordinator");
   const [signingIn, setSigningIn] = useState(() => location.hash === "#signin");
   useEffect(() => {
     const onHash = () => setSigningIn(location.hash === "#signin");
@@ -93,11 +96,11 @@ export default function App() {
 
   // Signed-out visitors start on the landing page; its buttons lead to sign-in (#signin). A session-ended notice goes straight to sign-in.
   if (!session && !notice && !signingIn) {
-    const toSignIn = () => { location.hash = "signin"; };
+    const toSignIn = (role: "coordinator" | "lead" | "physician" = "coordinator") => { setTargetRole(role); location.hash = "signin"; };
     return <div className="tw"><LandingPage onEnter={toSignIn} onGoToSignIn={toSignIn} /></div>;
   }
   if (!session) {
-    return <SignIn notice={notice} onBackToLanding={() => { setNotice(undefined); location.hash = ""; }}
+    return <SignIn key={targetRole} initialRole={targetRole} notice={notice} onBackToLanding={() => { setNotice(undefined); location.hash = ""; }}
       onSignedIn={(next) => { setNotice(undefined); setChecking(false); setSession(next); location.hash = PAGES_BY_ROLE[next.user.role][0]; }} />;
   }
   if (checking) return <main className="signin-page"><div className="signin-main"><div className="signin">
@@ -131,7 +134,17 @@ function Header({ session, page, clock, counts = {} }: { session: Session; page:
   </header>;
 }
 
-const Main = ({ children }: { children: ReactNode }) => <main className="workspace-main">{children}</main>;
+// A crash inside one page shows an error there instead of unmounting the whole app; changing page starts afresh.
+class PageBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    return this.state.error
+      ? <p className="error" role="alert">This page couldn't be displayed ({this.state.error.message}). The other pages still work; reload to try again.</p>
+      : this.props.children;
+  }
+}
+const Main = ({ page, children }: { page: string; children: ReactNode }) => <main className="workspace-main"><PageBoundary key={page}>{children}</PageBoundary></main>;
 const Title = ({ eyebrow, title, note }: { eyebrow: string; title: string; note?: string }) =>
   <div className="workspace-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div>{note && <span className="mono muted">{note}</span>}</div>;
 const Unavailable = ({ what }: { what: string }) => <p className="unavailable">Not available yet: the server doesn't send {what}.</p>;
@@ -149,12 +162,12 @@ function OperationsApp({ session }: { session: Session }) {
 
   return <div className={`${page === "command" ? "command-shell " : ""}min-h-screen bg-[#FBF9F5] text-slate-900`}>
     <Header session={session} page={page} clock={clock} counts={role === "lead" ? { approvals: Number(s?.pending_approvals ?? 0) } : {}} />
-    <Main>
-      {live.error && !s && <p className="error">Can't reach the server: {live.error}</p>}
+    <Main page={page}>
+      {live.error && <p className="error" role="status">{s ? "Updates interrupted. Showing the last received snapshot. " : "Can't reach the server: "}{live.error}</p>}
       {page === "command" && s && <CommandPage snapshot={s} detect={detect} now={now} offers={offers.data?.items ?? []} reloadKey={live.receivedAt} refresh={live.refresh} />}
-      {page === "consults" && <div className="page"><Title eyebrow={workspace} title="Consults" note="Level from the server" />{detect ? <ConsultBoard consults={detect.consults} /> : <Unavailable what="consults with levels" />}</div>}
-      {page === "doctors" && <div className="page"><Title eyebrow={workspace} title="Doctors" note="Self-report beside derived state" />{detect ? <PhysicianBoard physicians={detect.physicians} /> : <Unavailable what="physician state" />}</div>}
-      {page === "schedule" && <SchedulePage />}
+      {page === "consults" && <div className="page detail-page"><Title eyebrow={workspace} title="Consults" note="Level from the server" />{detect ? <><ConsultQueues detect={detect} onReview={showConsult} /><ConsultBoard consults={detect.consults} /></> : <Unavailable what="consults with levels" />}</div>}
+      {page === "doctors" && <div className="page detail-page"><Title eyebrow={workspace} title="Doctors" note="Self-report beside derived state" />{detect ? <><PhysicianActivity detect={detect} /><div className="forecast-panels"><WorkloadPanel workload={s?.workload as Workload | undefined} /><SignalVerification detect={detect} /></div><PhysicianBoard physicians={detect.physicians} /></> : <Unavailable what="physician state" />}</div>}
+      {page === "schedule" && <SchedulePage reloadKey={live.receivedAt} />}
       {page === "audit" && <AuditPage workspace={workspace} reloadKey={live.receivedAt} />}
       {page === "approvals" && <ApprovalsPage offers={offers.data?.items ?? []} offersError={offers.error && !offers.data ? unavailableText(offers.error, "GET /offers") : null} now={now} reloadKey={live.receivedAt} onChanged={live.refresh} />}
       {page === "data" && <DataPage snapshot={s} now={now} onChanged={live.refresh} />}
@@ -162,52 +175,68 @@ function OperationsApp({ session }: { session: Session }) {
   </div>;
 }
 
+// Bring a consult's row in the lifecycle board into view.
+function showConsult(consultId: string) {
+  const row = document.getElementById(`consult-${consultId}`);
+  row?.scrollIntoView({ behavior: "smooth", block: "center" });
+  row?.focus({ preventScroll: true });
+}
+
 function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
   snapshot: Snapshot; detect: DetectSnapshot | null; now: number | null; offers: Offer[]; reloadKey: unknown; refresh: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [gapId, setGapId] = useState<string | null>(null);
+  const [queueFilter, setQueueFilter] = useState("All");
   const findCover = (id: string) => { setGapId(id); };
   useEffect(() => {
     if (gapId) document.getElementById("command-cover-action")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [gapId]);
   const openOffers = offers.filter(isOpen);
-  const item = detect?.queue.find((entry) => entry.id === selectedId) ?? detect?.queue[0] ?? null;
+  const closedOffers = offers.filter((o) => !isOpen(o));
+  const shownQueue = detect?.queue.filter((q) => queueFilter === "All" || q.level === queueFilter) ?? [];
+  const item = shownQueue.find((entry) => entry.id === selectedId) ?? shownQueue[0] ?? null;
   return <div className="command-page">
-    <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Command</h1><p className="command-subtitle">Network status, priorities, and coverage in one place.</p></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
+    <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Operations command center</h1><p className="command-subtitle">Work top to bottom: resolve priority items, check coverage for the next 90 minutes, then follow each offer to its outcome.</p></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
     {detect && <HeadlineNumbers headline={detect.headline} />}
-    <section className="command-section" aria-labelledby="attention-heading">
-      <div className="command-section-head"><div><span className="section-index">01 / Respond</span><h2 id="attention-heading">Needs attention</h2></div><p>Select an item to review the next action.</p></div>
+    <nav className="command-section-nav" aria-label="Dashboard sections"><span>On this page</span><a href="#command-attention">1. Priority actions</a><a href="#command-forecast">2. Coverage forecast</a><a href="#command-actions">3. Coverage offers</a></nav>
+    <section id="command-attention" tabIndex={-1} className="command-section" aria-labelledby="attention-heading">
+      <div className="command-section-head"><div><span className="section-index">01 · Detect & decide</span><h2 id="attention-heading">What needs action now</h2></div><p>Ranked by the server. Select an item to see the recommended intervention.</p></div>
       <div className="command-top">
-      <section className="queue-card">
-        <div className="queue-card-head"><div><span className="eyebrow">Needs attention</span><h2>Ranked queue</h2></div><span className="mono queue-count">{detect?.queue.length ?? 0} items</span></div>
-        {detect ? <div className="dense-queue">{detect.queue.map((entry) => (
-          <button className={`dense-queue-row ${entry.id === item?.id ? "active" : ""}`} key={entry.id} onClick={() => setSelectedId(entry.id)}>
+      <section className="queue-card" aria-label="Ranked attention queue">
+        <div className="queue-card-head"><div><h3>Attention queue</h3><p className="panel-note">Highest priority first</p></div><span className="mono queue-count">{detect?.queue.length ?? 0} items</span></div>
+        <div className="queue-filters" aria-label="Filter attention queue">{["All", "Critical", "Warning", "Info"].map((level) => <button key={level} aria-pressed={queueFilter === level} onClick={() => setQueueFilter(level)}>{level} <span>{level === "All" ? detect?.queue.length ?? 0 : detect?.queue.filter((q) => q.level === level).length ?? 0}</span></button>)}</div>
+        {detect ? <div className="dense-queue">{shownQueue.map((entry) => (
+          <button className={`dense-queue-row ${entry.id === item?.id ? "active" : ""}`} key={entry.id} aria-pressed={entry.id === item?.id} onClick={() => setSelectedId(entry.id)}>
             <b className="queue-rank">{String(entry.rank).padStart(2, "0")}</b>
             <span className="queue-label"><strong>{entry.watchOnly ? "Watch · " : ""}{entry.label}</strong><small>{entry.watchOnly && entry.kind === "now_gap" ? "No consult waiting · " : ""}{entry.reason}</small></span>
             <span className={`level-chip ${entry.level.toLowerCase()}`}>{entry.level}</span>
           </button>
-        ))}</div> : <Unavailable what="the attention queue" />}
+        ))}{!shownQueue.length && <p className="empty-state">No {queueFilter === "All" ? "attention" : queueFilter.toLowerCase()} items.</p>}</div> : <Unavailable what="the attention queue" />}
       </section>
       {item && <Dossier item={item} total={detect!.queue.length} onFindCover={findCover} onDone={refresh} />}
       </div>
     </section>
-    <section className="command-section" aria-labelledby="coverage-heading">
-      <div className="command-section-head"><div><span className="section-index">02 / Anticipate</span><h2 id="coverage-heading">Network coverage</h2></div><p>Staffing against demand across every hospital.</p></div>
+    <section id="command-forecast" className="command-section" aria-labelledby="coverage-heading">
+      <div className="command-section-head"><div><span className="section-index">02 · Forecast</span><h2 id="coverage-heading">Where coverage needs support</h2></div><p>Staffing against the minimum at each hospital, with recent demand.</p></div>
       <div className="command-coverage">
       <CoverageGrid coverage={snapshot.coverage as Coverage | undefined} onFindCover={setGapId} />
-      {gapId && <div id="command-cover-action"><GapPanel gapId={gapId} reloadKey={reloadKey} canPropose onClose={() => setGapId(null)} onProposed={() => { setGapId(null); refresh(); }} /></div>}
+      {gapId && <div id="command-cover-action"><GapPanel gapId={gapId} reloadKey={reloadKey} now={now} canPropose onClose={() => setGapId(null)} onProposed={() => { setGapId(null); refresh(); }} /></div>}
       </div>
-      <div className="forecast-panels">
-        <DemandPanel demand={snapshot.demand as Demand | undefined} />
-        <WorkloadPanel workload={snapshot.workload as Workload | undefined} />
-      </div>
+      <DemandPanel demand={snapshot.demand as Demand | undefined} />
     </section>
-    <section className="command-section" aria-labelledby="coordination-heading">
-      <div className="command-section-head"><div><span className="section-index">03 / Coordinate</span><h2 id="coordination-heading">Offers & activity</h2></div><p>Track open offers and recent network actions.</p></div>
+    <section id="command-actions" className="command-section" aria-labelledby="coordination-heading">
+      <div className="command-section-head"><div><span className="section-index">03 · Act & close the loop</span><h2 id="coordination-heading">Coverage offers</h2></div><p>Every off-shift offer needs clinical lead approval before the physician is contacted.</p></div>
       <div className="command-rail">
-        <div className="command-offers">{openOffers.length ? openOffers.map((o) => <OfferTracker key={o.offer_id} offer={o} now={now} />) : <section className="panel"><span className="eyebrow">Open offers</span><h2>No offers in progress</h2><p className="muted">New coverage offers will appear here.</p></section>}</div>
-        <AutoLog reloadKey={reloadKey} />
+        <section className="panel" aria-labelledby="open-offers-heading">
+          <div className="panel-head"><div><h3 id="open-offers-heading">Offers in progress</h3><p className="panel-note">{openOffers.length} open · each card shows its next step and who acts on it</p></div>
+            <div className="status-badges"><span className="badge amber">{offers.filter(o => o.state === "Proposed").length} awaiting lead approval</span><span className="badge teal">{offers.filter(o => o.state === "Sent").length} awaiting physician reply</span></div></div>
+          {openOffers.length ? <div className="tracker-list">{openOffers.map((o) => <OfferTracker key={o.offer_id} offer={o} now={now} />)}</div> : <p className="empty-state">No offers in progress. Use Find cover on a coverage gap to propose one.</p>}
+        </section>
+        <section className="panel offer-outcomes" aria-labelledby="closed-offers-heading">
+          <div className="panel-head"><div><h3 id="closed-offers-heading">Completed offers</h3><p className="panel-note">{offers.filter(o => o.state === "Accepted").length} accepted of {closedOffers.length} closed · full history in <a className="text-link" href="#audit">Audit</a></p></div></div>
+          {closedOffers.length ? <div className="outcome-list">{closedOffers.map((offer) => <div className="outcome-row" key={offer.offer_id}><div><strong>{offer.physician_name}</strong><p>{offer.hospital_names.join(", ")} · {clockTime(offer.start)}–{clockTime(offer.end)} ET</p>{offer.reject_reason && <small>{offer.reject_reason}</small>}</div><span className={`badge ${stateBadge(offer.state).tone}`}>{stateBadge(offer.state).text}</span></div>)}</div> : <p className="empty-state">No completed offers yet.</p>}
+        </section>
       </div>
     </section>
   </div>;
@@ -228,14 +257,14 @@ function Dossier({ item, total, onFindCover, onDone }: { item: QueueItem; total:
   };
   const isGap = item.kind === "now_gap" || item.kind === "gap";
   const canReassign = ["reassign", "assign", "handoff"].includes(item.fixKind) && item.physicianId;
-  return <section className="dossier-card">
-    <div className="dossier-head"><div><span className="eyebrow">#{item.rank} of {total} · {item.level}</span><h2>{item.reason}</h2></div>{item.level === "Critical" && <span className="critical-mark">!</span>}</div>
+  return <section className={`dossier-card severity-${item.level.toLowerCase()}`}>
+    <div className="dossier-head"><div><span className="eyebrow">Recommended intervention · #{item.rank} of {total} · {item.level}</span><h3>{item.reason}</h3></div>{item.level === "Critical" && <span className="critical-mark">!</span>}</div>
     <div className="dossier-grid">
-      <div><b>Where</b><p>{item.where || "–"}</p></div>
+      <div><b>Affected consult / site</b><p>{item.where || "–"}</p></div>
       <div><b>Why it matters</b><p>{item.why || "–"}</p></div>
-      <div><b>{item.watchOnly ? "What to watch" : "Suggested fix"}</b><p>{item.fix}</p></div>
+      <div><b>{item.watchOnly ? "What to watch" : "Recommended action"}</b><p>{item.fix}</p></div>
       <div><b>Who approves</b><p>{item.approver}</p></div>
-      {(item.fixReason || item.alternatives.length > 0) && <div className="dossier-wide"><b>Why this fix</b><p>{item.fixReason}</p>{item.alternatives.length > 0 && <ul>{item.alternatives.map((a) => <li key={a}>{a}</li>)}</ul>}</div>}
+      {(item.fixReason || item.alternatives.length > 0) && <div className="dossier-wide"><b>Why this fix</b><p>{item.fixReason}</p>{item.alternatives.length > 0 && <details className="decision-alternatives"><summary>Other options & exclusions ({item.alternatives.length})</summary><ul>{item.alternatives.map((a) => <li key={a}>{a}</li>)}</ul></details>}</div>}
     </div>
     <div className="dossier-actions">
       {canReassign && <button className="btn dossier-primary" onClick={() => intervene("reassign")}>{item.fixKind === "handoff" ? "Record handoff" : "Reassign"}</button>}
@@ -248,16 +277,6 @@ function Dossier({ item, total, onFindCover, onDone }: { item: QueueItem; total:
 
 function useAudit(reloadKey: unknown) {
   return useApi<{ items: AuditEntry[] }>("/audit", reloadKey);
-}
-
-function AutoLog({ reloadKey }: { reloadKey: unknown }) {
-  const { data, error } = useAudit(reloadKey);
-  const rows = (data?.items ?? []).slice(-5).reverse();
-  return <section className="auto-log">
-    <div className="rail-heading"><div><span className="eyebrow">Activity</span><h2>Latest actions</h2></div><span className="badge green">{data?.items.length ?? 0} events</span></div>
-    {error && !data ? <p className="unavailable">{unavailableText(error, "GET /audit")}</p>
-      : rows.map((row, i) => <div className="auto-log-row" key={i}><span className="mono">{clockTimeSeconds(row.at)}</span><div><strong>{row.action}</strong><small>{row.actor}{row.detail ? ` · ${row.detail}` : ""}</small></div></div>)}
-  </section>;
 }
 
 function AuditPage({ workspace, reloadKey }: { workspace: string; reloadKey: unknown }) {
@@ -277,7 +296,7 @@ function PhysicianApp({ session }: { session: Session }) {
   const page = useHashPage(PAGES_BY_ROLE.physician);
   return <div className="min-h-screen bg-[#FBF9F5] text-slate-900">
     <Header session={session} page={page} />
-    <Main>
+    <Main page={page}>
       {page === "shift" && <MyShift />}
       {page === "offers" && <OffersPage />}
       {page === "settings" && <div className="page"><Title eyebrow="Physician workspace" title="Settings" note={session.user.name} /><section className="panel"><h2>Notifications</h2><p className="muted">Offers arrive in this app and on your phone. They show the hospital and hours only, never patient details.</p></section></div>}

@@ -1,44 +1,58 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { unavailableText, useApi } from "./act/hooks.ts";
+import { clockPosition, shiftWindow } from "./scheduleTimeline.ts";
+import "./schedule.css";
 
 export type Doctor = { id: string; name: string; group: "On shift" | "Off shift"; status: string; bar: string; tone: "day" | "night" | "unavailable" | "offer" | "off"; detail: string; avatar: string; workload: string; credentialed: string };
+export type ScheduleData = { date?: string; date_label: string; now_label: string; alert: { text: string; physician_id: string } | null; filters: { label: string; ids: string[] }[]; doctors: Doctor[] };
+const timeMarks = ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"];
 
-export type ScheduleData = {
-  date?: string; date_label: string; now_label: string;
-  alert: { text: string; physician_id: string } | null;
-  filters: { label: string; ids: string[] }[];
-  doctors: Doctor[];
-};
-
-const timeMarks = ["06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "24:00"];
-
-export default function SchedulePage() {
-  const { data, error } = useApi<ScheduleData>("/schedule", undefined, 2000);
-  if (!data) return <div className="page"><h1>Schedule</h1><p className="unavailable">{error ? unavailableText(error, "GET /schedule") : "Loading…"}</p></div>;
-  return <Schedule data={data} />;
+// Reloads with each live snapshot so offers and status changes show without a page refresh.
+export default function SchedulePage({ reloadKey }: { reloadKey?: unknown }) {
+  const { data, error } = useApi<ScheduleData>("/schedule", reloadKey);
+  if (!data) return <div className="page"><h1>Schedule</h1><p className="unavailable">{error ? unavailableText(error, "GET /schedule") : "Loading schedule…"}</p></div>;
+  return <Schedule data={data} error={error ? unavailableText(error, "GET /schedule") : null} />;
 }
 
-function Schedule({ data }: { data: ScheduleData }) {
+function Schedule({ data, error }: { data: ScheduleData; error: string | null }) {
   const { doctors, filters, alert } = data;
   const [selectedId, setSelectedId] = useState(alert?.physician_id ?? doctors[0]?.id);
   const [filter, setFilter] = useState(filters[0]?.label ?? "");
-  const selected = useMemo(() => doctors.find((doctor) => doctor.id === selectedId) ?? doctors[0], [doctors, selectedId]);
-  if (!selected) return <div className="page"><h1>Schedule</h1><p>No physicians in the loaded references.</p></div>;
-  const shown = new Set(filters.find((f) => f.label === filter)?.ids ?? doctors.map((d) => d.id));
-  const visible = doctors.filter((doctor) => shown.has(doctor.id));
-  return <div className="schedule-page"><div className="schedule-head"><div className="schedule-day"><button disabled title="Showing the loaded roster only" aria-label="Previous day">‹</button><strong>{data.date_label}</strong><button disabled title="Showing the loaded roster only" aria-label="Next day">›</button></div><div className="schedule-filters">{filters.map(({ label, ids }) => <button className={filter === label ? "active" : ""} key={label} onClick={() => setFilter(label)}>{label} <b>{ids.length}</b></button>)}</div></div>{alert && <div className="schedule-alert"><span>● {alert.text}</span><button onClick={() => setSelectedId(alert.physician_id)}>See the offer →</button></div>}<div className="schedule-layout"><section className="gantt-card"><div className="gantt-top"><div><span className="eyebrow">Roster overview</span><h1>Shift schedule</h1></div><span className="mono muted">{doctors.length} doctors · {data.now_label} ET</span></div><div className="gantt-grid"><div className="gantt-axis"><span />{timeMarks.map((time) => <span key={time}>{time}</span>)}</div><div className="now-line"><b>● {data.now_label} NOW</b></div>{["On shift", "Off shift"].map((group) => <div className="doctor-group" key={group}><div className="group-label"><span>{group}</span><small>{visible.filter((doctor) => doctor.group === group).length} doctors</small></div>{visible.filter((doctor) => doctor.group === group).map((doctor) => <button className={`doctor-row ${selected.id === doctor.id ? "selected" : ""}`} key={doctor.id} onClick={() => setSelectedId(doctor.id)}><span className="doctor-name"><b>{doctor.name}</b><small>{doctor.status}</small></span><span className={`doctor-bar ${doctor.tone}`}><i />{doctor.bar}</span></button>)}</div>)}</div><div className="schedule-legend"><span><i className="legend-day" />Day shift</span><span><i className="legend-night" />Night shift</span><span><i className="legend-unavailable" />Unavailable</span><span><i className="legend-offer" />Offer, not confirmed</span><small><em>*</em> Night shifts run past midnight.</small></div></section><aside className="schedule-side"><Inspector doctor={selected} /><MiniCalendar date={data.date} /></aside></div></div>;
+  const [query, setQuery] = useState("");
+  const shown = new Set(filters.find(f => f.label === filter)?.ids ?? doctors.map(d => d.id));
+  const visible = doctors.filter(d => shown.has(d.id) && `${d.name} ${d.id}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const selected = visible.find(d => d.id === selectedId) ?? visible[0];
+  const now = clockPosition(data.now_label);
+  const select = (id: string) => { setSelectedId(id); if (matchMedia("(max-width: 1100px)").matches) requestAnimationFrame(() => document.getElementById("schedule-inspector")?.scrollIntoView({ behavior: "smooth", block: "start" })); };
+  return <div className="schedule-page roster-page">
+    <div className="roster-heading"><div><span className="eyebrow">Staffing & availability</span><h1>Shift schedule</h1><p>See who is scheduled, review availability, and follow up on coverage.</p></div><div className="roster-date"><strong>{data.date_label}</strong><span>Roster time · {data.now_label} ET</span></div></div>
+    {error && <p className="unavailable" role="status">Schedule updates interrupted. {error}</p>}
+    <div className="roster-summary"><div><strong>{doctors.filter(d => d.group === "On shift").length}</strong><span>On shift now</span></div><div><strong>{doctors.filter(d => d.group === "Off shift").length}</strong><span>Off shift now</span></div><div><strong>{doctors.filter(d => d.tone === "offer").length}</strong><span>Unconfirmed offers</span></div></div>
+    {alert && <div className="roster-alert"><div><span className="roster-alert-label">Coverage follow-up</span><p>{alert.text}</p></div><button onClick={() => { setFilter(filters[0]?.label ?? ""); setQuery(""); select(alert.physician_id); }}>Inspect physician <span aria-hidden="true">→</span></button></div>}
+    <div className="schedule-layout roster-layout"><section className="roster-card" aria-label="Shift timeline">
+      <div className="roster-card-head"><div><h2>Daily roster</h2><p>{visible.length} of {doctors.length} physicians · All times Eastern</p></div><label className="roster-search"><span className="sr-only">Search scheduled physicians</span><input type="search" placeholder="Search name or ID" value={query} onChange={e => setQuery(e.target.value)} /></label></div>
+      <div className="roster-filters" role="group" aria-label="Filter roster">{filters.map(({ label, ids }) => <button aria-pressed={filter === label} key={label} onClick={() => setFilter(label)}>{label} <span>{ids.length}</span></button>)}</div>
+      <p className="roster-scroll-hint">Scroll across to view the full day. Select a physician for details.</p>
+      <div className="roster-scroll" tabIndex={0} role="region" aria-label="Physician shifts from midnight to midnight">
+        <div className="roster-timeline">
+          <div className="roster-axis"><span>Physician / current status</span><div>{timeMarks.map((time, i) => <span key={time} style={{ left: `${i / 6 * 100}%` }}>{time}</span>)}</div></div>
+          {now !== null && <div className="roster-now" style={{ left: `calc(220px + (100% - 240px) * ${now / 100})` }}><span>{data.now_label} now</span></div>}
+          {(["On shift", "Off shift"] as const).map(group => {
+            const members = visible.filter(d => d.group === group);
+            return members.length > 0 && <div className="roster-group" key={group}><div className="roster-group-label"><strong>{group}</strong><span>{members.length} physicians</span></div>{members.map(d => {
+              const window = shiftWindow(d.bar);
+              return <button className={`roster-row ${selected?.id === d.id ? "selected" : ""}`} aria-pressed={selected?.id === d.id} key={d.id} onClick={() => select(d.id)}><span className="roster-physician"><strong>{d.name}</strong><small>{d.status}</small><span className="roster-mobile-hours">{d.bar}</span></span><span className="roster-track">{window ? <span className={`roster-shift shift-${d.tone}`} style={{ left: `${window.start / 1440 * 100}%`, width: `${(window.end - window.start) / 1440 * 100}%` }}>{d.bar}{window.continues && <span aria-hidden="true"> →</span>}</span> : <span className="roster-off-label">{d.bar}</span>}</span></button>;
+            })}</div>;
+          })}
+          {!visible.length && <p className="empty-state">No physicians match this search and filter.</p>}
+        </div>
+      </div>
+      <div className="roster-legend"><span><i className="day" />Day shift</span><span><i className="night" />Night shift</span><span><i className="unavailable" />Unavailable</span><span><i className="offer" />Unconfirmed offer</span></div>
+      <p className="roster-footnote">Offers are separate from confirmed shifts. Arrows mark shifts continuing beyond the displayed day or with no end time supplied.</p>
+    </section><aside className="schedule-side roster-side" id="schedule-inspector" aria-label="Selected physician details">{selected ? <Inspector doctor={selected} /> : <section className="roster-inspector"><h2>Physician details</h2><p className="empty-state">Select a physician from the roster.</p></section>}<section className="roster-context"><h3>About this roster</h3><p>{data.date_label} · {data.now_label} ET</p><p>Current activity and scheduled hours are shown separately. Off-shift status does not establish eligibility for extra coverage.</p></section></aside></div>
+  </div>;
 }
 
-function Inspector({ doctor }: { doctor: Doctor }) { return <section className="inspector-card"><div className="inspector-head"><span className="doctor-avatar">{doctor.avatar}</span><div><h2>{doctor.name}</h2><span className="mono">{doctor.id}</span></div></div><span className={`inspector-status ${doctor.tone === "offer" ? "amber" : "neutral"}`}>{doctor.status}</span><dl><dt>Today</dt><dd>{doctor.detail}</dd><dt>Workload</dt><dd>{doctor.workload}</dd><dt>Credentialed at</dt><dd>{doctor.credentialed}</dd></dl><a className="review-offer" href={doctor.tone === "offer" ? "#command" : "#doctors"}>{doctor.tone === "offer" ? "Review offers" : "View doctors"}</a></section>; }
-function MiniCalendar({ date }: { date?: string }) {
-  if (!date) return <section className="calendar-card"><p>Service date unavailable.</p></section>;
-  const [year, month, today] = date.split("-").map(Number);
-  const first = new Date(Date.UTC(year, month - 1, 1));
-  const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const cells = [...Array(first.getUTCDay()).fill(null), ...Array.from({ length: count }, (_, i) => i + 1)];
-  const title = first.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
-  return <section className="calendar-card"><div className="calendar-title"><h2>{title}</h2></div><div className="calendar-grid">
-    {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => <b key={index}>{day}</b>)}
-    {cells.map((day, index) => <span className={day === today ? "today" : ""} key={index}>{day}</span>)}
-  </div><p>Showing the loaded roster at {date}. Upcoming shifts require complete intervals.</p></section>;
+function Inspector({ doctor }: { doctor: Doctor }) {
+  return <section className="roster-inspector"><span className="eyebrow">Selected physician</span><div className="roster-inspector-head"><span className="roster-avatar" aria-hidden="true">{doctor.avatar}</span><div><h2>{doctor.name}</h2><span>{doctor.id}</span></div></div><span className={`roster-status status-${doctor.tone}`}>{doctor.tone === "offer" ? "Offer pending · not confirmed" : doctor.group}</span><dl><div><dt>Shift / offer hours</dt><dd>{doctor.bar}</dd></div><div><dt>Current activity</dt><dd>{doctor.status}</dd></div><div><dt>Details</dt><dd>{doctor.detail}</dd></div><div><dt>Workload</dt><dd>{doctor.workload}</dd></div><div><dt>Credentials</dt><dd>{doctor.credentialed}</dd></div></dl><a className="roster-inspector-action" href={doctor.tone === "offer" ? "#command-actions" : "#doctors"}>{doctor.tone === "offer" ? "Review offers & outcomes" : "View physician roster"}<span aria-hidden="true">→</span></a></section>;
 }

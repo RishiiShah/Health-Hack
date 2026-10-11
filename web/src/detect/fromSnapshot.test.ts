@@ -63,3 +63,47 @@ test("display names cover combined gaps and advice without changing command IDs"
   assert.deepEqual(item.alternatives, ["Dr. Lane: ready", "Dr. Offshift: eligible"]);
   assert.equal(item.why, "Dr. Lane busy at Harbor; unknown P-10");
 });
+
+test("live workload keeps activity, shift totals and consult ownership separate", () => {
+  const result = detectFromSnapshot({
+    queue: { supported: true, items: [] },
+    physicians: { supported: true, items: [{ physician_id: "P", name: "Dr. Test", derived_state: "Video Consult", calls_this_shift: 16, consults_this_shift: 14, open_consults: 3, exclusion_reasons: [], credentialed_hospitals: ["H"] }] },
+    hospitals: { items: [{ hospital_id: "H", name: "Test Hospital" }] },
+    consults: [{ consult_id: "C", physician_id: "P", current_stage: "Documentation" }, { consult_id: "U", physician_id: "Unassigned", current_stage: "Received" }],
+  })!;
+  const physician = result.physicians[0];
+  assert.equal(physician.derived, "Video Consult");
+  assert.equal(physician.calls, 16);
+  assert.equal(physician.consults, 14);
+  assert.equal(physician.openConsults, 3);
+  assert.equal(physician.pendingNotes, 1);
+  assert.equal(result.consults[0].physicianName, physician.name);
+  assert.equal(result.consults[1].physicianName, null);
+  assert.deepEqual(physician.hospitals, [{ id: "H", name: "Test Hospital" }]);
+});
+
+test("missing call totals remain unknown instead of becoming zero", () => {
+  const result = detectFromSnapshot({ queue: { supported: true, items: [] }, physicians: { supported: true, items: [{ physician_id: "P", exclusion_reasons: [] }] } })!;
+  assert.equal(result.physicians[0].calls, null);
+});
+
+test("documentation flags retain the cumulative interaction clock, separate from stage time", () => {
+  const result = detectFromSnapshot({
+    queue: { supported: true, items: [{ id: "note_overdue:C1", rank: 1, severity: "Critical", what: "Overdue note", where: { consult_id: "C1" },
+      why: { age_min: 51, warning_min: 30, critical_min: 45, interaction_ended: "2026-03-17T17:00:00-04:00" } }] },
+    physicians: { supported: true, items: [] },
+    consults: [{ consult_id: "C1", current_stage: "Documentation", minutes_in_stage: 9, minutes_since_received: 70, consult_type: "Stroke" }],
+  })!;
+  assert.equal(result.consults[0].minutesInStage, 9);
+  assert.equal(result.consults[0].standardAge, 51);
+  assert.equal(result.consults[0].standardClock, "Since interaction ended");
+});
+
+test("stage timers use publication timestamps without inventing seconds for rounded totals", () => {
+  const copy = structuredClone(snapshot);
+  copy.clock.now = "2026-03-17T22:20:30+00:00";
+  const input = { ...copy, consults: copy.consults.map(c => c.consult_id === "CON-2102" ? { ...c, stage_entered_at: "2026-03-17T21:54:00+00:00" } : c) };
+  const c = detectFromSnapshot(input)!.consults.find((c) => c.id === "CON-2102")!;
+  assert.equal(c.minutesInStage, 26.5);
+  assert.equal(c.minutesSinceReceived, 10);
+});

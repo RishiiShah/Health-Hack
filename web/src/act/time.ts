@@ -15,6 +15,11 @@ export function serverNow(snapshotNow: string, mode: string, receivedAt: number,
   return mode === "fixed" ? base : base + Math.max(0, localNow - receivedAt);
 }
 
+// The first whole minute strictly after `ms`, as ISO.
+export function nextMinute(ms: number): string {
+  return new Date(Math.floor(ms / 60_000) * 60_000 + 60_000).toISOString();
+}
+
 export function minutesUntil(iso: string, now: number): number {
   return Math.floor((Date.parse(iso) - now) / 60_000);
 }

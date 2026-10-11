@@ -383,48 +383,70 @@ class Engine:
         return {"items": items, "server_now": self.context().now.isoformat()}
 
     def schedule_view(self):
+        """Joy's roster labels with observed shift membership and explicit complete intervals."""
         p, d = self.decisions()
         now = p.as_of.astimezone(ET)
         offers, accepted = self.desk.offers(), self.desk.accepted()
         doctors = []
+        label = lambda t: t.astimezone(ET).strftime("%H:%M")
+        offer_labels = {"PROPOSED": "Waiting for clinical lead approval", "APPROVED": "Approved; awaiting send",
+                        "SENT": "Waiting for physician reply"}
         for pid, physician in sorted(p.refs.physicians.items()):
-            v = d.views[pid]
+            v, roster = d.views[pid], self.ops.roster.get(pid)
             shifts = [(s.start, s.end, "scheduled") for s in physician.shifts]
             shifts += [(s.start, s.end, "accepted") for s in accepted if s.physician_id == pid]
+            if roster and roster.next_shift_start and roster.next_shift_end and not any(s[0] == roster.next_shift_start for s in shifts):
+                shifts.append((roster.next_shift_start, roster.next_shift_end, "roster"))
             shifts.sort()
             current = next((s for s in shifts if s[0] <= p.as_of < s[1]), None)
-            upcoming = next((s for s in shifts if p.as_of < s[0]), None)
+            upcoming = next((s for s in shifts if p.as_of < s[0] and s[0].astimezone(ET).date() == now.date()), None)
             interval = current or upcoming
             pending = next((o for o in offers if o.physician_id == pid and o.state in OPEN), None)
-            roster = self.ops.roster.get(pid)
-            incomplete = roster and roster.next_shift_start and roster.next_shift_end is None
-            label = lambda t: t.astimezone(ET).strftime("%H:%M")
             on = "off_shift" not in v.exclusion_reasons
-            bar = f"{label(interval[0])}–{label(interval[1])}" if interval else "Off shift"
+            bar = f"{label(interval[0])} to {label(interval[1])}" if interval else "Off today"
             detail = f"{interval[2].capitalize()} {bar} ET" if interval else "No complete upcoming interval"
-            if incomplete:
-                detail += f"; next start {roster.next_shift_start.astimezone(ET):%d %b %H:%M} ET, end unknown"
             tone = "night" if interval and (interval[0].astimezone(ET).hour >= 18 or interval[1].astimezone(ET).date() > interval[0].astimezone(ET).date()) else "day" if interval else "off"
             status = v.derived_state if on else "Off shift"
             if current and current[2] == "accepted" and not on:
                 status = "Accepted; awaiting observed arrival"
+            elif on and v.minutes_to_shift_end is not None and v.minutes_to_shift_end <= 60:
+                detail = f"Shift ends in {v.minutes_to_shift_end} min"
+            elif not on and not interval and roster:
+                start = roster.next_shift_start
+                opted = "Opted into extra shifts" if roster.opt_in else "Not opted into extra shifts"
+                if start and start.astimezone(ET).date() == now.date():
+                    bar = f"{roster.role} · from {label(start)}"
+                    tone = "night" if roster.role == "Night" or start.astimezone(ET).hour >= 18 else "day"
+                    status = f"{'Starts' if start > p.as_of else 'Scheduled from'} {label(start)}"
+                else:
+                    status = f"Next shift {start.astimezone(ET):%a %H:%M}" if start and start > p.as_of else "No upcoming shift"
+                detail = opted
+            if roster and roster.next_shift_start and roster.next_shift_end is None:
+                detail += f"; next start {roster.next_shift_start.astimezone(ET):%d %b %H:%M} ET, end unknown"
             if v.derived_state == "Temporarily Unavailable":
                 tone = "unavailable"
             if pending:
-                tone, bar = "offer", f"{label(pending.start)}–{label(pending.end)}"
-                detail += f"; {STATE_LABELS[pending.state]} offer {bar} ET, not confirmed"
+                tone, bar = "offer", f"{label(pending.start)} to {label(pending.end)}"
+                detail = offer_labels.get(pending.state, STATE_LABELS[pending.state]) + "; not confirmed"
                 status = f"{status}; offer {STATE_LABELS[pending.state].lower()}"
+            creds = sorted(v.credentialed_hospitals)
+            workload = f"{roster.hours_last_7d:g} h in last 7 days" if roster and not on else f"{v.consults_this_shift} consults · {v.calls_this_shift} calls this shift · {v.open_consults} open"
             doctors.append({"id": pid, "name": physician.name, "group": "On shift" if on else "Off shift", "status": status,
                             "bar": bar, "tone": tone, "detail": detail,
                             "avatar": "".join(word[0] for word in physician.name.replace("Dr.", "").split())[:2],
-                            "workload": f"{v.consults_this_shift} consults · {v.calls_this_shift} calls this shift · {v.open_consults} open",
-                            "credentialed": ", ".join(p.refs.hospitals[h].name for h in sorted(v.credentialed_hospitals)),
+                            "workload": workload,
+                            "credentialed": f"{len(creds)} hospitals: " + ", ".join(p.refs.hospitals[h].name for h in creds),
                             "intervals": [{"start": start.isoformat(), "end": end.isoformat(), "source": source} for start, end, source in shifts]})
-        filters = [{"label": "All", "ids": [r["id"] for r in doctors]}]
-        filters += [{"label": h.name, "ids": [pid for pid in sorted(p.refs.physicians) if hid in p.refs.credentials[pid]]}
+        filters = [{"label": "Everyone", "ids": [r["id"] for r in doctors]},
+                   {"label": "On shift", "ids": [r["id"] for r in doctors if r["group"] == "On shift"]},
+                   {"label": "Off shift", "ids": [r["id"] for r in doctors if r["group"] == "Off shift"]}]
+        filters += [{"label": f"Credentialed at {h.name}", "ids": [pid for pid in sorted(p.refs.physicians) if hid in p.refs.credentials[pid]]}
                     for hid, h in sorted(p.refs.hospitals.items())]
-        return {"date": now.date().isoformat(), "date_label": now.strftime("%a %d %b %Y"), "now_label": now.strftime("%H:%M"),
-                "server_now": p.as_of.isoformat(), "revision": p.revision, "alert": None, "filters": filters, "doctors": doctors}
+        waiting = min((o for o in offers if o.state in OPEN), key=lambda o: (o.start, o.id), default=None)
+        alert = ({"text": f"{p.refs.physicians[waiting.physician_id].name}'s offer: {offer_labels.get(waiting.state, STATE_LABELS[waiting.state])}.",
+                  "physician_id": waiting.physician_id} if waiting else None)
+        return {"date": now.date().isoformat(), "date_label": f"{now:%A} {now.day} {now:%B}", "now_label": now.strftime("%H:%M"),
+                "server_now": p.as_of.isoformat(), "revision": p.revision, "alert": alert, "filters": filters, "doctors": doctors}
 
     def snapshot(self, epoch: str, clock_mode: str) -> dict:
         p, d = self.decisions()
