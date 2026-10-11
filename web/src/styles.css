@@ -19,6 +19,15 @@
 /* Minimal scaffold for Anish: shared tokens, header and base components from WebDesign.pdf. */
 :root {
   --bg: #28323D;
+  --bg-gradient-1: rgba(135, 185, 220, 0.28);
+  --bg-gradient-2: rgba(100, 155, 200, 0.18);
+  --glass-bg: rgba(220, 235, 245, 0.07);
+  --glass-bg-metric: rgba(220, 235, 245, 0.06);
+  --glass-border: rgba(220, 235, 245, 0.22);
+  --glass-highlight: rgba(255, 255, 255, 0.16);
+  --glass-divider: rgba(220, 235, 245, 0.11);
+  --glass-radius-feature: 20px;
+  --glass-radius-metric: 16px;
   --surface: #F1F0EC;
   --surface-sunk: #E5E3DC;
   --surface-elevated: #364550;
@@ -46,15 +55,47 @@
   --font-serif: "Newsreader", Georgia, serif;
 }
 
+.glass-card {
+  background: rgba(220, 235, 245, 0.07);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(220, 235, 245, 0.22);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.16), 0 24px 48px -12px rgba(0, 0, 0, 0.45);
+  border-radius: 20px;
+}
+
+.glass-metric {
+  background: rgba(220, 235, 245, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(220, 235, 245, 0.20);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12), 0 16px 32px -8px rgba(0, 0, 0, 0.35);
+  border-radius: 16px;
+}
+
+@supports not (backdrop-filter: blur(18px)) {
+  .glass-card { background: #1E2732; }
+  .glass-metric { background: #1E2732; }
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: #F5F3ED; font: 15px/1.5 var(--font-body); }
+body {
+  margin: 0;
+  background-color: #28323D;
+  background-image:
+    radial-gradient(ellipse 65% 55% at 8% 18%, rgba(135, 185, 220, 0.28) 0%, rgba(135, 185, 220, 0) 70%),
+    radial-gradient(ellipse 60% 50% at 92% 75%, rgba(100, 155, 200, 0.18) 0%, rgba(100, 155, 200, 0) 70%);
+  background-attachment: fixed;
+  color: #F5F3ED;
+  font: 15px/1.5 var(--font-body);
+}
 h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.01em; margin: 0; color: inherit; }
 h1 { font-size: 32px; font-weight: 800; line-height: 1.15; }
 h2 { font-size: 19px; font-weight: 700; }
 button, input, textarea { font: inherit; color: inherit; }
 button { background: none; border: 0; padding: 0; cursor: pointer; color: inherit; }
 .mono { font-family: var(--font-mono); }
-.muted { color: var(--muted); }
+.muted { color: var(--muted-light); }
 
 .topbar { background: #F1F0EC; color: #101B2B; display: flex; align-items: center; gap: 24px; padding: 0 32px; height: 56px; border: 1px solid rgba(255,255,255,.15); }
 .brand { display: flex; align-items: center; gap: 10px; font: 700 17px var(--font-head); color: #101B2B; }
@@ -94,9 +135,9 @@ button { background: none; border: 0; padding: 0; cursor: pointer; color: inheri
 .live-chip { border: 1px solid var(--line); background: var(--surface); padding: 7px 10px; font-size: 12px; color: var(--ink-2); border-radius: 8px; }
 .live-chip i { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #2B7A59; }
 .headline-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 18px; }
-.metric-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; min-height: 103px; color: var(--ink); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-.metric-card span, .metric-card small { display: block; color: var(--muted); font-size: 12px; }
-.metric-card strong { display: block; font: 800 28px/1.1 var(--font-head); margin: 9px 0 4px; color: var(--ink); }
+.metric-card { background: rgba(220, 235, 245, 0.07); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(220, 235, 245, 0.20); border-radius: 16px; padding: 14px 18px; min-height: 103px; color: #F5F3ED; box-shadow: inset 0 1px 0 0 rgba(255,255,255,.14), 0 8px 24px rgba(0,0,0,0.22); }
+.metric-card span, .metric-card small { display: block; color: #BCC9D2; font-size: 12px; }
+.metric-card strong { display: block; font: 800 28px/1.1 var(--font-head); margin: 9px 0 4px; color: #F5F3ED; }
 .command-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr); gap: 18px; align-items: start; }
 .detect-column, .act-column { display: grid; gap: 18px; min-width: 0; }
 .panel-note { color: var(--muted); font-size: 12px; }

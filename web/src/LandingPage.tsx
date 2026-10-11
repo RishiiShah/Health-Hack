@@ -156,14 +156,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         }
       `}</style>
 
-      {/* ================= STATIC MATTE SMOKY SLATE BACKGROUND ================= */}
+      {/* ================= STATIC MATTE SMOKY SLATE BACKGROUND WITH AMBIENT ICE-BLUE LIGHTING ================= */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#28323D]">
-        {/* Broad subtle radial gradient behind the map */}
         <div
           className="absolute inset-0"
           style={{
-            background:
-              "radial-gradient(ellipse 85% 75% at 50% 520px, #364550 0%, #2D3945 55%, #28323D 100%)",
+            backgroundImage: `
+              radial-gradient(ellipse 65% 55% at 8% 18%, rgba(135, 185, 220, 0.28) 0%, rgba(135, 185, 220, 0) 70%),
+              radial-gradient(ellipse 60% 50% at 92% 75%, rgba(100, 155, 200, 0.18) 0%, rgba(100, 155, 200, 0) 70%),
+              radial-gradient(ellipse 85% 75% at 50% 520px, #364550 0%, #2D3945 55%, #28323D 100%)
+            `,
           }}
         />
       </div>
@@ -247,19 +249,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         {/* ================= THE LIVING TOPOGRAPHIC US NETWORK MAP (ALWAYS IN MOTION) ================= */}
         <div id="network" className="relative w-full max-w-5xl aspect-[16/9] min-h-[460px] md:min-h-[580px] flex items-center justify-center my-4 scroll-mt-28">
           {/* FLOATING GLASS CARD 1 (SEVARO REAL STAT: <45s) */}
-          <div className="anim-float-1 absolute top-4 left-2 md:top-8 md:left-6 z-20 rounded-[18px] bg-[#F1F0EC] border border-[#E5E3DF] px-5 py-4 shadow-[0_18px_45px_rgba(0,0,0,0.35)] text-left min-w-[190px]">
-            <div className="text-[11px] font-mono text-[#4D6072] uppercase tracking-wider font-semibold">Synapse AI Response</div>
+          <div className="anim-float-1 absolute top-4 left-2 md:top-8 md:left-6 z-20 rounded-[18px] bg-[rgba(220,235,245,0.07)] backdrop-blur-[18px] border border-[rgba(220,235,245,0.22)] px-5 py-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16),0_20px_40px_-15px_rgba(0,0,0,0.45)] text-left min-w-[190px]">
+            <div className="text-[11px] font-mono text-[#BCC9D2] uppercase tracking-wider font-semibold">Synapse AI Response</div>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl md:text-4xl font-extrabold text-[#101B2B] font-heading whitespace-nowrap">&lt;&nbsp;45s</span>
-              <span className="text-xs text-[#4D6072] font-medium whitespace-nowrap">door-to-neuro</span>
+              <span className="text-3xl md:text-4xl font-extrabold text-[#F5F3ED] font-heading whitespace-nowrap">&lt;&nbsp;45s</span>
+              <span className="text-xs text-[#BCC9D2] font-medium whitespace-nowrap">door-to-neuro</span>
             </div>
           </div>
 
           {/* FLOATING GLASS CARD 2 (SEVARO REAL STAT: 100+) */}
-          <div className="anim-float-2 absolute bottom-6 right-2 md:bottom-12 md:right-8 z-20 rounded-[18px] bg-[#F1F0EC] border border-[#E5E3DF] p-4 md:p-5 flex items-center gap-3.5 shadow-[0_18px_45px_rgba(0,0,0,0.35)] min-w-[200px] text-left">
-            <span className="text-3xl md:text-4xl font-extrabold text-[#101B2B] font-heading whitespace-nowrap">100+</span>
-            <div className="text-xs font-semibold text-[#101B2B] leading-snug whitespace-nowrap">
-              Hospitals Served<br /><span className="text-[#4D6072] font-normal">Across the Nation</span>
+          <div className="anim-float-2 absolute bottom-6 right-2 md:bottom-12 md:right-8 z-20 rounded-[18px] bg-[rgba(220,235,245,0.07)] backdrop-blur-[18px] border border-[rgba(220,235,245,0.22)] p-4 md:p-5 flex items-center gap-3.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16),0_20px_40px_-15px_rgba(0,0,0,0.45)] min-w-[200px] text-left">
+            <span className="text-3xl md:text-4xl font-extrabold text-[#F5F3ED] font-heading whitespace-nowrap">100+</span>
+            <div className="text-xs font-semibold text-[#F5F3ED] leading-snug whitespace-nowrap">
+              Hospitals Served<br /><span className="text-[#BCC9D2] font-normal">Across the Nation</span>
             </div>
           </div>
 
@@ -274,9 +276,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
             <svg viewBox="0 0 1376 768" className="absolute inset-0 w-full h-full pointer-events-auto" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <linearGradient id="cyanBeam" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#14B8A6" stopOpacity="0.8" />
-                  <stop offset="50%" stopColor="#2DD4BF" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#5EEAD4" stopOpacity="0.9" />
+                  <stop offset="0%" stopColor="#82B4D2" stopOpacity="0.8" />
+                  <stop offset="50%" stopColor="#B8D8EB" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#E2ECF3" stopOpacity="0.9" />
                 </linearGradient>
 
                 <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
@@ -293,20 +295,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
               <path d="M 838 355 Q 950 310 1050 345" fill="none" stroke="url(#cyanBeam)" strokeWidth="3" opacity="0.85" />
               <path d="M 695 545 Q 890 470 1050 345" fill="none" stroke="url(#cyanBeam)" strokeWidth="2.5" opacity="0.7" />
 
-              {/* GLOWING CYAN COMETS (CONTINUOUS MOTION ACROSS THE MAP) */}
-              <circle r="6" fill="#5EEAD4" filter="url(#glow)">
+              {/* GLOWING ICE-BLUE COMETS (CONTINUOUS MOTION ACROSS THE MAP) */}
+              <circle r="6" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="2.8s" repeatCount="indefinite" path="M 340 195 Q 500 330 695 545" />
               </circle>
-              <circle r="5" fill="#5EEAD4" filter="url(#glow)">
+              <circle r="5" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="2.4s" repeatCount="indefinite" path="M 288 392 Q 420 340 565 395" />
               </circle>
-              <circle r="5.5" fill="#5EEAD4" filter="url(#glow)">
+              <circle r="5.5" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="2.2s" repeatCount="indefinite" path="M 695 545 Q 770 430 838 355" />
               </circle>
-              <circle r="6" fill="#5EEAD4" filter="url(#glow)">
+              <circle r="6" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="2.5s" repeatCount="indefinite" path="M 838 355 Q 950 310 1050 345" />
               </circle>
-              <circle r="5" fill="#5EEAD4" filter="url(#glow)">
+              <circle r="5" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="3s" begin="1.2s" repeatCount="indefinite" path="M 695 545 Q 890 470 1050 345" />
               </circle>
 
@@ -326,47 +328,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
               {/* PULSING CITY NODES */}
               <g transform="translate(340, 195)">
-                <circle cx="0" cy="0" r="14" fill="rgba(20, 184, 166, 0.25)">
+                <circle cx="0" cy="0" r="14" fill="rgba(184, 216, 235, 0.25)">
                   <animate attributeName="r" values="8;16;8" dur="3s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <circle cx="0" cy="0" r="6" fill="#82B4D2" stroke="#FFFFFF" strokeWidth="2" />
                 <text x="18" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#F5F3ED">Seattle</text>
               </g>
 
               <g transform="translate(288, 392)">
-                <circle cx="0" cy="0" r="14" fill="rgba(20, 184, 166, 0.25)">
+                <circle cx="0" cy="0" r="14" fill="rgba(184, 216, 235, 0.25)">
                   <animate attributeName="r" values="8;16;8" dur="3s" begin="0.5s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="0.5s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <circle cx="0" cy="0" r="6" fill="#82B4D2" stroke="#FFFFFF" strokeWidth="2" />
                 <text x="18" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#F5F3ED">San Francisco</text>
               </g>
 
               <g transform="translate(565, 395)">
-                <circle cx="0" cy="0" r="14" fill="rgba(20, 184, 166, 0.25)">
+                <circle cx="0" cy="0" r="14" fill="rgba(184, 216, 235, 0.25)">
                   <animate attributeName="r" values="8;16;8" dur="3s" begin="1s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="1s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <circle cx="0" cy="0" r="6" fill="#82B4D2" stroke="#FFFFFF" strokeWidth="2" />
                 <text x="0" y="24" textAnchor="middle" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#F5F3ED">Denver</text>
               </g>
 
               <g transform="translate(838, 355)">
-                <circle cx="0" cy="0" r="14" fill="rgba(20, 184, 166, 0.25)">
+                <circle cx="0" cy="0" r="14" fill="rgba(184, 216, 235, 0.25)">
                   <animate attributeName="r" values="8;16;8" dur="3s" begin="1.5s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="1.5s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <circle cx="0" cy="0" r="6" fill="#82B4D2" stroke="#FFFFFF" strokeWidth="2" />
                 <text x="0" y="24" textAnchor="middle" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#F5F3ED">Chicago</text>
               </g>
 
               <g transform="translate(1050, 345)">
-                <circle cx="0" cy="0" r="16" fill="rgba(20, 184, 166, 0.3)">
+                <circle cx="0" cy="0" r="16" fill="rgba(184, 216, 235, 0.3)">
                   <animate attributeName="r" values="8;18;8" dur="3s" begin="2s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="2s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="7" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <circle cx="0" cy="0" r="7" fill="#82B4D2" stroke="#FFFFFF" strokeWidth="2" />
                 <text x="20" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#F5F3ED">New York</text>
               </g>
 
@@ -381,7 +383,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   <text x="0" y="5" textAnchor="middle" fontFamily="'IBM Plex Mono'" fontSize="11.5" fontWeight="600">
                     <tspan fill="#F59E0B">ED Stroke Surge</tspan>
                     <tspan fill="#64748B"> · </tspan>
-                    <tspan fill="#2DD4BF">Auto-Balancing</tspan>
+                    <tspan fill="#B8D8EB">Auto-Balancing</tspan>
                   </text>
                 </g>
               </g>
@@ -390,103 +392,173 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
         </div>
 
-        {/* ================= 3. TWO WORKSPACES (PREVIEW SHOWCASE) ================= */}
+        {/* ================= 3. TWO WORKSPACES (MATCHING APPROVED REFERENCE) ================= */}
         <section id="roles" className="mt-20 w-full scroll-mt-28 border-t border-[#3E4E5B]/60 pt-16">
-          <div className="text-center max-w-xl mx-auto mb-12">
-            <h2 className="text-3xl font-extrabold text-[#F5F3ED] tracking-tight">
-              Two workspaces, one synchronized schedule
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#F5F3ED] tracking-tight">
+              Two workspaces. One connected network.
             </h2>
-            <p className="text-sm md:text-base text-[#BCC9D2] mt-2.5 leading-relaxed">
-              Coordinators manage national coverage while neurologists accept verified emergency shifts in seconds.
+            <p className="text-sm md:text-base text-[#BCC9D2] mt-2.5 leading-relaxed font-normal">
+              Coordinators manage coverage, Physicians review and accept shift offers.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-7 w-full">
 
             {/* Coordinator Workspace Card */}
-            <div className="hover-lift bg-[#F1F0EC] text-[#101B2B] rounded-3xl border border-[#E4E3DF] p-5 sm:p-8 md:p-10 flex flex-col justify-between shadow-xl">
+            <div className="rounded-[20px] bg-[rgba(220,235,245,0.07)] backdrop-blur-[18px] border border-[rgba(220,235,245,0.22)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16),0_24px_48px_-12px_rgba(0,0,0,0.45)] p-7 sm:p-8 flex flex-col justify-between transition-all hover:border-[rgba(220,235,245,0.32)]">
               <div>
-                <div className="flex flex-wrap gap-3 items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0D746D] bg-[#CCFBF1] px-3 py-1 rounded-full border border-teal-200/60">
-                    Coordinator Workspace
-                  </span>
-                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-800 font-semibold bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                    LIVE DISPATCH
+                <div>
+                  <span className="inline-block text-[11px] font-mono font-semibold uppercase tracking-wider text-[#B8D8EB] bg-[#B8D8EB]/10 border border-[#B8D8EB]/30 px-3 py-1 rounded-full">
+                    COORDINATOR WORKSPACE
                   </span>
                 </div>
 
-                <h3 className="text-2xl font-bold text-[#101B2B] mt-4 tracking-tight">Command Center</h3>
-                <p className="text-sm text-[#475569] mt-2.5 leading-relaxed">
-                  Real-time national grid oversight. Triage queue monitoring, predictive shortfall detection, and automated physician dispatch across 100+ partner hospitals.
+                <h3 className="text-2xl font-bold text-[#F5F3ED] mt-4 tracking-tight">Command Center</h3>
+                <p className="text-xs sm:text-sm text-[#BCC9D2] mt-2 leading-relaxed">
+                  Monitor coverage, identify shortfalls, and review eligible physicians before approving an offer.
                 </p>
 
-                <div className="mt-6 rounded-2xl bg-[#E8E6E0] border border-[#DCD9D0] p-4 space-y-2.5">
-                  <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
-                    <span className="text-[#64748B] font-mono">Surge Mitigation Target</span>
-                    <span className="text-[#0D746D] font-bold font-mono">&lt; 45s Response SLA</span>
+                <div className="mt-6 space-y-4">
+                  {/* Feature 1 */}
+                  <div className="border-t border-[rgba(220,235,245,0.11)] pt-4 flex items-start gap-3.5">
+                    <div className="text-[#B8D8EB] shrink-0 mt-0.5">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#F5F3ED]">Monitor coverage</h4>
+                      <p className="text-xs text-[#BCC9D2] mt-0.5 leading-relaxed">
+                        Real-time visibility across your network with automated shortfall detection.
+                      </p>
+                    </div>
                   </div>
-                  <div className="w-full bg-[#D4D1C7] rounded-full h-2 overflow-hidden">
-                    <div className="bg-[#0D9488] h-2 rounded-full w-[82%]" />
+
+                  {/* Feature 2 */}
+                  <div className="border-t border-[rgba(220,235,245,0.11)] pt-4 flex items-start gap-3.5">
+                    <div className="text-[#B8D8EB] shrink-0 mt-0.5">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#F5F3ED]">Review candidates</h4>
+                      <p className="text-xs text-[#BCC9D2] mt-0.5 leading-relaxed">
+                        See eligible, verified physicians with availability and fit.
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-3 items-center justify-between text-[11px] text-[#64748B] font-mono pt-1">
-                    <span>Cross-regional pool balancing active</span>
-                    <span className="text-emerald-700 font-bold">100+ Hospitals</span>
+
+                  {/* Feature 3 */}
+                  <div className="border-t border-[rgba(220,235,245,0.11)] pt-4 flex items-start gap-3.5">
+                    <div className="text-[#B8D8EB] shrink-0 mt-0.5">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <polyline points="9 12 11 14 15 10" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#F5F3ED]">Approve one offer at a time</h4>
+                      <p className="text-xs text-[#BCC9D2] mt-0.5 leading-relaxed">
+                        Send a single offer to the best candidate and track response in real time.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-[#E2DFD8] flex flex-wrap gap-3 items-center justify-between">
+              <div className="mt-8 pt-4">
                 <button
                   onClick={() => onGoToSignIn("coordinator")}
-                  className="rounded-xl bg-[#101B2B] hover:bg-[#1E2E42] px-6 py-3.5 text-xs font-semibold text-[#F1F0EC] shadow-md transition flex items-center gap-2 group cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#B8D8EB] hover:bg-[#A3CEE4] text-[#101B2B] font-bold text-xs px-6 py-3.5 rounded-xl shadow-md transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <span>Sign In to Command Center</span>
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  <span className="text-sm">→</span>
                 </button>
               </div>
             </div>
 
             {/* Physician Experience Card */}
-            <div className="hover-lift bg-[#F1F0EC] text-[#101B2B] rounded-3xl border border-[#E4E3DF] p-5 sm:p-8 md:p-10 flex flex-col justify-between shadow-xl">
+            <div className="rounded-[20px] bg-[rgba(220,235,245,0.07)] backdrop-blur-[18px] border border-[rgba(220,235,245,0.22)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16),0_24px_48px_-12px_rgba(0,0,0,0.45)] p-7 sm:p-8 flex flex-col justify-between transition-all hover:border-[rgba(220,235,245,0.32)]">
               <div>
-                <div className="flex flex-wrap gap-3 items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0D746D] bg-[#CCFBF1] px-3 py-1 rounded-full border border-teal-200/60">
-                    Physician Experience
-                  </span>
-                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-teal-800 font-semibold bg-teal-100 px-2.5 py-0.5 rounded-full border border-teal-200/50">
-                    1-TAP HANDOFF
+                <div>
+                  <span className="inline-block text-[11px] font-mono font-semibold uppercase tracking-wider text-[#B8D8EB] bg-[#B8D8EB]/10 border border-[#B8D8EB]/30 px-3 py-1 rounded-full">
+                    PHYSICIAN EXPERIENCE
                   </span>
                 </div>
 
-                <h3 className="text-2xl font-bold text-[#101B2B] mt-4 tracking-tight">Mobile & Web Handoff</h3>
-                <p className="text-sm text-[#475569] mt-2.5 leading-relaxed">
-                  Distraction-free emergency shift acceptance. Doctor rest intervals are checked against 8 clinical fatigue rules before alerts reach their phone. Zero patient PHI.
+                <h3 className="text-2xl font-bold text-[#F5F3ED] mt-4 tracking-tight">Mobile & Web Handoff</h3>
+                <p className="text-xs sm:text-sm text-[#BCC9D2] mt-2 leading-relaxed">
+                  Review shift details and respond from mobile or desktop, with availability and rest checks surfaced clearly.
                 </p>
 
-                <div className="mt-6 rounded-2xl bg-[#E8E6E0] border border-[#DCD9D0] p-4 space-y-2.5">
-                  <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
-                    <span className="text-[#1E293B] font-medium">Surge Shift Offer · Regional Match</span>
-                    <span className="text-[#0D746D] font-bold font-mono text-[11px] bg-[#CCFBF1] px-2 py-0.5 rounded">60m Coverage</span>
+                <div className="mt-6 space-y-4">
+                  {/* Feature 1 */}
+                  <div className="border-t border-[rgba(220,235,245,0.11)] pt-4 flex items-start gap-3.5">
+                    <div className="text-[#B8D8EB] shrink-0 mt-0.5">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#F5F3ED]">Coverage window</h4>
+                      <p className="text-xs text-[#BCC9D2] mt-0.5 leading-relaxed">
+                        See open shifts with location, timing, and compensation details.
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-[#475569] font-mono">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>8 Rest Safeguards Passed · Medical License Active</span>
+
+                  {/* Feature 2 */}
+                  <div className="border-t border-[rgba(220,235,245,0.11)] pt-4 flex items-start gap-3.5">
+                    <div className="text-[#B8D8EB] shrink-0 mt-0.5">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <path d="m9 15 2 2 4-4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#F5F3ED]">Eligibility checks</h4>
+                      <p className="text-xs text-[#BCC9D2] mt-0.5 leading-relaxed">
+                        Automated license, credential, and rest rule verification.
+                      </p>
+                    </div>
                   </div>
-                  <div className="pt-1 flex flex-wrap gap-3 items-center justify-between text-[11px]">
-                    <span className="text-[#64748B]">HIPAA Safe Harbor Compliance</span>
-                    <span className="text-[#101B2B] font-bold font-mono">100% Verified</span>
+
+                  {/* Feature 3 */}
+                  <div className="border-t border-[rgba(220,235,245,0.11)] pt-4 flex items-start gap-3.5">
+                    <div className="text-[#B8D8EB] shrink-0 mt-0.5">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                        <line x1="12" y1="18" x2="12.01" y2="18" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#F5F3ED]">Accept or decline</h4>
+                      <p className="text-xs text-[#BCC9D2] mt-0.5 leading-relaxed">
+                        Respond from mobile or desktop with one tap.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-[#E2DFD8] flex flex-wrap gap-3 items-center justify-between">
+              <div className="mt-8 pt-4">
                 <button
                   onClick={() => onGoToSignIn("physician")}
-                  className="rounded-xl bg-[#0D9488] hover:bg-[#0F766E] px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#B8D8EB] hover:bg-[#A3CEE4] text-[#101B2B] font-bold text-xs px-6 py-3.5 rounded-xl shadow-md transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <span>Sign In as Physician</span>
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  <span className="text-sm">→</span>
                 </button>
               </div>
             </div>
@@ -494,40 +566,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           </div>
         </section>
 
-        {/* ================= 4. REAL SEVARO CLINICAL PROOF (100% AUTHENTIC METRICS) ================= */}
+        {/* ================= 4. REAL SEVARO CLINICAL PROOF (FROSTED GLASS METRICS) ================= */}
         <section id="safety" className="mt-20 w-full border-t border-[#3E4E5B]/60 pt-16">
           <div className="text-center max-w-xl mx-auto mb-10">
             <h2 className="text-2xl md:text-3xl font-extrabold text-[#F5F3ED] tracking-tight">Clinical Performance Proof</h2>
-            <p className="text-sm text-[#BCC9D2] mt-2">Published real-world outcomes delivered by Sevaro's tele-stroke network.</p>
+            <p className="text-sm text-[#BCC9D2] mt-2">Reported outcomes from Sevaro's tele-stroke network.</p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 w-full">
             {/* Stat 1: < 45s */}
-            <div className="bg-[#F1F0EC] text-[#101B2B] rounded-2xl border border-[#E4E3DF] p-5 text-center shadow-lg">
-              <div className="text-3xl font-extrabold font-heading text-[#101B2B]">&lt; 45s</div>
-              <div className="text-xs font-semibold text-[#1E293B] mt-1">Response Time SLA</div>
-              <div className="text-[11px] text-[#64748B] mt-0.5">Powered by Synapse AI</div>
+            <div className="rounded-[16px] bg-[rgba(220,235,245,0.06)] backdrop-blur-[16px] border border-[rgba(220,235,245,0.20)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_16px_32px_-8px_rgba(0,0,0,0.35)] p-5 text-center flex flex-col justify-center items-center">
+              <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#F5F3ED]">&lt; 45s</div>
+              <div className="text-xs font-semibold text-[#BCC9D2] mt-1.5">Response Time SLA</div>
+              <div className="text-[11px] text-[#8B9DAA] mt-0.5">Powered by Synapse AI</div>
             </div>
 
             {/* Stat 2: 100+ Hospitals */}
-            <div className="bg-[#F1F0EC] text-[#101B2B] rounded-2xl border border-[#E4E3DF] p-5 text-center shadow-lg">
-              <div className="text-3xl font-extrabold font-heading text-[#0D9488]">100+</div>
-              <div className="text-xs font-semibold text-[#1E293B] mt-1">Hospitals Served</div>
-              <div className="text-[11px] text-[#64748B] mt-0.5">Across Emergency Depts</div>
+            <div className="rounded-[16px] bg-[rgba(220,235,245,0.06)] backdrop-blur-[16px] border border-[rgba(220,235,245,0.20)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_16px_32px_-8px_rgba(0,0,0,0.35)] p-5 text-center flex flex-col justify-center items-center">
+              <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#F5F3ED]">100+</div>
+              <div className="text-xs font-semibold text-[#BCC9D2] mt-1.5">Hospitals Served</div>
+              <div className="text-[11px] text-[#8B9DAA] mt-0.5">Across Emergency Depts</div>
             </div>
 
             {/* Stat 3: 30% Transfer Reduction */}
-            <div className="bg-[#F1F0EC] text-[#101B2B] rounded-2xl border border-[#E4E3DF] p-5 text-center shadow-lg">
-              <div className="text-3xl font-extrabold font-heading text-[#101B2B]">30%</div>
-              <div className="text-xs font-semibold text-[#1E293B] mt-1">Transfer Reduction</div>
-              <div className="text-[11px] text-[#64748B] mt-0.5">Avoiding Unnecessary Moves</div>
+            <div className="rounded-[16px] bg-[rgba(220,235,245,0.06)] backdrop-blur-[16px] border border-[rgba(220,235,245,0.20)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_16px_32px_-8px_rgba(0,0,0,0.35)] p-5 text-center flex flex-col justify-center items-center">
+              <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#F5F3ED]">30%</div>
+              <div className="text-xs font-semibold text-[#BCC9D2] mt-1.5">Transfer Reduction</div>
+              <div className="text-[11px] text-[#8B9DAA] mt-0.5">Avoiding Unnecessary Moves</div>
             </div>
 
             {/* Stat 4: 20% Reduced Length of Stay */}
-            <div className="bg-[#F1F0EC] text-[#101B2B] rounded-2xl border border-[#E4E3DF] p-5 text-center shadow-lg">
-              <div className="text-3xl font-extrabold font-heading text-emerald-700">20%</div>
-              <div className="text-xs font-semibold text-[#1E293B] mt-1">Reduced Length of Stay</div>
-              <div className="text-[11px] text-[#64748B] mt-0.5">Rapid Acute Intervention</div>
+            <div className="rounded-[16px] bg-[rgba(220,235,245,0.06)] backdrop-blur-[16px] border border-[rgba(220,235,245,0.20)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_16px_32px_-8px_rgba(0,0,0,0.35)] p-5 text-center flex flex-col justify-center items-center">
+              <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#F5F3ED]">20%</div>
+              <div className="text-xs font-semibold text-[#BCC9D2] mt-1.5">Reduced Length of Stay</div>
+              <div className="text-[11px] text-[#8B9DAA] mt-0.5">Rapid Acute Intervention</div>
             </div>
           </div>
         </section>

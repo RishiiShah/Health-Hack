@@ -32,7 +32,16 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
   const roleTitle = selectedRole === "coordinator" ? "Coordinator" : selectedRole === "lead" ? "Clinical Lead" : "Physician";
 
   return (
-    <div className="tw min-h-screen bg-[#28323D] text-[#F5F3ED] flex flex-col p-6 selection:bg-[#B8D8EB] selection:text-[#101B2B]" style={{ background: "radial-gradient(circle at 50% 25%, #364550 0%, #28323D 75%)" }}>
+    <div
+      className="tw min-h-screen bg-[#28323D] text-[#F5F3ED] flex flex-col p-6 selection:bg-[#B8D8EB] selection:text-[#101B2B]"
+      style={{
+        backgroundImage: `
+          radial-gradient(ellipse 65% 55% at 8% 18%, rgba(135, 185, 220, 0.28) 0%, rgba(135, 185, 220, 0) 70%),
+          radial-gradient(ellipse 60% 50% at 92% 75%, rgba(100, 155, 200, 0.18) 0%, rgba(100, 155, 200, 0) 70%)
+        `,
+        backgroundAttachment: "fixed",
+      }}
+    >
       {/* Top Header */}
       <div className="max-w-4xl mx-auto w-full flex items-center justify-between pb-6">
         <button type="button" onClick={onBackToLanding} className="flex items-center gap-2.5 text-[#F5F3ED] hover:text-[#B8D8EB] transition !bg-transparent !border-0 !p-0 cursor-pointer">
@@ -49,15 +58,15 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
 
       {/* Comfortably Centered Sign-In Box */}
       <div className="flex-1 flex items-center justify-center -mt-8 py-6">
-        <div className="max-w-md w-full bg-[#F1F0EC] text-[#101B2B] rounded-3xl p-8 border border-[#E2E0D8] shadow-2xl space-y-6">
+        <div className="max-w-md w-full bg-[#1E262F]/90 backdrop-blur-[18px] text-[#F5F3ED] rounded-3xl p-8 border border-[rgba(220,235,245,0.20)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.14),0_24px_48px_-12px_rgba(0,0,0,0.5)] space-y-6">
           <div>
-            <h1 className="text-2xl font-bold font-heading text-[#101B2B]">Sign in</h1>
-            <p className="text-xs text-[#5D6D7E] mt-1">Select your operating role to access your dashboard</p>
-            {notice && <p role="status" className="text-xs text-[#8A5A00] mt-2 bg-[#FDF6E9] p-2.5 rounded-xl border border-[#D6A451]/30">{notice}</p>}
+            <h1 className="text-2xl font-bold font-heading text-[#F5F3ED]">Sign in</h1>
+            <p className="text-xs text-[#BCC9D2] mt-1">Select your operating role to access your dashboard</p>
+            {notice && <p role="status" className="text-xs text-[#D6A451] mt-2 bg-[#D6A451]/10 p-2.5 rounded-xl border border-[#D6A451]/30">{notice}</p>}
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#101B2B] mb-2">I work as</label>
+            <label className="block text-xs font-semibold text-[#F5F3ED] mb-2">I work as</label>
             <div className="grid grid-cols-3 gap-2">
               {([
                 ["coordinator", "Coordinator", "Watch network & dispatch"],
@@ -68,14 +77,14 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
                   type="button"
                   key={role}
                   onClick={() => selectRole(role)}
-                  className={`p-3 rounded-2xl text-left border transition-all ${
+                  className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
                     selectedRole === role
-                      ? "border-[#B8D8EB] bg-[#E2ECF3] ring-2 ring-[#B8D8EB]/60"
-                      : "border-[#E2DFD8] bg-[#FAF9F6] hover:bg-[#E8E6E0]"
+                      ? "border-[#B8D8EB] bg-[#B8D8EB]/15 ring-2 ring-[#B8D8EB]/50"
+                      : "border-[#364550] bg-[#141A21]/60 hover:bg-[#25303B]"
                   }`}
                 >
-                  <div className="text-xs font-bold text-[#101B2B]">{title}</div>
-                  <div className="text-[10px] text-[#5D6D7E] mt-1 leading-snug">{description}</div>
+                  <div className="text-xs font-bold text-[#F5F3ED]">{title}</div>
+                  <div className="text-[10px] text-[#BCC9D2] mt-1 leading-snug">{description}</div>
                 </button>
               ))}
             </div>
@@ -83,20 +92,20 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-[#101B2B] mb-1">Work email</label>
+              <label className="block text-xs font-medium text-[#BCC9D2] mb-1">Work email</label>
               <input
                 type="email"
                 required
                 autoComplete="username"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-[#D9D6CE] bg-[#FAF9F6] text-[#101B2B] focus:outline-none focus:ring-2 focus:ring-[#B8D8EB] font-mono"
+                className="w-full text-xs p-3 rounded-xl border border-[#364550] bg-[#141A21] text-[#F5F3ED] focus:outline-none focus:border-[#B8D8EB] focus:ring-1 focus:ring-[#B8D8EB] font-mono"
               />
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-medium text-[#101B2B]">Password</label>
-                <button type="button" onClick={() => setForgot(!forgot)} className="text-[11px] text-[#284E67] font-semibold cursor-pointer hover:underline !bg-transparent !border-0 !p-0">
+                <label className="text-xs font-medium text-[#BCC9D2]">Password</label>
+                <button type="button" onClick={() => setForgot(!forgot)} className="text-[11px] text-[#B8D8EB] font-semibold cursor-pointer hover:underline !bg-transparent !border-0 !p-0">
                   Forgot it?
                 </button>
               </div>
@@ -106,23 +115,23 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-[#D9D6CE] bg-[#FAF9F6] text-[#101B2B] focus:outline-none focus:ring-2 focus:ring-[#B8D8EB] font-mono"
+                className="w-full text-xs p-3 rounded-xl border border-[#364550] bg-[#141A21] text-[#F5F3ED] focus:outline-none focus:border-[#B8D8EB] focus:ring-1 focus:ring-[#B8D8EB] font-mono"
               />
-              {forgot && <p className="text-[11px] text-[#5D6D7E] mt-1">Ask your Sevaro administrator to reset it.</p>}
+              {forgot && <p className="text-[11px] text-[#BCC9D2] mt-1">Ask your Sevaro administrator to reset it.</p>}
             </div>
             <button
               type="submit"
               disabled={busy}
-              className="w-full py-3.5 bg-[#B8D8EB] hover:bg-[#A6CAE0] text-[#101B2B] rounded-xl font-bold text-xs shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+              className="w-full py-3.5 bg-[#B8D8EB] hover:bg-[#A3CEE4] text-[#101B2B] rounded-xl font-bold text-xs shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 cursor-pointer"
             >
               {busy ? "Signing in…" : `Sign in as ${roleTitle}`}
             </button>
-            {error && <p role="alert" className="text-xs text-[#C93B2B] bg-[#FDEEEB] p-2 rounded-lg border border-[#F3C5BF]">{error}</p>}
+            {error && <p role="alert" className="text-xs text-[#E57373] bg-[#E57373]/10 p-2 rounded-lg border border-[#E57373]/30">{error}</p>}
           </form>
 
           {DEMO && (
-            <div className="pt-4 border-t border-[#E2DFD8] text-center">
-              <div className="text-[11px] text-[#5D6D7E] mb-2 font-medium">Or 1-click launch into demo account:</div>
+            <div className="pt-4 border-t border-[#364550] text-center">
+              <div className="text-[11px] text-[#BCC9D2] mb-2 font-medium">Or 1-click launch into demo account:</div>
               <div className="flex flex-col gap-1.5 text-xs font-mono">
                 {([
                   ["coordinator", DEMO_EMAILS.coordinator, "Coordinator"],
@@ -134,10 +143,10 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
                     key={role}
                     disabled={busy}
                     onClick={() => void signIn(address, "demo", role as Role)}
-                    className="py-2 px-3 bg-[#E8E6E0] hover:bg-[#DDD9D0] text-[#101B2B] border border-[#D9D6CE] rounded-lg text-left flex justify-between cursor-pointer transition"
+                    className="py-2 px-3 bg-[#141A21] hover:bg-[#25303B] text-[#BCC9D2] hover:text-[#F5F3ED] border border-[#2D3945] rounded-lg text-left flex justify-between cursor-pointer transition"
                   >
                     <span>{address}</span>
-                    <span className="text-[#101B2B] font-sans font-bold">Launch {label} →</span>
+                    <span className="text-[#B8D8EB] font-sans font-bold">Launch {label} →</span>
                   </button>
                 ))}
               </div>
