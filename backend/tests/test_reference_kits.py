@@ -74,6 +74,18 @@ def test_events_for_a_stored_kit_switch_to_a_fresh_stream_on_that_kit(db_url, mo
         assert {c['consult_id'] for c in client.get('/snapshot', headers=COORD).json()['consults']} == {'AGAIN-C'}
 
 
+def test_a_kit_stored_twice_with_other_line_endings_is_one_match(db_url, monkeypatch):
+    with TestClient(hosted(db_url, monkeypatch)) as client:
+        seed(client)
+        store_second(client)
+        crlf = {name: text.replace('\n', '\r\n') for name, text in second_kit().items()}
+        stored = client.post('/admin/references', headers=ADMIN, json={'files': crlf, 'name': 'uploaded references', 'service_date': '2026-04-07'})
+        assert stored.json().get('stored'), stored.text
+        report = upload(client, events('H2', 'P2', 'NEW', minutes=(-30, -20))).json()
+        assert report['dataset_switched_to']['name'] == 'Second kit'
+        assert client.get('/snapshot', headers=COORD).json()['dataset']['name'] == 'Second kit'
+
+
 def test_events_matching_no_stored_kit_are_refused_without_holds(db_url, monkeypatch):
     with TestClient(hosted(db_url, monkeypatch)) as client:
         before = seed(client)

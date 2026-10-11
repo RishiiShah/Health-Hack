@@ -153,6 +153,11 @@ class Engine:
             return None
         matches = [kit["source"] for _, kit in sorted(self.stored_kits().items())
                    if hospital_ids <= set(kit["hospital_ids"]) and physician_ids <= set(kit["physician_ids"])]
+        # The same CSVs saved with other line endings (or without a service date) are one kit stored twice: use the dated copy.
+        text = lambda kit: {name: body.lstrip("﻿").replace("\r\n", "\n").strip() for name, body in kit["files"].items()}
+        if len(matches) > 1 and all(text(m) == text(matches[0]) for m in matches) and \
+                len({m.get("service_date") for m in matches} - {None}) <= 1:
+            matches = [next((m for m in matches if m.get("service_date")), matches[0])]
         if len(matches) == 1:
             return matches[0]
         listed = lambda ids: ", ".join(sorted(ids)[:5]) + (f" and {len(ids) - 5} more" if len(ids) > 5 else "")
