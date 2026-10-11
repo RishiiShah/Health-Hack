@@ -5,37 +5,42 @@
 :root {
   color-scheme: light;
 
-  /* Slate, ivory and ice: the clinical console in daylight. */
-  --bg: #EDF1F4;
-  --bg-2: #E2E8EE;
-  --surface: #FBFCFD;
-  --surface-2: #F2F5F8;
-  --surface-3: #E6ECF1;
-  --line: #D3DCE4;
-  --line-strong: #B4C1CD;
-  --text: #0F1A27;
-  --text-2: #364658;
-  --muted: #586777;
-  --accent: #245E86;
-  --accent-hover: #1C4D6E;
-  --on-accent: #FFFFFF;
-  --accent-text: #245E86;
-  --accent-soft: #DFEBF3;
-  --signal: #C23A2C;          /* the stroke-alert red: critical only, never large areas */
-  --critical: #B4372A;
-  --critical-soft: #FBE9E6;
-  --warning: #855700;
-  --warning-soft: #FAF0DA;
-  --warning-line: #D6A451;
-  --ok: #22704E;
-  --ok-soft: #E1F1E8;
-  --shadow-sm: 0 0.1vh 0.25vh rgba(15, 26, 39, .06), 0 0.1vh 0.15vh rgba(15, 26, 39, .04);
-  --shadow-md: 0 0.5vh 1.6vh rgba(15, 26, 39, .08), 0 0.15vh 0.4vh rgba(15, 26, 39, .05);
-  --overlay: rgba(15, 26, 39, .55);
+  /* Late-city edition: warm newsprint, black ink, one red for what is urgent. */
+  --bg: #ECE7DC;
+  --bg-2: #E4DED1;
+  --surface: #FCFBF7;
+  --surface-2: #F5F2EA;
+  --surface-3: #EBE6DA;
+  --line: #CFC7B6;
+  --line-strong: #1A1712;
+  --text: #1A1712;
+  --text-2: #3A352C;
+  --muted: #6B6457;
+  --accent: #1A1712;
+  --accent-hover: #2E2A23;
+  --on-accent: #FCFBF7;
+  --accent-text: #A93A24;
+  --accent-soft: #F3E3DC;
+  --signal: #B5402B;          /* stroke-alert red: critical only, never large areas */
+  --critical: #A93A24;
+  --critical-soft: #F6E2DB;
+  --warning: #7D5300;
+  --warning-soft: #F4EAD2;
+  --warning-line: #C89A3E;
+  --ok: #2F6B45;
+  --ok-soft: #E2EEDF;
+  --ink: #1A1712;             /* frames and the hard offset shadow */
+  --frame: max(0.11vw, 0.18vh);
+  --shadow-hard: max(0.42vw, 0.7vh) max(0.42vw, 0.7vh) 0 var(--ink);
+  --shadow-hard-sm: max(0.22vw, 0.36vh) max(0.22vw, 0.36vh) 0 var(--ink);
+  --shadow-sm: none;
+  --shadow-md: var(--shadow-hard);
+  --overlay: rgba(26, 23, 18, .55);
 
   /* Type */
-  --font-head: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-head: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-body: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   --t-xs: clamp(0.6875rem, 0.42vw + 0.32vh, 0.8125rem);
   --t-sm: clamp(0.75rem, 0.5vw + 0.4vh, 0.9375rem);
@@ -54,8 +59,8 @@
   --s-5: max(2.4vw, 3.6vh);
   --s-6: max(3.6vw, 5.4vh);
   --gut: max(2.2vw, 2.4vh);
-  --radius: max(0.36vw, 0.55vh);
-  --radius-lg: max(0.62vw, 0.95vh);
+  --radius: 0;
+  --radius-lg: 0;
   --offset: max(0.26vw, 0.42vh);
   --focus-w: max(0.14vw, 0.24vh);
   --rule-w: max(0.1vw, 0.16vh);
@@ -70,33 +75,32 @@
   --step: 45ms;
 }
 
-/* Night shift: smoky slate with ice-blue signal. */
+/* Night edition: ink paper, cream type, the same red. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #19222B;
-  --bg-2: #141B22;
-  --surface: #232D38;
-  --surface-2: #2A3542;
-  --surface-3: #33404D;
-  --line: #36434F;
-  --line-strong: #4C5C6A;
-  --text: #ECF0F3;
-  --text-2: #C3CED8;
-  --muted: #9AAAB8;
-  --accent: #8EC3E3;
-  --accent-hover: #A9D3EC;
-  --on-accent: #0F1A27;
-  --accent-text: #9CCBE7;
-  --accent-soft: rgba(184, 216, 235, .12);
-  --signal: #F2796B;
-  --critical: #F49A8F;
-  --critical-soft: rgba(244, 154, 143, .13);
-  --warning: #E9BE6E;
-  --warning-soft: rgba(233, 190, 110, .13);
-  --warning-line: #D6A451;
-  --ok: #7DCFA8;
-  --ok-soft: rgba(125, 207, 168, .13);
-  --shadow-sm: 0 0.1vh 0.3vh rgba(0, 0, 0, .25);
-  --shadow-md: 0 0.6vh 2vh rgba(0, 0, 0, .35), 0 0.15vh 0.4vh rgba(0, 0, 0, .2);
-  --overlay: rgba(6, 10, 14, .72);
+  --bg: #16140F;
+  --bg-2: #110F0B;
+  --surface: #1F1C16;
+  --surface-2: #26221B;
+  --surface-3: #2F2A21;
+  --line: #3B352A;
+  --line-strong: #EFE8DA;
+  --text: #EFE8DA;
+  --text-2: #D6CDBB;
+  --muted: #A39883;
+  --accent: #EFE8DA;
+  --accent-hover: #FFFFFF;
+  --on-accent: #16140F;
+  --accent-text: #E8846F;
+  --accent-soft: rgba(232, 132, 111, .14);
+  --signal: #E8735C;
+  --critical: #F0937F;
+  --critical-soft: rgba(240, 147, 127, .14);
+  --warning: #E3BB6C;
+  --warning-soft: rgba(227, 187, 108, .14);
+  --warning-line: #C89A3E;
+  --ok: #8CC9A0;
+  --ok-soft: rgba(140, 201, 160, .14);
+  --ink: #EFE8DA;
+  --overlay: rgba(6, 5, 3, .72);
 }

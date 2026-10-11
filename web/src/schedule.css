@@ -1,7 +1,7 @@
 /* Shift schedule: summary row, roster timeline in the main column, physician inspector in the side column. */
 .roster-page { --roster-name: max(15vw, 24vh); --roster-pad: var(--s-3); }
 .roster-date { display: grid; justify-items: end; }
-.roster-date strong { font: 700 var(--t-lg) var(--font-head); }
+.roster-date strong { font: 600 var(--t-lg) var(--font-head); }
 .roster-date span { color: var(--muted); font: var(--t-xs) var(--font-mono); }
 .roster-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); margin-bottom: var(--s-3); }
 .roster-summary div {
@@ -10,7 +10,7 @@
 }
 .roster-summary div:nth-child(2) { animation-delay: calc(var(--step) * 1); }
 .roster-summary div:nth-child(3) { animation-delay: calc(var(--step) * 2); }
-.roster-summary strong { font: 760 var(--t-2xl) var(--font-head); }
+.roster-summary strong { font: 500 var(--t-2xl) var(--font-head); }
 .roster-summary span { color: var(--text-2); font-weight: 600; font-size: var(--t-sm); }
 .roster-alert {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-3); padding: var(--s-3); margin-bottom: var(--s-3);
@@ -20,7 +20,7 @@
 .roster-alert-label { color: var(--warning); }
 .roster-alert button, .roster-inspector-action {
   display: inline-flex; gap: .5em; align-items: center; padding: var(--s-1) var(--s-3); border: thin solid var(--line-strong); border-radius: var(--radius);
-  background: var(--surface); color: var(--text); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
+  background: var(--surface); color: var(--text); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
 }
 .schedule-layout { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 3fr); gap: var(--s-3); align-items: start; }
 .roster-card { padding: var(--s-3); display: grid; gap: var(--s-2); min-width: 0; }
@@ -69,7 +69,7 @@
 .roster-status.status-offer { background: var(--warning-soft); color: var(--warning); }
 .roster-status.status-day, .roster-status.status-night { background: var(--ok-soft); color: var(--ok); }
 .roster-inspector dl { display: grid; gap: var(--s-2); margin: 0; }
-.roster-inspector dt { color: var(--muted); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
+.roster-inspector dt { color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
 .roster-inspector dd { margin: .2em 0 0; font-size: var(--t-sm); }
 .roster-context h3 { margin-bottom: var(--s-1); }
 .roster-context p { color: var(--muted); font-size: var(--t-sm); }

@@ -6,7 +6,7 @@
   animation: fade var(--slow) var(--ease-out) backwards;
 }
 .landing-bar nav { display: flex; gap: var(--s-1); }
-.landing-bar nav a { padding: var(--s-1) var(--s-2); border-radius: var(--radius); color: var(--text-2); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; transition: background-color var(--fast), color var(--fast); }
+.landing-bar nav a { padding: var(--s-1) var(--s-2); border-radius: var(--radius); color: var(--text-2); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; transition: background-color var(--fast), color var(--fast); }
 .landing-bar nav a:hover { background: var(--surface); color: var(--text); }
 
 .hero { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--s-5); align-items: end; padding: var(--s-6) var(--gut) var(--s-5); }
@@ -22,7 +22,7 @@
 .plate figcaption { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-2); align-items: baseline; color: var(--muted); font-size: var(--t-xs); }
 .plate-monitor {
   position: absolute; top: var(--s-2); left: var(--s-2); display: flex; align-items: center; gap: var(--s-1); padding: var(--s-1) var(--s-2);
-  border: thin solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--muted); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase;
+  border: thin solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
 }
 
 .landing-section { padding: var(--s-5) var(--gut); border-top: thin solid var(--line); scroll-margin-top: max(5vw, 8vh); }
@@ -49,7 +49,7 @@
 
 .facts-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-3); margin: 0; }
 .facts-row > div { display: grid; gap: var(--s-1); padding-top: var(--s-2); border-top: calc(var(--rule-w) * 2) solid var(--text); }
-.facts-row dt { font: 760 var(--t-3xl)/1 var(--font-head); letter-spacing: -.03em; }
+.facts-row dt { font: 500 var(--t-3xl)/1 var(--font-head); letter-spacing: -.03em; }
 .facts-row dd { display: grid; gap: .2em; margin: 0; color: var(--muted); font-size: var(--t-sm); }
 .facts-row dd b { color: var(--text); }
 

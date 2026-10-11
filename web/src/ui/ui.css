@@ -1,12 +1,12 @@
 /* Shared building blocks: brand, headings, sections, KPIs, chips, folds and the live trace. */
 
 /* Brand */
-.brand { display: inline-flex; align-items: baseline; gap: var(--s-1); color: var(--text); font: 760 var(--t-lg) var(--font-head); letter-spacing: -.02em; }
+.brand { display: inline-flex; align-items: baseline; gap: var(--s-1); color: var(--text); font: 600 var(--t-lg) var(--font-head); letter-spacing: -.02em; }
 .brand-mark { position: relative; display: inline-block; width: max(1.6vw, 2.6vh); height: max(1.3vw, 2.1vh); align-self: center; }
 .brand-mark i { position: absolute; width: 58%; height: 66%; border-radius: var(--rule-w); transform: skewX(-12deg); }
 .brand-mark i:first-child { left: 0; top: 0; background: var(--accent); }
 .brand-mark i:last-child { right: 0; bottom: 0; background: var(--text); }
-.brand em { color: var(--muted); font: 500 var(--t-xs) var(--font-body); font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
+.brand em { color: var(--muted); font: 500 var(--t-xs) var(--font-mono); font-style: normal; letter-spacing: .14em; text-transform: uppercase; }
 
 /* Page heading: kicker, title and a short note, with an optional aside on the right. */
 .page-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--s-3); margin-bottom: var(--s-4); }
@@ -15,7 +15,7 @@
 .page-head-aside { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: flex-end; }
 
 /* Numbered sections, separated by a hairline. */
-.section { margin-top: var(--s-5); padding-top: var(--s-4); border-top: thin solid var(--line); }
+.section { margin-top: var(--s-5); padding-top: var(--s-4); border-top: var(--frame) solid var(--ink); }
 .section-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--s-2); margin-bottom: var(--s-3); }
 .section-head .kicker { margin-bottom: var(--s-1); }
 .section-head p { margin: var(--s-1) 0 0; color: var(--muted); font-size: var(--t-sm); }
@@ -25,11 +25,11 @@
 .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-3); }
 .kpi {
   position: relative; display: grid; grid-template-rows: auto 1fr auto; gap: var(--s-1); min-height: max(9vw, 15vh); padding: var(--s-3) var(--s-3) var(--s-2);
-  border: thin solid var(--line); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); text-decoration: none; overflow: hidden; box-shadow: var(--shadow-sm);
+  border: var(--frame) solid var(--ink); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); text-decoration: none; overflow: hidden; box-shadow: var(--shadow-hard-sm);
 }
-.kpi:hover { border-color: var(--line-strong); box-shadow: var(--shadow-md); }
-.kpi-label { color: var(--muted); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
-.kpi-value { align-self: end; font: 760 var(--t-3xl)/1 var(--font-head); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.kpi:hover { box-shadow: var(--shadow-hard); }
+.kpi-label { color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+.kpi-value { align-self: end; font: 500 var(--t-3xl)/1 var(--font-head); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .kpi-value small { margin-left: .1em; color: var(--muted); font-size: 55%; font-weight: 600; }
 .kpi-note { display: flex; justify-content: space-between; gap: var(--s-1); color: var(--muted); font-size: var(--t-sm); }
 .kpi-note i { font-style: normal; color: var(--text-2); }
@@ -40,11 +40,11 @@
 .chip-row { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-top: var(--s-2); }
 .chip {
   display: inline-flex; align-items: center; gap: var(--s-1); padding: var(--s-1) var(--s-2); border: thin solid var(--line); border-radius: var(--radius);
-  background: var(--surface); color: var(--text-2); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; text-decoration: none;
+  background: var(--surface); color: var(--text-2); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; text-decoration: none;
 }
 .chip b { color: var(--text); font-size: var(--t-sm); font-variant-numeric: tabular-nums; }
 .chip.warn b { color: var(--warning); }
-.chip:hover { border-color: var(--line-strong); color: var(--text); }
+.chip:hover { border-color: var(--ink); color: var(--text); }
 @media (max-width: 69em) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* Folded detail */

@@ -7,7 +7,7 @@
 .activity-metrics article:nth-child(2) { animation-delay: calc(var(--step) * 1); }
 .activity-metrics article:nth-child(3) { animation-delay: calc(var(--step) * 2); }
 .activity-metrics article:nth-child(4) { animation-delay: calc(var(--step) * 3); }
-.activity-metrics strong { font: 760 var(--t-2xl) var(--font-head); min-width: 2ch; font-variant-numeric: tabular-nums; }
+.activity-metrics strong { font: 500 var(--t-2xl) var(--font-head); min-width: 2ch; font-variant-numeric: tabular-nums; }
 .activity-metrics span { display: block; font-weight: 600; font-size: var(--t-sm); }
 .activity-metrics small { color: var(--muted); font-size: var(--t-xs); }
 .board-controls { display: flex; gap: var(--s-1); flex-wrap: wrap; }

@@ -36,7 +36,9 @@
 .btn:active:not(:disabled), .icon-btn:active, .chip:active, .queue-filters button:active, .coverage-filters button:active, .roster-filters button:active, .role-picker button:active {
   transform: translate(var(--rule-w), var(--rule-w)) scale(.985);
 }
-.kpi:hover, .chip:hover { transform: translateY(-0.5vh); }
+.kpi:hover, .chip:hover { transform: translate(-0.2vw, -0.3vh); }
+.btn:hover:not(:disabled) { transform: translate(-0.1vw, -0.15vh); box-shadow: var(--shadow-hard); }
+.btn:active:not(:disabled) { transform: translate(max(0.22vw, 0.36vh), max(0.22vw, 0.36vh)); box-shadow: none; }
 .kpi i, .btn > span[aria-hidden="true"], .roster-inspector-action span, .roster-alert button span { display: inline-block; transition: transform var(--med) var(--ease-out); }
 .kpi:hover i, .btn:hover > span[aria-hidden="true"], .roster-inspector-action:hover span, .roster-alert button:hover span { transform: translateX(.35em); }
 .dense-queue-row:hover { transform: translateX(.35vw); }
