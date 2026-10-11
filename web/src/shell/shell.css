@@ -41,7 +41,7 @@
 .topbar-title span { color: var(--muted); font-size: var(--t-xs); font-family: var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
 .topbar-meta { display: flex; align-items: center; gap: var(--s-1); flex-wrap: wrap; justify-content: flex-end; }
 .pill {
-  display: inline-flex; align-items: center; gap: var(--s-1); min-height: max(2.5vw, 4.2vh); padding: 0 var(--s-2); border: thin solid var(--line);
+  display: inline-flex; align-items: center; gap: var(--s-1); min-height: max(2.5vw, 4.2vh); padding: 0 var(--s-2); border: var(--frame) solid var(--ink);
   border-radius: var(--radius); background: var(--surface); color: var(--text-2); font: 500 var(--t-xs) var(--font-body); white-space: nowrap;
 }
 .pill.demo { border-color: var(--warning-line); color: var(--warning); background: var(--warning-soft); }

@@ -29,10 +29,12 @@
   --warning-line: #C89A3E;
   --ok: #2F6B45;
   --ok-soft: #E2EEDF;
-  --ink: #1A1712;             /* frames and the hard offset shadow */
+  --ink: #1A1712;             /* frames */
+  --shadow-color: #1A1712;    /* the hard offset shadow */
+  --button-shadow: var(--shadow-color);
   --frame: max(0.11vw, 0.18vh);
-  --shadow-hard: max(0.42vw, 0.7vh) max(0.42vw, 0.7vh) 0 var(--ink);
-  --shadow-hard-sm: max(0.22vw, 0.36vh) max(0.22vw, 0.36vh) 0 var(--ink);
+  --shadow-hard: max(0.42vw, 0.7vh) max(0.42vw, 0.7vh) 0 var(--shadow-color);
+  --shadow-hard-sm: max(0.22vw, 0.36vh) max(0.22vw, 0.36vh) 0 var(--shadow-color);
   --shadow-sm: none;
   --shadow-md: var(--shadow-hard);
   --overlay: rgba(26, 23, 18, .55);
@@ -102,5 +104,7 @@
   --ok: #8CC9A0;
   --ok-soft: rgba(140, 201, 160, .14);
   --ink: #EFE8DA;
+  --shadow-color: #5C5140;    /* warm bronze: cream shadows would glow like the buttons */
+  --button-shadow: #B5402B;   /* cream primary keys sit on a red shadow */
   --overlay: rgba(6, 5, 3, .72);
 }

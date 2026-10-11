@@ -17,32 +17,32 @@
 /* The call keeps a phone's call screen: always dark, whatever the app theme. */
 .call-overlay { position: fixed; inset: 0; z-index: 60; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, max(28vw, 42vh)) minmax(0, 1fr); align-items: center; padding: var(--gut); background: var(--overlay); backdrop-filter: blur(1vh); animation: fade var(--med) var(--ease-out); }
 .call-card {
-  grid-column: 2; display: grid; gap: var(--s-2); padding: var(--s-5) var(--s-4); border-radius: max(1.8vw, 3vh); background: #0F1A27; color: #ECF0F3;
+  grid-column: 2; display: grid; gap: var(--s-2); padding: var(--s-5) var(--s-4); border-radius: max(1.8vw, 3vh); background: #1A1712; color: #EFE8DA; border: var(--frame) solid #1A1712;
   text-align: center; box-shadow: var(--shadow-md); animation: pop var(--slow) var(--ease-spring);
 }
-.call-card h2 { color: #ECF0F3; font-size: var(--t-2xl); }
-.call-state { color: #B8D8EB; font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
-.call-sub { margin: 0; color: #AEBBC7; font-size: var(--t-sm); }
-.call-offer { display: grid; gap: .3em; margin-top: var(--s-2); padding: var(--s-3); border-radius: var(--radius-lg); background: rgba(255, 255, 255, .07); }
+.call-card h2 { color: #EFE8DA; font-size: var(--t-2xl); }
+.call-state { color: #E8846F; font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+.call-sub { margin: 0; color: #A39883; font-size: var(--t-sm); }
+.call-offer { display: grid; gap: .3em; margin-top: var(--s-2); padding: var(--s-3); border-radius: var(--radius-lg); background: rgba(239, 232, 218, .07); }
 .call-offer strong { font-size: var(--t-lg); }
-.call-offer span { color: #D3DCE4; font: var(--t-sm) var(--font-mono); }
-.call-deadline { margin: 0; color: #E9BE6E; font: var(--t-xs) var(--font-mono); }
-.call-message { margin: 0; color: #D3DCE4; font-size: var(--t-sm); animation: fade var(--med) var(--ease-out); }
-.call-note { margin: 0; color: #93A3B2; font-size: var(--t-xs); }
+.call-offer span { color: #D6CDBB; font: var(--t-sm) var(--font-mono); }
+.call-deadline { margin: 0; color: #E3BB6C; font: var(--t-xs) var(--font-mono); }
+.call-message { margin: 0; color: #D6CDBB; font-size: var(--t-sm); animation: fade var(--med) var(--ease-out); }
+.call-note { margin: 0; color: #A39883; font-size: var(--t-xs); }
 .call-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-items: center; margin-top: var(--s-3); }
 .call-btn { width: max(4.6vw, 7.6vh); height: max(4.6vw, 7.6vh); border: 0; border-radius: 50%; font: 600 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; transition: transform var(--fast) var(--ease-out); }
 .call-btn:hover { transform: scale(1.06); }
-.call-btn.decline { background: #C93B2B; color: #fff; }
-.call-btn.answer { position: relative; background: #B8D8EB; color: #0F1A27; }
-.call-btn.answer::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: var(--rule-w) solid #B8D8EB; animation: ring 1.5s var(--ease-out) infinite; }
+.call-btn.decline { background: #B5402B; color: #fff; }
+.call-btn.answer { position: relative; background: #EFE8DA; color: #1A1712; }
+.call-btn.answer::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: var(--rule-w) solid #EFE8DA; animation: ring 1.5s var(--ease-out) infinite; }
 .call-replies { display: grid; gap: var(--s-1); margin-top: var(--s-2); }
 .call-replies button { padding: var(--s-2); border: 0; border-radius: var(--radius-lg); font: 600 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; animation: rise var(--med) var(--ease-out) backwards; }
 .call-replies button:nth-child(2) { animation-delay: calc(var(--step) * 1); }
 .call-replies button:nth-child(3) { animation-delay: calc(var(--step) * 2); }
-.call-replies .accept { background: #B8D8EB; color: #0F1A27; }
-.call-replies .decline-shift { background: rgba(255, 255, 255, .1); color: #ECF0F3; }
-.call-replies .hang-up { padding: var(--s-1); background: none; color: #93A3B2; text-transform: none; letter-spacing: 0; font-family: var(--font-body); }
+.call-replies .accept { background: #EFE8DA; color: #1A1712; }
+.call-replies .decline-shift { background: rgba(239, 232, 218, .1); color: #EFE8DA; }
+.call-replies .hang-up { padding: var(--s-1); background: none; color: #A39883; text-transform: none; letter-spacing: 0; font-family: var(--font-body); }
 .call-result { display: grid; gap: var(--s-2); margin-top: var(--s-2); }
-.call-result p { margin: 0; padding: var(--s-2); border-radius: var(--radius-lg); background: rgba(255, 255, 255, .07); font-weight: 600; font-size: var(--t-sm); animation: pop var(--med) var(--ease-out); }
-.call-result button { padding: var(--s-2); border: 0; border-radius: var(--radius-lg); background: #ECF0F3; color: #0F1A27; font: 600 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+.call-result p { margin: 0; padding: var(--s-2); border-radius: var(--radius-lg); background: rgba(239, 232, 218, .07); font-weight: 600; font-size: var(--t-sm); animation: pop var(--med) var(--ease-out); }
+.call-result button { padding: var(--s-2); border: 0; border-radius: var(--radius-lg); background: #EFE8DA; color: #1A1712; font: 600 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
 @media (max-width: 50em) { .physician-top { grid-template-columns: minmax(0, 1fr); } .call-overlay { grid-template-columns: minmax(0, 1fr); } .call-card { grid-column: 1; } }

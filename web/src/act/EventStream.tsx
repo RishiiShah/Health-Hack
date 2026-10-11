@@ -3,6 +3,7 @@ import { api, DEMO, post } from "../api/client.ts";
 import type { Snapshot } from "../api/live.ts";
 import { clockTimeSeconds, duration } from "./time.ts";
 import type { DataQuality, IngestReport, UploadBatch } from "./types.ts";
+import { boardOf, UploadResult, type Board } from "./UploadResult.tsx";
 import { useApi } from "./hooks.ts";
 import "./act.css";
 
@@ -71,6 +72,7 @@ function Reset({ onChanged }: { onChanged: () => void }) {
 function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot; now: number | null; onChanged: () => void }) {
   const [text, setText] = useState("");
   const [report, setReport] = useState<IngestReport | null>(null);
+  const [before, setBefore] = useState<Board | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const paused = Boolean((snapshot.clock as { paused?: boolean } | undefined)?.paused);
@@ -92,6 +94,7 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot; now: numbe
   const send = (body: string | File, filename = typeof body === "string" ? "pasted-events.csv" : body.name) =>
     run(async () => {
       setReport(null);
+      setBefore(boardOf(snapshot, now));
       const trimmed = typeof body === "string" ? body.trim() : "";
       const result = trimmed.startsWith("[") || trimmed.startsWith("{")
         ? await post<IngestReport>("/events", JSON.parse(trimmed))
@@ -135,13 +138,8 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot; now: numbe
       {report && (
         <div aria-live="polite">
           {report.dataset_switched_to && <p className="report">Switched to <b>{report.dataset_switched_to.name}</b> and started a fresh event stream.</p>}
-          <p className="report">
-            Accepted <b>{report.accepted}</b> · duplicates <b>{report.duplicates}</b> · quarantined <b>{report.quarantined.length}</b>
-            {report.held_orphans > 0 && <> · held <b>{report.held_orphans}</b></>}
-            {report.pending_future > 0 && <> · waiting for the clock <b>{report.pending_future}</b></>}
-            {report.clock_advanced_to && <> · clock moved to <b>{clockTimeSeconds(report.clock_advanced_to)}</b></>}
-            {report.quarantined.length > 0 && <span className="muted"> ({report.quarantined.map((q) => q.reason).join("; ")})</span>}
-          </p>
+          {before && <UploadResult report={report} before={before} after={boardOf(snapshot, now)} />}
+          {report.quarantined.length > 0 && <p className="report muted">Quarantined: {report.quarantined.map((q) => q.reason).join("; ")}</p>}
           {report.clock_warning && <p className="error" role="alert">{report.clock_warning}</p>}
           <RowResults report={report} />
         </div>

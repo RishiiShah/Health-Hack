@@ -40,7 +40,7 @@
 .steps-row .badge { justify-self: start; }
 
 .role-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); }
-.role-column { display: grid; grid-template-rows: auto auto auto 1fr auto; gap: var(--s-2); padding: var(--s-4); border: thin solid var(--line); border-radius: var(--radius-lg); background: var(--surface); transition: transform var(--med) var(--ease-out), box-shadow var(--med) var(--ease-out); }
+.role-column { display: grid; grid-template-rows: auto auto auto 1fr auto; gap: var(--s-2); padding: var(--s-4); border: var(--frame) solid var(--ink); box-shadow: var(--shadow-hard-sm); border-radius: var(--radius-lg); background: var(--surface); transition: transform var(--med) var(--ease-out), box-shadow var(--med) var(--ease-out); }
 .role-column:hover { transform: translateY(-0.6vh); box-shadow: var(--shadow-md); }
 .role-column h3 { font-size: var(--t-2xl); }
 .role-column p { margin: 0; color: var(--text-2); }

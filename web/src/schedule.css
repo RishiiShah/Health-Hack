@@ -6,7 +6,7 @@
 .roster-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); margin-bottom: var(--s-3); }
 .roster-summary div {
   display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--s-2); padding: var(--s-3);
-  border: thin solid var(--line); border-radius: var(--radius-lg); background: var(--surface); animation: rise var(--slow) var(--ease-out) backwards;
+  border: var(--frame) solid var(--ink); box-shadow: var(--shadow-hard-sm); border-radius: var(--radius-lg); background: var(--surface); animation: rise var(--slow) var(--ease-out) backwards;
 }
 .roster-summary div:nth-child(2) { animation-delay: calc(var(--step) * 1); }
 .roster-summary div:nth-child(3) { animation-delay: calc(var(--step) * 2); }
@@ -27,7 +27,7 @@
 .roster-card-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-2); align-items: start; }
 .roster-card-head p { margin: .3em 0 0; color: var(--muted); font-size: var(--t-xs); }
 .roster-scroll-hint, .roster-footnote { margin: 0; color: var(--muted); font-size: var(--t-xs); }
-.roster-scroll { overflow-x: auto; border: thin solid var(--line); border-radius: var(--radius); }
+.roster-scroll { overflow-x: auto; border: var(--frame) solid var(--ink); border-radius: var(--radius); }
 .roster-timeline { position: relative; min-width: max(50vw, 80vh); }
 .roster-axis { display: grid; grid-template-columns: var(--roster-name) minmax(0, 1fr); padding: var(--s-1) var(--roster-pad) var(--s-1) 0; background: var(--surface-2); border-bottom: thin solid var(--line); color: var(--muted); font: 500 var(--t-xs) var(--font-mono); }
 .roster-axis > span { padding-left: var(--s-2); text-transform: uppercase; letter-spacing: .08em; }

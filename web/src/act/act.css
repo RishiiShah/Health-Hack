@@ -72,7 +72,7 @@ ul.footnote { padding-left: var(--s-3); }
 /* Approvals: the case on the left, the decision on the right. */
 .approval-list { display: flex; gap: var(--s-1); flex-wrap: wrap; margin-bottom: var(--s-3); }
 .approval-list button {
-  padding: var(--s-1) var(--s-2); border: thin solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--text-2);
+  padding: var(--s-1) var(--s-2); border: var(--frame) solid var(--ink); border-radius: var(--radius); background: var(--surface); color: var(--text-2);
   font: 500 var(--t-xs) var(--font-mono); letter-spacing: .06em;
 }
 .approval-list button[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
@@ -134,3 +134,37 @@ ul.footnote { padding-left: var(--s-3); }
   .steps li i { display: block; font-style: normal; font-weight: 700; }
   .tracker .steps li::before { display: none; }
 }
+
+/* Upload result: every row's outcome as one bar, the clock's move and the board's changes. */
+.upload-result { display: grid; gap: var(--s-3); margin-top: var(--s-2); padding: var(--s-3); border: var(--frame) solid var(--ink); background: var(--surface-2); box-shadow: var(--shadow-hard-sm); animation: rise var(--med) var(--ease-out) backwards; }
+.upload-result-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-2); }
+.upload-result-head strong { font: 500 var(--t-xl) var(--font-head); }
+.outcome-bar { display: flex; height: max(1.1vw, 1.8vh); border: var(--frame) solid var(--ink); background: var(--surface); }
+.outcome-seg { min-width: 0.4vw; transform-origin: left; animation: grow-x var(--slow) var(--ease-out) backwards; }
+.outcome-seg + .outcome-seg { border-left: var(--frame) solid var(--ink); }
+.outcome-seg.accepted, .outcome-dot.accepted { background: var(--ok); }
+.outcome-seg.waiting, .outcome-dot.waiting { background: var(--warning-line); }
+.outcome-seg.duplicate, .outcome-dot.duplicate { background: var(--muted); }
+.outcome-seg.held, .outcome-dot.held { background: var(--warning); }
+.outcome-seg.rejected, .outcome-dot.rejected { background: var(--signal); }
+.outcome-legend { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); margin: 0; padding: 0; list-style: none; font-size: var(--t-sm); color: var(--text-2); }
+.outcome-legend li { display: inline-flex; align-items: center; gap: .45em; }
+.outcome-legend li.is-zero { opacity: .45; }
+.outcome-legend b { font: 600 var(--t-sm) var(--font-mono); color: var(--text); }
+.outcome-dot { display: inline-block; width: .7em; height: .7em; border: thin solid var(--ink); }
+.clock-move { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); padding-top: var(--s-2); border-top: thin solid var(--line); }
+.clock-move span:last-child { display: inline-flex; align-items: center; gap: .6em; font: 600 var(--t-lg) var(--font-mono); }
+.clock-move i { font-style: normal; color: var(--signal); }
+.board-delta { display: grid; gap: var(--s-2); padding-top: var(--s-2); border-top: thin solid var(--line); }
+.board-delta > .btn { justify-self: start; }
+.delta-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
+.delta-tile { display: grid; gap: .2em; padding: var(--s-2); border: var(--frame) solid var(--ink); background: var(--surface); }
+.delta-tile span { color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+.delta-tile strong { font: 500 var(--t-2xl)/1 var(--font-head); }
+.delta-tile em { font: 500 var(--t-xs) var(--font-mono); font-style: normal; color: var(--muted); }
+.delta-tile em.up { color: var(--critical); }
+.delta-tile em.down { color: var(--ok); }
+.consult-changes { display: grid; gap: var(--s-1); margin: 0; padding: 0; list-style: none; }
+.consult-changes li { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-2); border: thin solid var(--line); background: var(--surface); font-size: var(--t-sm); animation: rise var(--med) var(--ease-out) backwards; }
+.consult-changes li b { font-family: var(--font-mono); }
+.consult-changes li span:last-child { color: var(--muted); }

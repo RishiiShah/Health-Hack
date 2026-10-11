@@ -39,7 +39,7 @@
 .kpi.good .kpi-value { color: var(--ok); }
 .chip-row { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-top: var(--s-2); }
 .chip {
-  display: inline-flex; align-items: center; gap: var(--s-1); padding: var(--s-1) var(--s-2); border: thin solid var(--line); border-radius: var(--radius);
+  display: inline-flex; align-items: center; gap: var(--s-1); padding: var(--s-1) var(--s-2); border: var(--frame) solid var(--ink); border-radius: var(--radius);
   background: var(--surface); color: var(--text-2); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; text-decoration: none;
 }
 .chip b { color: var(--text); font-size: var(--t-sm); font-variant-numeric: tabular-nums; }
