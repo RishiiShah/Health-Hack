@@ -145,3 +145,74 @@ table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 720p
 @keyframes schedule-pulse { 0%,100% { box-shadow: 0 2px 6px rgba(220,38,38,.22); } 50% { box-shadow: 0 2px 14px rgba(220,38,38,.5); } } @keyframes offer-glow { 0%,100% { box-shadow: 0 0 0 rgba(13,148,136,0); } 50% { box-shadow: 0 0 9px rgba(13,148,136,.24); } }
 @media (max-width: 900px) { .schedule-head { align-items: flex-start; flex-direction: column; }.schedule-layout { grid-template-columns: 1fr; }.schedule-side { grid-template-columns: 1fr 1fr; }.schedule-alert { border-radius: 10px; } }
 @media (max-width: 600px) { .schedule-page { padding: 14px 12px 40px; }.schedule-filters { width: 100%; overflow-x: auto; }.schedule-filters button { white-space: nowrap; }.schedule-side { grid-template-columns: 1fr; }.schedule-alert { align-items: flex-start; flex-direction: column; }.schedule-alert button { align-self: flex-end; }.gantt-card { padding: 16px 12px; } }
+
+/* Command page: coverage spans the full width; offer tracker and activity sit side by side below it. Grid
+   children get min-width: 0 so a wide table scrolls inside its card instead of pushing its neighbours. */
+.command-top > * { min-width: 0; }
+.command-coverage { margin-top: 16px; min-width: 0; }
+.command-page .command-rail { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; margin-top: 16px; }
+.command-rail > div:empty { display: none; }
+@media (max-width: 700px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+
+/* Shared fluid canvas. Keep the header in flow so wrapped navigation never covers content. */
+:root { --canvas-gutter: clamp(12px, 2vw, 32px); }
+#root { min-height: 100dvh; }
+.app-header {
+  position: sticky;
+  top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin: 12px var(--canvas-gutter) 0;
+}
+.header-brand, .header-account { min-width: 0; flex-wrap: wrap; }
+.header-clock { display: none; }
+.header-account { margin-left: auto; }
+.header-account > span { overflow-wrap: anywhere; }
+.header-account button { flex-shrink: 0; white-space: nowrap; }
+.header-nav { flex-basis: 100%; order: 3; overflow-x: auto; min-width: 0; padding-bottom: 2px; }
+.header-nav a { flex-shrink: 0; white-space: nowrap; }
+.workspace-main { width: 100%; min-width: 0; padding: 24px var(--canvas-gutter) 48px; }
+.workspace-main > .page, .workspace-main > .command-page, .workspace-main > .schedule-page {
+  width: 100%; max-width: none; margin: 0; padding: 0;
+}
+.workspace-main { overflow-wrap: anywhere; }
+.workspace-main :where(section, aside, .panel, .approval > div, .command-rail > div, .schedule-side, .table-scroll, .table-wrap) { min-width: 0; }
+.command-top { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+.command-page .command-rail { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.forecast-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 24px; margin-top: 24px; }
+.dense-queue-row { grid-template-columns: 27px minmax(0, 1fr) auto; }
+.panel-head, .workspace-title, .command-title, .gantt-top { flex-wrap: wrap; gap: 12px; }
+.dossier-actions, .tracker-actions, .clock-row, .checks li, .checked li, .cell-detail, .approval-banner { flex-wrap: wrap; }
+.checks li { gap: 8px; }
+.checks .badge, .checked .badge { white-space: normal; }
+.offer-form label { min-width: 0; max-width: 100%; }
+.offer-form input { width: 100%; min-width: 0; }
+.audit-list > div { grid-template-columns: 90px minmax(0, 130px) minmax(0, 1fr) minmax(0, 1fr); }
+.decision { top: 140px; }
+.table-scroll, .table-wrap { max-width: 100%; overscroll-behavior-x: contain; }
+@media (min-width: 1500px) {
+  .header-clock { display: flex; }
+  .header-nav { flex-basis: auto; order: 0; }
+  .decision { top: 100px; }
+}
+@media (max-width: 1000px) {
+  .command-top { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .app-header { top: 0; gap: 10px; }
+  .header-brand, .header-account { flex: 1 1 100%; }
+  .header-account { justify-content: space-between; }
+  .workspace-main { padding-top: 20px; }
+  .dossier-card { padding: 16px; }
+  .dossier-grid, .physician-top { grid-template-columns: minmax(0, 1fr); }
+  .audit-list > div { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .consult-line { grid-template-columns: minmax(0, 1fr); gap: 8px; justify-items: start; }
+  .consult-line .badge { white-space: normal; }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .schedule-day { gap: 8px; }
+  .schedule-day strong { font-size: 17px; }
+  .schedule-filters { max-width: 100%; }
+}

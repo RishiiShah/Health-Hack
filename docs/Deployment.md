@@ -1,6 +1,6 @@
 # Deployment: Render first, AWS second, Azure last
 
-The same Python 3.14.7 Docker image runs on all three providers. It binds `0.0.0.0:$PORT` (default 8000), keeps one uvicorn worker, writes logs to stdout/stderr, handles SIGTERM directly and closes its database connection during application shutdown. `/health` is liveness; `/ready` checks startup of the implemented consult-replay foundation and reports unsupported capabilities. Authentication and the remaining operations gates are still pending.
+The same Python 3.14.7 Docker image runs on all three providers. It binds `0.0.0.0:$PORT` (default 8000), keeps one uvicorn worker, writes logs to stdout/stderr, handles SIGTERM directly and closes its database connection during application shutdown. `/health` is liveness; `/ready` checks startup of the implemented consult-replay foundation and reports unsupported capabilities. Sign-in and role checks protect the implemented operations routes; the remaining operations gates are still pending.
 
 Events, holds, quarantine and metrics live in **Amazon RDS for PostgreSQL** (see the decision record in [Boundaries and Contracts](00-Boundaries-and-Contracts.md)). The application process has no local durable state, so any host that can reach RDS can run it.
 
@@ -10,7 +10,9 @@ Events, holds, quarantine and metrics live in **Amazon RDS for PostgreSQL** (see
 | 2 | AWS EC2 Linux VM in us-east-1 running `deploy/compose.yaml` | Same RDS instance | 1 container, 1 worker |
 | 3 | Azure Linux VM running the same Compose file | Same RDS instance (cross-cloud latency; measure first) | 1 container, 1 worker |
 
-These are executable deployment configurations, not completed cloud deployments. No infrastructure has been provisioned, including the RDS instance. Until mutation authentication is implemented, use private access or an authenticated gateway for hosted demos.
+These are executable deployment configurations, not completed cloud deployments. No infrastructure has been provisioned, including the RDS instance. Use private access or a TLS and rate-limited gateway for hosted demos; session revocation, refresh, password recovery and login rate limiting are not implemented in the app.
+
+For local development, `make backend` uses the separate `deploy/local.compose.yaml`, creates a local sign-in configuration on first use, and starts Python 3.14.7 plus PostgreSQL with no RDS or host virtual environment requirement. It binds the API to loopback and does not publish a database port. See [local startup](../backend/README.md#simple-local-startup).
 
 The runtime is pinned to standard CPython 3.14.7 in `backend/Dockerfile` (`python:3.14.7-slim`), CI and `backend/.python-version`. Package metadata allows Python >=3.14.7,<3.15.
 
@@ -76,10 +78,19 @@ Use an Azure Linux VM with Docker Engine and Compose and the same commands. The 
 | --- | --- | --- |
 | `PORT` | HTTP port; integer 1–65535 | 8000; Render supplies its own |
 | `CC_DATABASE_URL` | PostgreSQL URL (RDS in deployment) | local `postgres:postgres@127.0.0.1:5432/postgres` |
-| `CC_DATA_DIR` | Reference-file location for future reference support; not durable without a disk | `/data/ref` |
+| `CC_USERS` | JSON list of accounts: `email`, `name`, `role` (`coordinator`, `lead` or `physician`), `password_hash` from `python -m app.auth`, and `physician_id` for physicians | needed for web and mobile sign-in; without accounts only the fixed role tokens work, and with neither the server refuses to start |
+| `CC_AUTH_SECRET` | 32+ random characters that sign sign-in tokens (`python3 -c "import secrets; print(secrets.token_urlsafe(32))"`) | required with `CC_USERS` |
+| `CC_AUTH_CONFIG` | Private JSON file with `secret` and `users`; used if `CC_USERS` is absent | local Compose mounts the gitignored setup file read-only |
+| `CC_DATA_DIR` | Reference CSVs (hospitals, shifts, off-shift roster, credentials, baseline volume, coverage requirements), sample or scenario-pack layout. Missing: the API runs, `/ready` reports detection unavailable, decision routes return 503 | `/data/ref` |
 | `CC_CLOCK_MODE` | `auto`, `wall`, `anchored`, `fixed` | `auto` |
 | `CC_CLOCK_FIXED` | Offset-aware fixed/anchor time, when needed | unset |
-| `CC_SERVICE_DATE` | Service date used by future time-only schedule normalization | fixture default March 17, 2026; schedule normalization pending |
+| `CC_OFFER_HISTORY` | Offers sent outside this tool (`offer_id, physician_id, sent_at, status`), counted for R7/R8 | unset |
+| `CC_COORDINATOR_TOKEN`, `CC_LEAD_TOKEN`, `CC_ADMIN_TOKEN` | Fixed demo tokens per role; an unset token means that role cannot sign in | unset |
+| `CC_LEAD_NAME` | Clinical lead's display name, written to the audit log as approver | `Clinical lead` |
+| `CC_TOKEN_SECRET` | Signs physician tokens (`POST /admin/physician-tokens`); unset = no physician sign-in | unset |
+| `CC_SWEEP_S` | Seconds between background sweeps (offer expiry, orphan deadlines); 0 = only on requests | `5` |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL_ID` | Text-to-speech; unset = audio routes return 503 and clients show the text | unset |
+| `CC_SERVICE_DATE` | Service date for the sample layout, whose shift times have no date (pack layout ignores it) | unset |
 
 Backups use RDS automated backups and snapshots. To move providers, point the new host at the same RDS instance, stop the old one, and verify replay before switching traffic.
 

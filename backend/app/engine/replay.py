@@ -25,6 +25,10 @@ class ConsultState:
     assignments: tuple[tuple[str, datetime], ...] = ()
     note_pending_since: datetime | None = None
     flags: tuple[str, ...] = ()
+    routing_failures: int = 0
+    last_routing_failure_at: datetime | None = None
+    repeat_contacts: int = 0  # Extra consult_received rows: the hospital calling again about the same consult.
+    ringing_since: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -56,17 +60,22 @@ def replay(events: tuple[Event, ...]) -> State:
         c = consults.get(cid)
         if kind == "consult_received":
             if c is None:
-                consults[cid] = {"hospital_id": e.hospital_id or "", "consult_type": e.consult_type or "", "owner": "Unassigned", "stage": "Received", "received_at": e.event_time, "entered_at": e.event_time, "history": [("Received", e.event_time)], "assignments": [], "note_pending_since": None, "flags": set()}
+                consults[cid] = {"hospital_id": e.hospital_id or "", "consult_type": e.consult_type or "", "owner": "Unassigned", "stage": "Received", "received_at": e.event_time, "entered_at": e.event_time, "history": [("Received", e.event_time)], "assignments": [], "note_pending_since": None, "flags": set(), "routing_failures": 0, "last_routing_failure_at": None, "repeat_contacts": 0, "ringing_since": None}
             else:
                 c["flags"].add("multiple_receipts")
+                c["repeat_contacts"] += 1
             continue
         # Closed consults never acquire another owner or new sessions/work.
         if c and c["stage"] == "Signed Off" and kind not in {*CALL_ENDS, "video_ended"}:
             continue
+        if c and kind == "routing_attempt_failed":
+            c["routing_failures"] += 1
+            c["last_routing_failure_at"] = e.event_time
         p = None
         if pid:
             p = physicians.setdefault(pid, {"status": "Available", "camera_active": False, "agent_online": None, "calls": set(), "videos": set(), "rings": set(), "call_starts": [], "shift_starts": [], "last_call_end": None, "last_answered_at": None, "flags": set()})
         session_valid = True
+        missing_start = False  # an end with no open session for this consult: its start is late or lost
         if p:
             if kind == "physician_status_changed": p["status"] = e.value
             elif kind in {"camera_active", "camera_inactive"}:
@@ -75,18 +84,24 @@ def replay(events: tuple[Event, ...]) -> State:
             elif kind == "agent_heartbeat_lost": p["agent_online"] = False
             elif kind == "shift_started": p["shift_starts"].append(e.event_time)
             elif c:
-                if kind == "incoming_call_ringing": p["rings"].add(cid)
+                if kind == "incoming_call_ringing":
+                    p["rings"].add(cid)
+                    c["ringing_since"] = c["ringing_since"] or e.event_time
                 elif kind in CALL_STARTS:
                     key = (cid, CALL_STARTS[kind])
                     if key in p["calls"]: session_valid = False
                     else:
                         p["calls"].add(key)
                         p["call_starts"].append(e.event_time)
-                        p["last_answered_at"] = e.event_time
-                        if kind == "incoming_call_started": p["rings"].discard(cid)
+                        if kind == "incoming_call_started":
+                            p["last_answered_at"] = e.event_time  # routing tie-break: answering a hospital's call
+                            p["rings"].discard(cid)
+                            c["ringing_since"] = None
                 elif kind in CALL_ENDS:
                     key = (cid, CALL_ENDS[kind])
-                    if key not in p["calls"]: session_valid = False
+                    if key not in p["calls"]:
+                        session_valid = False
+                        missing_start = not any(k[0] == cid for k in p["calls"]) and cid not in p["videos"]
                     else:
                         p["calls"].remove(key)
                         p["last_call_end"] = e.event_time
@@ -94,7 +109,9 @@ def replay(events: tuple[Event, ...]) -> State:
                     if cid in p["videos"]: session_valid = False
                     else: p["videos"].add(cid)
                 elif kind == "video_ended":
-                    if cid not in p["videos"]: session_valid = False
+                    if cid not in p["videos"]:
+                        session_valid = False
+                        missing_start = not any(k[0] == cid for k in p["calls"])
                     else: p["videos"].remove(cid)
                 if not session_valid:
                     reason = f"unmatched_session:{e.event_id}"
@@ -107,7 +124,8 @@ def replay(events: tuple[Event, ...]) -> State:
         stage = TRANSITIONS.get(kind)
         if kind in CALL_STARTS and c["stage"] == "Assigned": stage = "Provider Contacted"
         if kind in CALL_ENDS and e.value == "phone_complete": stage = "Note Pending"
-        if not session_valid: stage = None
+        # Consult lifecycle follows an end whose start is missing; a conflicting end changes nothing.
+        if not session_valid and not missing_start: stage = None
         if stage:
             if STAGE_RANK[stage] < STAGE_RANK[c["stage"]]:
                 # Reassignment and follow-up sessions affect activity, not stage.

@@ -12,13 +12,13 @@ export function TrapCheck({ check, title }: { check: TrapCheckData; title: strin
         <h2>{title}</h2>
         <span className={`badge ${check.passed ? "green" : "red"}`}>{check.passed ? "Trap check passed" : "Trap check failed"}</span>
       </div>
-      <table className="compare">
+      <div className="table-scroll" tabIndex={0} role="region" aria-label="Scrollable data table"><table className="compare">
         <thead><tr><th />{check.steps.map((s) => <th key={s}>{clockTime(s)}</th>)}</tr></thead>
         <tbody>
           <tr><td className="label">Without</td>{check.without.map((v, i) => <td key={i} className={`val ${tone(v)}`}>{v.count}/{v.required}</td>)}</tr>
           <tr><td className="label">With</td>{check.with.map((v, i) => <td key={i} className={`val ${tone(v)}`}>{v.count}/{v.required}</td>)}</tr>
         </tbody>
-      </table>
+      </table></div>
       <p className="footnote">
         {check.assumption} Takes {check.limited_to.map((h) => h.hospital_name).join(", ")} calls only and starts at {check.seed_consults} consults
         (load {check.joiner_load}, busiest peer {check.busiest_peer_load}).

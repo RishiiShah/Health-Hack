@@ -7,3 +7,4 @@ export { SignalFlags } from "./SignalFlags.tsx";
 export { StuckConsults } from "./StuckConsults.tsx";
 export { VoiceAlerts } from "./VoiceAlerts.tsx";
 export type { DetectSnapshot, QueueItem } from "./types.ts";
+export { detectFromSnapshot } from "./fromSnapshot.ts";

@@ -1,82 +1,322 @@
-import { useEffect, useState } from "react";
-import { STATIC_OFFERS, STATIC_SNAPSHOT } from "./api/live.ts";
-import { AttentionQueue, ConsultBoard, HeadlineNumbers, ItemDetail, PhysicianBoard } from "./detect/index.ts";
-import type { DetectSnapshot, QueueItem } from "./detect/types.ts";
+// App shell: sign-in gate, Anish's header and pages per role, all fed from the server (or the demo stand-in).
+import { Component, useEffect, useState, type ReactNode } from "react";
+import { api, DEMO, post } from "./api/client.ts";
+import { useSnapshot, type Snapshot } from "./api/live.ts";
+import { ApprovalsPage } from "./act/ApprovalsPage.tsx";
+import { DataPage } from "./act/DataPage.tsx";
+import { GapPanel } from "./act/GapPanel.tsx";
+import { unavailableText, useApi, useServerNow } from "./act/hooks.ts";
+import { isOpen, stateBadge } from "./act/offerSteps.ts";
+import { OfferTracker } from "./act/OfferTracker.tsx";
+import { clockTime, clockTimeSeconds, headerDate } from "./act/time.ts";
+import type { AuditEntry, Dataset, Offer } from "./act/types.ts";
+import { PAGES_BY_ROLE, SIGNED_OUT, clearSession, isUser, readSession, saveSession, type Session, type User } from "./auth/session.ts";
+import { ConsultBoard, HeadlineNumbers, PhysicianBoard, detectFromSnapshot, type DetectSnapshot, type QueueItem } from "./detect/index.ts";
 import { CoverageGrid } from "./forecast/CoverageGrid.tsx";
-import type { Coverage } from "./forecast/types.ts";
-import SchedulePage from "./Schedule.tsx";
+import { DemandPanel } from "./forecast/DemandPanel.tsx";
+import type { Coverage, Demand, Workload } from "./forecast/types.ts";
+import { WorkloadPanel } from "./forecast/WorkloadPanel.tsx";
 import { LandingPage } from "./LandingPage.tsx";
+import { ConsultQueues, PhysicianActivity, SignalVerification } from "./detect/LiveWorkload.tsx";
+import "./command.css";
+import { IncomingCall } from "./physician/IncomingCall.tsx";
+import { OffersPage } from "./physician/OffersPage.tsx";
+import SchedulePage from "./Schedule.tsx";
 import { SignIn } from "./SignIn.tsx";
+import "./tailwind.css";
 
-type Role = "coordinator" | "lead" | "physician";
-type Page = "command" | "consults" | "doctors" | "schedule" | "audit" | "data" | "approvals" | "shift" | "offers" | "settings";
-const detect = STATIC_SNAPSHOT as unknown as DetectSnapshot;
-const roleLabel: Record<Role, string> = { coordinator: "Coordinator", lead: "Clinical Lead", physician: "Dr. Priya Shah" };
-const readRole = (): Role | null => { const value = sessionStorage.getItem("cc_demo_role"); return value === "coordinator" || value === "lead" || value === "physician" ? value : null; };
+const LABELS: Record<string, string> = {
+  command: "Command", consults: "Consults", doctors: "Doctors", schedule: "Schedule", audit: "Audit", data: "Data",
+  approvals: "Approvals", shift: "My shift", offers: "Offers", settings: "Settings",
+};
+
+function useHashPage(pages: readonly string[]): string {
+  const pick = () => (pages.includes(location.hash.slice(1)) ? location.hash.slice(1) : pages[0]);
+  const [page, setPage] = useState(pick);
+  useEffect(() => {
+    const onHash = () => setPage(pick());
+    onHash();
+    addEventListener("hashchange", onHash);
+    return () => removeEventListener("hashchange", onHash);
+  }, [pages]);
+  return page;
+}
 
 export default function App() {
-  const [role, setRole] = useState<Role | null>(readRole);
-  const [hash, setHash] = useState(location.hash.slice(1) || "landing");
-  const [currentView, setCurrentView] = useState<"landing" | "signin" | "app">(() => readRole() ? "app" : location.hash === "signin" ? "signin" : "landing");
-  useEffect(() => { 
-    const onHash = () => { 
-      const nextHash = location.hash.slice(1) || "landing"; 
-      setHash(nextHash); 
-      if (nextHash === "landing") {
-        setCurrentView("landing");
-      } else if (nextHash === "signin") {
-        setCurrentView("signin");
-      } else if (role) {
-        setCurrentView("app");
-      } else {
-        setCurrentView("landing");
+  const [session, setSession] = useState<Session | null>(readSession);
+  const [checking, setChecking] = useState(() => readSession() !== null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
+  const [notice, setNotice] = useState<string>();
+  const [targetRole, setTargetRole] = useState<"coordinator" | "lead" | "physician">("coordinator");
+  const [signingIn, setSigningIn] = useState(() => location.hash === "#signin");
+  useEffect(() => {
+    const onHash = () => setSigningIn(location.hash === "#signin");
+    addEventListener("hashchange", onHash);
+    return () => removeEventListener("hashchange", onHash);
+  }, []);
+  useEffect(() => {
+    const onSignOut = (event: Event) => {
+      setSession(null);
+      setChecking(false);
+      setRestoreError(null);
+      setNotice((event as CustomEvent<string>).detail);
+    };
+    addEventListener(SIGNED_OUT, onSignOut);
+    return () => removeEventListener(SIGNED_OUT, onSignOut);
+  }, []);
+
+  useEffect(() => {
+    if (!checking || !session) return;
+    let cancelled = false;
+    setRestoreError(null);
+    api<{ user: User | null }>("/auth/me").then(({ user }) => {
+      if (cancelled || readSession()?.token !== session.token) return;
+      if (!isUser(user)) {
+        clearSession(session.token, "Sign-in isn't available on this server. Contact your administrator.");
+        return;
       }
-    }; 
-    addEventListener("hashchange", onHash); 
-    return () => removeEventListener("hashchange", onHash); 
-  }, [role]);
-  const signIn = (nextRole: Role) => { sessionStorage.setItem("cc_demo_role", nextRole); setRole(nextRole); setCurrentView("app"); location.hash = nextRole === "lead" ? "approvals" : nextRole === "physician" ? "shift" : "command"; };
-  const signOut = () => { sessionStorage.removeItem("cc_demo_role"); setRole(null); setCurrentView("landing"); location.hash = "landing"; };
-  const [targetRole, setTargetRole] = useState<Role>("coordinator");
-  if (currentView === "landing") return <LandingPage onEnter={signIn} onGoToSignIn={(r?: Role) => { if (r) setTargetRole(r); setCurrentView("signin"); location.hash = "signin"; }} />;
-  if (currentView === "signin") return <SignIn initialRole={targetRole} onSignIn={signIn} onBackToLanding={() => { setCurrentView("landing"); location.hash = "landing"; }} />;
-  if (!role) return <LandingPage onEnter={signIn} onGoToSignIn={(r?: Role) => { if (r) setTargetRole(r); setCurrentView("signin"); location.hash = "signin"; }} />;
-  return <Shell role={role} page={hash as Page} signOut={signOut} />;
+      const verified = { ...session, user };
+      saveSession(verified);
+      setSession(verified);
+      setChecking(false);
+    }, (error: Error) => {
+      if (!cancelled) setRestoreError(error.message);
+    });
+    return () => { cancelled = true; };
+  }, [checking, session, retry]);
+
+  useEffect(() => {
+    if (!session) return;
+    const expire = () => clearSession(session.token, "Your session has expired. Sign in again to continue.");
+    const check = () => { if (session.expires_at * 1000 <= Date.now()) expire(); };
+    const timer = setTimeout(expire, Math.max(0, session.expires_at * 1000 - Date.now()));
+    addEventListener("focus", check);
+    return () => { clearTimeout(timer); removeEventListener("focus", check); };
+  }, [session]);
+
+  // Signed-out visitors start on the landing page; its buttons lead to sign-in (#signin). A session-ended notice goes straight to sign-in.
+  if (!session && !notice && !signingIn) {
+    const toSignIn = (role: "coordinator" | "lead" | "physician" = "coordinator") => { setTargetRole(role); location.hash = "signin"; };
+    return <div className="tw"><LandingPage onEnter={toSignIn} onGoToSignIn={toSignIn} /></div>;
+  }
+  if (!session) {
+    return <SignIn key={targetRole} initialRole={targetRole} notice={notice} onBackToLanding={() => { setNotice(undefined); location.hash = ""; }}
+      onSignedIn={(next) => { setNotice(undefined); setChecking(false); setSession(next); location.hash = PAGES_BY_ROLE[next.user.role][0]; }} />;
+  }
+  if (checking) return <main className="signin-page"><div className="signin-main"><div className="signin">
+    <h1>Welcome back</h1>
+    <p role="status">{restoreError ?? "Checking your session…"}</p>
+    {restoreError && <><button className="submit" onClick={() => setRetry(value => value + 1)}>Try again</button><button className="signout" onClick={() => clearSession()}>Use another account</button></>}
+  </div></div></main>;
+  return session.user.role === "physician" ? <PhysicianApp session={session} /> : <OperationsApp session={session} />;
 }
 
-function Brand() { return <span className="brand"><b className="brand-mark">S</b> Overlap Command</span>; }
-function Landing() { return <div className="public-page"><header className="public-header"><Brand /><nav><a href="#how">How it works</a><a href="#leads">For clinical leads</a><a href="#physicians">For physicians</a><a href="#privacy">Data and privacy</a><a className="landing-signin" href="#signin">Sign in</a></nav></header><main className="landing-main"><section className="landing-hero"><div className="landing-copy"><h1>Every hospital<br />covered, before the<br />gap opens</h1><p>Command follows consults, calls and shifts across a tele-neurology network. It handles routine routing on its own and asks a clinical lead before anyone off shift is brought in.</p><div className="landing-actions"><a className="btn primary" href="#signin">Sign in</a><a className="btn landing-secondary" href="#how">See how it works</a></div></div><HeroDiagram /></section><section className="landing-section" id="how"><h2>What it does for the team</h2><div className="feature-grid"><Feature icon="◷" title="Sees gaps early" text="A 90-minute forecast for every hospital, rebuilt as events arrive, so a missing physician shows up before the shift change, not after." /><Feature icon="▣" title="One approval, nothing else" text="Routing, retries and flags run on their own. The only call left to a person is whether to bring someone in off shift." /><Feature icon="□" title="Runs on new data" text="Load a new set of CSV files and every screen rebuilds from them. Nothing is tied to the day it was built on." /></div></section><section className="landing-section"><h2>How it works</h2><div className="steps-grid"><Step number="1" title="Reads the event stream" text="Consults, calls and status changes are replayed in order. Duplicates are dropped and late events are put back where they belong." /><Step number="2" title="Finds what needs attention" text="Stalled consults, overloaded physicians, demand spikes and coming coverage gaps are ranked in one queue." /><Step number="3" title="Acts, or asks once" text="Routine fixes happen automatically. For an off-shift offer it checks every rule, then waits for a clinical lead to approve." /></div></section><section className="apps-section"><h2>Two apps, one schedule</h2><div className="apps-grid"><AppCard title="Clinical leads" label="Web and phone" text="Coverage for every hospital, the attention queue, the team schedule, and the one decision that needs you: approve or reject an off-shift offer." button="Open Command" href="#signin" /><AppCard title="Physicians" label="Phone and web" text="On shift, see new consults the moment they're assigned. Off shift, get an offer only after a lead has approved it, with the hospital and hours and nothing about patients." button="See physician view" href="#signin" /></div></section></main><footer>Built for Rutgers Health Hack 2026, Sevaro challenge. Synthetic data only. <span>Terms of Service · Privacy Policy</span></footer></div>; }
-function HeroDiagram() { return <div className="hero-diagram"><div className="diagram-window"><div className="diagram-head"><b>[+]</b><span>Network coverage</span><small>Active</small></div><div className="diagram-row"><i className="bar teal-bar" /><i className="bar slate-bar" /><i className="bar short-bar" /></div><div className="diagram-row faded"><i className="bar teal-bar" /><i className="bar amber-bar" /><i className="bar short-bar" /></div><div className="diagram-row"><i className="bar slate-bar" /><i className="bar teal-bar" /><i className="gap-slot" /></div><div className="diagram-phone"><div className="phone-speaker" /><strong>Incoming consult</strong><span>New assignment ready</span><b>Answer</b></div><span className="covered-badge">✓ Shift covered</span></div></div>; }
-function Feature({ icon, title, text }: { icon: string; title: string; text: string }) { return <article className="feature-item"><span className="feature-icon">{icon}</span><h3>{title}</h3><p>{text}</p></article>; }
-function Step({ number, title, text }: { number: string; title: string; text: string }) { return <article className="step-item"><b className="step-number">{number}</b><div><h3>{title}</h3><p>{text}</p></div></article>; }
-function AppCard({ title, label, text, button, href }: { title: string; label: string; text: string; button: string; href: string }) { return <article className="app-card"><span>{label}</span><h3>{title}</h3><p>{text}</p><a href={href}>{button} <b>→</b></a></article>; }
-function AirLanding() { return <div className="air-landing"><header className="air-nav"><a className="air-brand" href="#landing"><b className="overlap-mark"><i /><i /></b><strong>overlap</strong></a><nav><a href="#air-how">Features</a><a href="#air-coverage">Network Ops</a><a href="#air-rules">Clinical Safety</a><a href="#signin">Security & HIPAA</a></nav><a className="air-launch" href="#signin">Sign in <span>→</span></a></header><main><section className="air-hero"><div className="air-copy"><span className="air-kicker">Autonomous coordination for neuro teams</span><h1>Every hospital covered, <em>before</em> the gap opens.</h1><p>Autonomous tele-neurology coordination. Detects demand surges 90 minutes early, enforces clinical rest rules, and asks a physician with a single tap.</p><div className="air-ctas"><a className="air-primary" href="#signin">Enter Command Center →</a><a className="air-secondary" href="#signin">Switch to Physician View</a></div></div><AirShowcase /></section><section className="air-bento" id="air-how"><AirValue icon="◷" tone="teal" title="90-Minute Lookahead" text="Predicts hospital deficits before shifts end so no consult waits" /><AirValue icon="◌" tone="slate" title="Human in the Loop" text="Only safe alerts happen automatically; every extra shift offer requires clinical lead sign-off" /><AirValue icon="⌁" tone="indigo" title="Replay & Live Ingestion" text="Drop a new events CSV and the entire network re-evaluates in milliseconds without restarting" /></section></main><footer className="air-footer">Built for Rutgers Health Hack 2026, Sevaro challenge. Synthetic data only. <span>Terms of Service · Privacy Policy</span></footer></div>; }
-function AirShowcase() { return <div className="air-showcase" id="air-coverage"><div className="showcase-card"><div className="showcase-heading"><div><span className="mini-label">Abstract network view</span><strong>Network schedule</strong></div><span className="mini-live"><i /> Active</span></div><div className="showcase-axis"><span>Start</span><span>Midday</span><span>Now</span><span>Close</span></div>{[["Lane A", "shift-teal", "8%", "54%"], ["Lane B", "shift-slate", "20%", "66%"], ["Lane C", "shift-amber", "48%", "93%"], ["Coverage Needed", "shift-gap", "10%", "32%"]].map(([name, tone, left, width]) => <div className="showcase-row" key={name}><span>{name}</span><div className="showcase-track"><i className={tone} style={{ left, width }} /></div></div>)}<div className="abstract-phone"><div className="phone-speaker" /><strong>Incoming consult</strong><span>New assignment ready</span><b>Answer</b></div><span className="showcase-badge badge-time">⚡ 90-min lookahead active</span><span className="showcase-badge badge-rules">✓ Shift covered</span></div></div>; }
-function AirValue({ icon, tone, title, text }: { icon: string; tone: string; title: string; text: string }) { return <article className="air-value"><span className={`air-value-icon ${tone}`}>{icon}</span><h2>{title}</h2><p>{text}</p><span className="air-arrow">↗</span></article>; }
-function LegacySignIn({ onSignIn }: { onSignIn: (role: Role) => void }) { return <button className="btn" onClick={() => onSignIn("coordinator")}>Sign in</button>; }
-
-function Shell({ role, page, signOut }: { role: Role; page: Page; signOut: () => void }) {
-  const nav = role === "coordinator" ? [["command", "Command"], ["consults", "Consults"], ["doctors", "Doctors"], ["schedule", "Schedule"], ["audit", "Audit"], ["data", "Data"]] : role === "lead" ? [["approvals", "Approvals (1)"], ["audit", "Audit"], ["consults", "Consults"], ["data", "Data"]] : [["shift", "My shift"], ["offers", "Offers (1)"], ["settings", "Settings"]];
-  const active = nav.some(([key]) => key === page) ? page : nav[0][0];
-  return <div className="min-h-screen bg-[#FAF6EB] text-slate-900"><header className="fixed left-1/2 top-4 z-50 flex w-[calc(100%-32px)] max-w-6xl -translate-x-1/2 items-center justify-between rounded-full border border-[#E5E0D5] bg-white/90 px-5 py-2.5 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]"><div className="flex items-center gap-3"><a href="#landing" className="flex items-center gap-2 text-slate-900 hover:text-slate-700 transition"><span className="relative block h-5 w-6"><i className="absolute left-0 top-0 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-teal-600" /><i className="absolute left-2.5 top-1.5 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#161E2E]" /></span><strong className="text-base font-bold tracking-tight text-slate-900">overlap</strong></a>{role === "coordinator" && <span className="hidden items-center gap-1.5 pl-2 text-[11px] font-mono text-slate-500 sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-teal-600 animate-pulse" />Tue 17 Mar · 18:20 ET · last event 18:19:58</span>}</div><nav className="flex items-center gap-1">{nav.map(([key, label]) => <a key={key} href={`#${key}`} className={`rounded-full px-3 py-1 text-xs font-semibold transition ${active === key ? "bg-[#161E2E] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"}`}>{label}</a>)}</nav><div className="flex items-center gap-2"><span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">{roleLabel[role]}</span><button onClick={signOut} className="rounded-full px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900">Sign out ↗</button></div></header><main className="mx-auto max-w-7xl px-4 pb-12 pt-24 sm:px-6">{role === "coordinator" ? <Coordinator page={active as Page} /> : role === "lead" ? <Lead page={active as Page} /> : <Physician page={active as Page} />}</main></div>;
+// Anish's floating header: brand, live clock line, role tabs, account and sign-out.
+function Header({ session, page, clock, counts = {} }: { session: Session; page: string; clock?: string; counts?: Record<string, number> }) {
+  return <header className="tw app-header z-50 rounded-2xl border border-[#E5E0D5] bg-white/90 px-5 py-2.5 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+    <div className="header-brand flex items-center gap-3">
+      <span className="flex items-center gap-2"><span className="relative block h-5 w-6"><i className="absolute left-0 top-0 h-3 w-3 -skew-x-12 rounded-sm bg-teal-600" /><i className="absolute left-2.5 top-1.5 h-3 w-3 -skew-x-12 rounded-sm bg-[#161E2E]" /></span><strong className="text-sm font-bold tracking-tight text-slate-900">overlap</strong></span>
+      {clock && <span className="header-clock items-center gap-1.5 pl-2 font-mono text-[11px] text-slate-500"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-600" />{clock}</span>}
+      {DEMO && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Demo data</span>}
+    </div>
+    <nav aria-label="Workspace" className="header-nav flex items-center gap-1">
+      {PAGES_BY_ROLE[session.user.role].map((key) => (
+        <a key={key} href={`#${key}`} aria-current={page === key ? "page" : undefined}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${page === key ? "bg-[#161E2E] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"}`}>
+          {LABELS[key]}{counts[key] ? ` (${counts[key]})` : ""}
+        </a>
+      ))}
+    </nav>
+    <div className="header-account flex items-center gap-2">
+      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600" title={session.user.email}>{session.user.name} · {session.user.role_label}</span>
+      <button onClick={() => clearSession()} className="rounded-full px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900">Sign out ↗</button>
+    </div>
+  </header>;
 }
-function Title({ eyebrow, title, note }: { eyebrow: string; title: string; note: string }) { return <div className="workspace-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div><span className="mono muted">{note}</span></div>; }
 
-function Coordinator({ page }: { page: Page }) { const [selected, setSelected] = useState("CON-2105"); const item = detect.queue.find((entry) => entry.id === selected) ?? detect.queue[0]; if (page === "command") return <CommandDashboard item={item} onSelect={setSelected} />; if (page === "consults") return <div className="page"><Title eyebrow="Coordinator workspace" title="Consults" note="18 open · server-derived levels" /><ConsultBoard consults={detect.consults} /></div>; if (page === "doctors") return <div className="page"><Title eyebrow="Coordinator workspace" title="Doctors" note="8 on shift · signal comparison" /><PhysicianBoard physicians={detect.physicians} /></div>; if (page === "schedule") return <SchedulePage />; if (page === "audit") return <Audit />; return <Data />; }
-function CommandDashboard({ item, onSelect }: { item: QueueItem; onSelect: (id: string) => void }) { return <div className="command-page"><div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Command</h1></div><span className="command-clock">Replay · Tue 17 Mar · 18:20 ET</span></div><div className="command-top"><section className="queue-card"><div className="queue-card-head"><div><span className="eyebrow">Needs attention</span><h2>Ranked queue</h2></div><span className="mono queue-count">8 items</span></div><div className="dense-queue">{detect.queue.map((entry, index) => <button className={`dense-queue-row ${entry.id === item.id ? "active" : ""}`} key={entry.id} onClick={() => onSelect(entry.id)}><b className="queue-rank">{String(index + 1).padStart(2, "0")}</b><span className="queue-label"><strong>{entry.id}</strong><small>{entry.reason}</small></span><span className={`level-chip ${entry.level.toLowerCase()}`}>{entry.level}</span><b className="queue-score">{entry.score}</b><span className="queue-info">ⓘ</span></button>)}</div></section><Dossier /></div><div className="command-lower"><CoverageMatrix /><div className="command-rail"><OfferStatus /><AutoLog /></div></div></div>; }
-function Dossier() { return <section className="dossier-card"><div className="dossier-head"><div><span className="eyebrow">#1 of 8 · score 160 · Critical</span><h2>A stroke consult has had no doctor for 10 minutes</h2></div><span className="critical-mark">!</span></div><div className="dossier-grid"><div><b>Where</b><p>Oak Valley Medical · <span className="mono">CON-2105</span> · stroke · triaged at <span className="mono">18:09:05</span></p></div><div><b>Why it matters</b><p>Unassigned for 10 min against a 10 min critical limit. Routing has failed 3 times because Dr. Kim is on a video consult and Dr. Williams is unavailable. Next approved doctor (Dr. Haddad) starts at 20:00.</p></div><div><b>Suggested fix</b><p>Escalate to the clinical lead</p></div><div><b>Who approves</b><p>Clinical lead</p></div><div className="dossier-wide"><b>Why this fix</b><p>Escalate to the clinical lead keeps the clinical decision visible. Move to Dr. Brooks is available but would change the current routing assignment. An off-shift offer requires lead approval and adds response time.</p></div></div><div className="dossier-actions"><button className="btn dossier-primary">Escalate to clinical lead</button><button className="btn dossier-secondary">Check Reassign Options</button><button className="btn dossier-muted">Not now</button></div></section>; }
-const coverageHospitals = ["Suncrest", "Oak Valley", "Redwood Univ", "Cedar Ridge", "Northfield", "Lakeview", "Meadowlands", "Harbor Regional", "Highland Valley", "Westbridge", "Bluewater", "Silver Oak"];
-const coverageStates = ["above", "at", "at", "gap", "above", "at", "above", "at"];
-function CoverageMatrix() { return <section className="coverage-card"><div className="coverage-heading"><div><span className="eyebrow">Next 90 minutes</span><h2>Coverage by hospital</h2></div><span className="coverage-legend"><i className="legend-above" /> Above min <i className="legend-at" /> At min <i className="legend-gap" /> Short</span></div><div className="coverage-scroll"><table className="coverage-table"><thead><tr><th>Hospital</th>{["Now", "18:30", "18:45", "19:00", "19:15", "19:30", "19:45"].map((time) => <th key={time}>{time}</th>)}</tr></thead><tbody>{coverageHospitals.map((hospital, row) => <tr key={hospital}><td>{hospital}</td>{Array.from({ length: 7 }, (_, column) => { const state = row === 0 && column >= 3 ? "gap" : row === 1 && column === 0 ? "at" : coverageStates[(row + column) % coverageStates.length]; return <td key={column}><span className={`coverage-cell ${state}`}>{state === "above" ? "2 / 1" : state === "at" ? "1 / 1" : "0 / 1"}</span></td>; })}</tr>)}</tbody></table></div></section>; }
-function AutoLog() { return <section className="auto-log"><div className="rail-heading"><div><span className="eyebrow">Activity</span><h2>Done automatically</h2></div><span className="badge green">4 events</span></div>{[["18:20:00", "Coverage forecast rebuilt", "12 hospitals"], ["18:19:10", "Retry scheduled", "CON-2105 · 18:25"], ["18:12:40", "Duplicate event dropped", "EVT-8841"], ["17:38:00", "Consult assigned", "CON-2114 · Brooks"]].map(([time, action, detail]) => <div className="auto-log-row" key={time}><span className="mono">{time}</span><div><strong>{action}</strong><small>{detail}</small></div></div>)}</section>; }
-function OfferStatus() { return <section className="panel offer-status"><div className="panel-head"><h2>Extra shift offer</h2><span className="badge amber">Waiting</span></div><strong>Suncrest Medical Pavilion</strong><p>19:00–23:00 ET · Dr. Okafor</p><div className="status-track"><span className="done" /><span className="current" /><span /><span /></div><div className="offer-steps"><small><b>Proposed by you</b><br />18:20:00</small><small><b>Clinical lead approves</b><br />waiting</small><small>Physician response</small></div></section>; }
-function MiniNeed({ title, text }: { title: string; text: string }) { return <section className="panel mini-need"><span className="eyebrow">{title}</span><p>{text}</p><button className="btn">Review →</button></section>; }
-function Schedule() { return <div className="page"><Title eyebrow="Coordinator workspace" title="Schedule" note="06:00–24:00 ET" /><section className="panel timeline"><div className="time-axis">{["06:00", "09:00", "12:00", "15:00", "18:00", "21:00", "24:00"].map((time) => <span key={time}>{time}</span>)}</div>{["Dr. Patel", "Dr. Brooks", "Dr. Okafor", "Dr. Torres"].map((name, index) => <div className="timeline-row" key={name}><strong>{name}</strong><div><span className={`shift-bar bar-${index}`} />{name === "Dr. Okafor" && <em>Extra shift offer · 19:00–23:00</em>}</div></div>)}</section></div>; }
-function Audit() { return <div className="page"><Title eyebrow="Immutable record" title="Audit" note="18:20 ET · replay snapshot" /><section className="panel audit-list">{[["18:20:04", "System", "Snapshot loaded", "18 consults, 8 physicians"], ["18:19:51", "Coordinator", "Opened attention queue", "CON-2105 · score 160"], ["18:19:42", "System", "Coverage gap detected", "Suncrest · 19:00"], ["18:19:10", "Clinical lead", "Offer reviewed", "Dr. Okafor · pending"]].map(([time, actor, action, detail]) => <div key={time}><span className="mono muted">{time}</span><b>{actor}</b><strong>{action}</strong><span>{detail}</span></div>)}</section></div>; }
-function Data() { const [uploaded, setUploaded] = useState(false); return <div className="page"><Title eyebrow="Coordinator workspace" title="Data" note="Static replay dataset" /><section className="panel dropzone" onClick={() => setUploaded(true)}><div className="drop-icon">↑</div><h2>{uploaded ? "Mock upload accepted" : "Drop a CSV here"}</h2><p>{uploaded ? "events.csv · 128 rows · 0 conflicts" : "or click to browse · feedback is simulated locally"}</p>{uploaded && <span className="badge green">Ready for review</span>}</section></div>; }
+// A crash inside one page shows an error there instead of unmounting the whole app; changing page starts afresh.
+class PageBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    return this.state.error
+      ? <p className="error" role="alert">This page couldn't be displayed ({this.state.error.message}). The other pages still work; reload to try again.</p>
+      : this.props.children;
+  }
+}
+const Main = ({ page, children }: { page: string; children: ReactNode }) => <main className="workspace-main"><PageBoundary key={page}>{children}</PageBoundary></main>;
+const Title = ({ eyebrow, title, note }: { eyebrow: string; title: string; note?: string }) =>
+  <div className="workspace-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div>{note && <span className="mono muted">{note}</span>}</div>;
+const Unavailable = ({ what }: { what: string }) => <p className="unavailable">Not available yet: the server doesn't send {what}.</p>;
 
-function Lead({ page }: { page: Page }) { if (page === "approvals") return <div className="page"><Title eyebrow="Clinical lead workspace" title="Approvals" note="1 pending decision" /><section className="alert-panel"><span className="badge amber">Coverage impact</span><h2>Suncrest surge at 19:00</h2><p>Without Dr. Okafor: <b>1 / 2</b> coverage. With her: <b className="teal-text">2 / 2</b> coverage.</p></section><div className="lead-grid"><DecisionMatrix /><section className="panel"><h2>Lead action</h2><p className="muted">Suncrest Medical Pavilion · 19:00–23:00 ET</p><button className="btn primary block">Approve and send offer</button><button className="btn danger block">Reject · requires note</button></section></div><section className="panel"><div className="panel-head"><h2>Escalation resolution · CON-2105</h2><span className="badge red">Critical</span></div><p>Direct clinical override: break off Dr. Kim from video consult CON-2101 and route the Lakeside call.</p><button className="btn">Apply override</button></section></div>; if (page === "consults") return <div className="page"><Title eyebrow="Clinical lead workspace" title="Consults" note="Read-only clinical view" /><ConsultBoard consults={detect.consults} /></div>; if (page === "audit") return <Audit />; return <Data />; }
-function DecisionMatrix() { return <section className="panel matrix"><div className="panel-head"><h2>Decision matrix</h2><span className="panel-note">6 candidates × 8 routing rules</span></div><table><thead><tr><th>Candidate</th>{["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"].map((rule) => <th key={rule}>{rule}</th>)}</tr></thead><tbody>{["Okafor", "Alvarez", "Cho", "Haddad", "Brennan", "Menon"].map((name, row) => <tr key={name}><td><b>Dr. {name}</b></td>{Array.from({ length: 8 }, (_, index) => <td key={index}><span className={row === 0 && index < 7 ? "matrix-pass" : "matrix-fail"}>{row === 0 && index < 7 ? "✓" : "–"}</span></td>)}</tr>)}</tbody></table><p className="matrix-note">Anti-Swamping Guard: effective routing baseline <b>15 consults</b>.</p></section>; }
+function OperationsApp({ session }: { session: Session }) {
+  const role = session.user.role;
+  const page = useHashPage(PAGES_BY_ROLE[role]);
+  const live = useSnapshot();
+  const now = useServerNow(live.snapshot, live.receivedAt);
+  const offers = useApi<{ items: Offer[] }>("/offers", live.receivedAt);
+  const s = live.snapshot;
+  const detect = s ? detectFromSnapshot(s) : null;
+  const workspace = role === "lead" ? "Clinical lead workspace" : "Coordinator workspace";
+  const clock = s && now !== null ? `${headerDate(now)} · ${clockTime(new Date(now).toISOString())} ET · ${(s.dataset as Dataset | undefined)?.name ?? s.clock.mode}` : undefined;
 
-function Physician({ page }: { page: Page }) { if (page === "offers") return <PhysicianOffer />; if (page === "settings") return <div className="page"><Title eyebrow="Physician workspace" title="Settings" note="Dr. Priya Shah" /><section className="panel"><h2>Notifications</h2><p className="muted">Voice previews and offer alerts are enabled for this demo.</p></section></div>; return <div className="page physician-page"><Title eyebrow="Physician workspace" title="My shift" note="Tuesday 17 March · 18:20 ET" /><div className="physician-top"><section className="panel shift-clock"><span className="eyebrow">Shift remaining</span><strong>1 h 36 min</strong><p>until 20:00 ET</p></section><section className="panel"><span className="eyebrow">Hospitals covered</span><h2>Suncrest · Lakeside · North Valley</h2><p className="muted">3 active consults</p></section></div><section className="panel"><div className="panel-head"><h2>Active consults</h2><span className="badge teal">On shift</span></div>{["CON-2114", "CON-2104", "CON-2113"].map((id, index) => <div className="consult-line" key={id}><b className="mono">{id}</b><span>{["Suncrest Medical Pavilion", "Lakeside Medical Center", "North Valley"][index]}</span><span className="badge neutral">{["Physician call", "Triaged", "Imaging"][index]}</span></div>)}</section></div>; }
-function PhysicianOffer() { const [status, setStatus] = useState<"pending" | "accepted" | "declined">("pending"); const [remaining, setRemaining] = useState(600); useEffect(() => { if (status !== "pending") return; const timer = setInterval(() => setRemaining((value) => Math.max(0, value - 1)), 1000); return () => clearInterval(timer); }, [status]); const expired = remaining === 0; return <div className="page"><Title eyebrow="Physician workspace" title="Offers" note="1 pending offer" /><section className="phone-offer"><div className="phone-top"><span>Suncrest Medical Pavilion</span><span className="badge amber">Extra shift</span></div><h2>Help cover the evening line.</h2><div className="offer-time"><strong>19:00</strong><span>to</span><strong>23:00 ET</strong></div><p>HIPAA-compliant offer. No patient or consult details are included.</p><div className="countdown"><span>Offer expires in</span><b>{expired ? "Expired" : `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`}</b></div>{status === "pending" && !expired ? <div className="offer-buttons"><button className="btn primary" onClick={() => setStatus("accepted")}>Accept Extra Shift</button><button className="btn danger" onClick={() => setStatus("declined")}>Decline</button></div> : <div className={`offer-result ${status === "accepted" ? "accepted" : ""}`}>{expired ? "Expired" : status === "accepted" ? "Accepted" : "Declined"}</div>}<button className="audio-link">▶ Listen to offer</button><small className="muted">Offer {STATIC_OFFERS.items[0].offer_id} · Eastern Time</small></section></div>; }
+  return <div className={`${page === "command" ? "command-shell " : ""}min-h-screen bg-[#FBF9F5] text-slate-900`}>
+    <Header session={session} page={page} clock={clock} counts={role === "lead" ? { approvals: Number(s?.pending_approvals ?? 0) } : {}} />
+    <Main page={page}>
+      {live.error && <p className="error" role="status">{s ? "Updates interrupted. Showing the last received snapshot. " : "Can't reach the server: "}{live.error}</p>}
+      {page === "command" && s && <CommandPage snapshot={s} detect={detect} now={now} offers={offers.data?.items ?? []} reloadKey={live.receivedAt} refresh={live.refresh} />}
+      {page === "consults" && <div className="page detail-page"><Title eyebrow={workspace} title="Consults" note="Level from the server" />{detect ? <><ConsultQueues detect={detect} onReview={showConsult} /><ConsultBoard consults={detect.consults} /></> : <Unavailable what="consults with levels" />}</div>}
+      {page === "doctors" && <div className="page detail-page"><Title eyebrow={workspace} title="Doctors" note="Self-report beside derived state" />{detect ? <><PhysicianActivity detect={detect} /><div className="forecast-panels"><WorkloadPanel workload={s?.workload as Workload | undefined} /><SignalVerification detect={detect} /></div><PhysicianBoard physicians={detect.physicians} /></> : <Unavailable what="physician state" />}</div>}
+      {page === "schedule" && <SchedulePage reloadKey={live.receivedAt} />}
+      {page === "audit" && <AuditPage workspace={workspace} reloadKey={live.receivedAt} />}
+      {page === "approvals" && <ApprovalsPage offers={offers.data?.items ?? []} offersError={offers.error && !offers.data ? unavailableText(offers.error, "GET /offers") : null} now={now} reloadKey={live.receivedAt} onChanged={live.refresh} />}
+      {page === "data" && <DataPage snapshot={s} now={now} onChanged={live.refresh} />}
+    </Main>
+  </div>;
+}
+
+// Bring a consult's row in the lifecycle board into view.
+function showConsult(consultId: string) {
+  const row = document.getElementById(`consult-${consultId}`);
+  row?.scrollIntoView({ behavior: "smooth", block: "center" });
+  row?.focus({ preventScroll: true });
+}
+
+function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
+  snapshot: Snapshot; detect: DetectSnapshot | null; now: number | null; offers: Offer[]; reloadKey: unknown; refresh: () => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [gapId, setGapId] = useState<string | null>(null);
+  const [queueFilter, setQueueFilter] = useState("All");
+  const findCover = (id: string) => { setGapId(id); };
+  useEffect(() => {
+    if (gapId) document.getElementById("command-cover-action")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [gapId]);
+  const openOffers = offers.filter(isOpen);
+  const closedOffers = offers.filter((o) => !isOpen(o));
+  const shownQueue = detect?.queue.filter((q) => queueFilter === "All" || q.level === queueFilter) ?? [];
+  const item = shownQueue.find((entry) => entry.id === selectedId) ?? shownQueue[0] ?? null;
+  return <div className="command-page">
+    <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Operations command center</h1><p className="command-subtitle">Work top to bottom: resolve priority items, check coverage for the next 90 minutes, then follow each offer to its outcome.</p></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
+    {detect && <HeadlineNumbers headline={detect.headline} />}
+    <nav className="command-section-nav" aria-label="Dashboard sections"><span>On this page</span><a href="#command-attention">1. Priority actions</a><a href="#command-forecast">2. Coverage forecast</a><a href="#command-actions">3. Coverage offers</a></nav>
+    <section id="command-attention" tabIndex={-1} className="command-section" aria-labelledby="attention-heading">
+      <div className="command-section-head"><div><span className="section-index">01 · Detect & decide</span><h2 id="attention-heading">What needs action now</h2></div><p>Ranked by the server. Select an item to see the recommended intervention.</p></div>
+      <div className="command-top">
+      <section className="queue-card" aria-label="Ranked attention queue">
+        <div className="queue-card-head"><div><h3>Attention queue</h3><p className="panel-note">Highest priority first</p></div><span className="mono queue-count">{detect?.queue.length ?? 0} items</span></div>
+        <div className="queue-filters" aria-label="Filter attention queue">{["All", "Critical", "Warning", "Info"].map((level) => <button key={level} aria-pressed={queueFilter === level} onClick={() => setQueueFilter(level)}>{level} <span>{level === "All" ? detect?.queue.length ?? 0 : detect?.queue.filter((q) => q.level === level).length ?? 0}</span></button>)}</div>
+        {detect ? <div className="dense-queue">{shownQueue.map((entry) => (
+          <button className={`dense-queue-row ${entry.id === item?.id ? "active" : ""}`} key={entry.id} aria-pressed={entry.id === item?.id} onClick={() => setSelectedId(entry.id)}>
+            <b className="queue-rank">{String(entry.rank).padStart(2, "0")}</b>
+            <span className="queue-label"><strong>{entry.label}</strong><small>{entry.reason}</small></span>
+            <span className={`level-chip ${entry.level.toLowerCase()}`}>{entry.level}</span>
+          </button>
+        ))}{!shownQueue.length && <p className="empty-state">No {queueFilter === "All" ? "attention" : queueFilter.toLowerCase()} items.</p>}</div> : <Unavailable what="the attention queue" />}
+      </section>
+      {item && <Dossier item={item} total={detect!.queue.length} onFindCover={findCover} onDone={refresh} />}
+      </div>
+    </section>
+    <section id="command-forecast" className="command-section" aria-labelledby="coverage-heading">
+      <div className="command-section-head"><div><span className="section-index">02 · Forecast</span><h2 id="coverage-heading">Where coverage needs support</h2></div><p>Staffing against the minimum at each hospital, with recent demand.</p></div>
+      <div className="command-coverage">
+      <CoverageGrid coverage={snapshot.coverage as Coverage | undefined} onFindCover={setGapId} />
+      {gapId && <div id="command-cover-action"><GapPanel gapId={gapId} reloadKey={reloadKey} now={now} canPropose onClose={() => setGapId(null)} onProposed={() => { setGapId(null); refresh(); }} /></div>}
+      </div>
+      <DemandPanel demand={snapshot.demand as Demand | undefined} />
+    </section>
+    <section id="command-actions" className="command-section" aria-labelledby="coordination-heading">
+      <div className="command-section-head"><div><span className="section-index">03 · Act & close the loop</span><h2 id="coordination-heading">Coverage offers</h2></div><p>Every off-shift offer needs clinical lead approval before the physician is contacted.</p></div>
+      <div className="command-rail">
+        <section className="panel" aria-labelledby="open-offers-heading">
+          <div className="panel-head"><div><h3 id="open-offers-heading">Offers in progress</h3><p className="panel-note">{openOffers.length} open · each card shows its next step and who acts on it</p></div>
+            <div className="status-badges"><span className="badge amber">{offers.filter(o => o.state === "Proposed").length} awaiting lead approval</span><span className="badge teal">{offers.filter(o => o.state === "Sent").length} awaiting physician reply</span></div></div>
+          {openOffers.length ? <div className="tracker-list">{openOffers.map((o) => <OfferTracker key={o.offer_id} offer={o} now={now} />)}</div> : <p className="empty-state">No offers in progress. Use Find cover on a coverage gap to propose one.</p>}
+        </section>
+        <section className="panel offer-outcomes" aria-labelledby="closed-offers-heading">
+          <div className="panel-head"><div><h3 id="closed-offers-heading">Completed offers</h3><p className="panel-note">{offers.filter(o => o.state === "Accepted").length} accepted of {closedOffers.length} closed · full history in <a className="text-link" href="#audit">Audit</a></p></div></div>
+          {closedOffers.length ? <div className="outcome-list">{closedOffers.map((offer) => <div className="outcome-row" key={offer.offer_id}><div><strong>{offer.physician_name}</strong><p>{offer.hospital_names.join(", ")} · {clockTime(offer.start)}–{clockTime(offer.end)} ET</p>{offer.reject_reason && <small>{offer.reject_reason}</small>}</div><span className={`badge ${stateBadge(offer.state).tone}`}>{stateBadge(offer.state).text}</span></div>)}</div> : <p className="empty-state">No completed offers yet.</p>}
+        </section>
+      </div>
+    </section>
+  </div>;
+}
+
+// The selected queue item, in Anish's dossier layout. Buttons appear only for fixes the server says a person can take.
+function Dossier({ item, total, onFindCover, onDone }: { item: QueueItem; total: number; onFindCover: (gapId: string) => void; onDone: () => void }) {
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => setMessage(null), [item.id]);
+  const intervene = async (kind: "reassign" | "escalate") => {
+    try {
+      await post("/interventions", { kind, item_id: item.id, physician_id: kind === "reassign" ? item.physicianId : undefined });
+      setMessage(kind === "escalate" ? "Sent to the clinical lead." : "Reassignment recorded.");
+      onDone();
+    } catch (e) {
+      setMessage((e as Error).message);
+    }
+  };
+  const isGap = item.kind === "now_gap" || item.kind === "gap";
+  const canReassign = ["reassign", "assign", "handoff"].includes(item.fixKind) && item.physicianId;
+  return <section className={`dossier-card severity-${item.level.toLowerCase()}`}>
+    <div className="dossier-head"><div><span className="eyebrow">Recommended intervention · #{item.rank} of {total} · {item.level}</span><h3>{item.reason}</h3></div>{item.level === "Critical" && <span className="critical-mark">!</span>}</div>
+    <div className="dossier-grid">
+      <div><b>Affected consult / site</b><p>{item.where || "–"}</p></div>
+      <div><b>Why it matters</b><p>{item.why || "–"}</p></div>
+      <div><b>Recommended action</b><p>{item.fix}</p></div>
+      <div><b>Who approves</b><p>{item.approver}</p></div>
+      {(item.fixReason || item.alternatives.length > 0) && <div className="dossier-wide"><b>Why this fix</b><p>{item.fixReason}</p>{item.alternatives.length > 0 && <details className="decision-alternatives"><summary>Other options & exclusions ({item.alternatives.length})</summary><ul>{item.alternatives.map((a) => <li key={a}>{a}</li>)}</ul></details>}</div>}
+    </div>
+    <div className="dossier-actions">
+      {canReassign && <button className="btn dossier-primary" onClick={() => intervene("reassign")}>{item.fixKind === "handoff" ? "Record handoff" : "Reassign"}</button>}
+      {isGap && <button className="btn dossier-primary" onClick={() => onFindCover(item.id)}>Find cover</button>}
+      {item.approver !== "Automatic" && <button className={`btn ${item.fixKind === "escalate" ? "dossier-primary" : "dossier-secondary"}`} onClick={() => intervene("escalate")}>Escalate to clinical lead</button>}
+    </div>
+    {message && <p className="muted" role="status">{message}</p>}
+  </section>;
+}
+
+function useAudit(reloadKey: unknown) {
+  return useApi<{ items: AuditEntry[] }>("/audit", reloadKey);
+}
+
+function AuditPage({ workspace, reloadKey }: { workspace: string; reloadKey: unknown }) {
+  const { data, error } = useAudit(reloadKey);
+  return <div className="page"><Title eyebrow={workspace} title="Audit" note="Append-only record" />
+    <section className="panel audit-list">
+      {error && !data ? <p className="unavailable">{unavailableText(error, "GET /audit")}</p>
+        : !data?.items.length ? <p className="unavailable">Nothing recorded yet.</p>
+          : data.items.slice().reverse().map((row, i) => <div key={i}><span className="mono muted">{clockTimeSeconds(row.at)}</span><b>{row.actor}</b><strong>{row.action}</strong><span>{row.detail}</span></div>)}
+    </section>
+  </div>;
+}
+
+type Shift = { name: string; shift_end: string | null; minutes_to_shift_end: number | null; hospitals: string[]; consults: { consult_id: string; hospital_name: string; consult_type: string; stage: string; minutes_in_stage: number }[] };
+
+function PhysicianApp({ session }: { session: Session }) {
+  const page = useHashPage(PAGES_BY_ROLE.physician);
+  return <div className="min-h-screen bg-[#FBF9F5] text-slate-900">
+    <Header session={session} page={page} />
+    <IncomingCall />
+    <Main page={page}>
+      {page === "shift" && <MyShift />}
+      {page === "offers" && <OffersPage />}
+      {page === "settings" && <div className="page"><Title eyebrow="Physician workspace" title="Settings" note={session.user.name} /><section className="panel"><h2>Notifications</h2><p className="muted">Offers arrive in this app and on your phone. They show the hospital and hours only, never patient details.</p></section></div>}
+    </Main>
+  </div>;
+}
+
+function MyShift() {
+  const { data, error } = useApi<Shift>("/me/shift");
+  if (!data) return <div className="page"><Title eyebrow="Physician workspace" title="My shift" />{error ? <p className="unavailable">{unavailableText(error, "GET /me/shift")}</p> : <p className="muted">Loading…</p>}</div>;
+  const left = data.minutes_to_shift_end;
+  return <div className="page physician-page"><Title eyebrow="Physician workspace" title="My shift" note={data.name} />
+    <div className="physician-top">
+      <section className="panel shift-clock"><span className="eyebrow">Shift remaining</span><strong>{left === null ? "–" : `${Math.floor(left / 60)} h ${left % 60} min`}</strong><p>{data.shift_end ? `until ${clockTime(data.shift_end)} ET` : "No current shift"}</p></section>
+      <section className="panel"><span className="eyebrow">Hospitals covered</span><h2>{data.hospitals.join(" · ") || "–"}</h2><p className="muted">{data.consults.length} active consults</p></section>
+    </div>
+    <section className="panel"><div className="panel-head"><h2>Active consults</h2><span className="badge teal">{left === null ? "Off shift" : "On shift"}</span></div>
+      {data.consults.length ? data.consults.map((c) => <div className="consult-line" key={c.consult_id}><b className="mono">{c.consult_id}</b><span>{c.hospital_name} · {c.consult_type}</span><span className="badge neutral">{c.stage} · {c.minutes_in_stage} min</span></div>) : <p className="muted">No open consults.</p>}
+    </section>
+  </div>;
+}

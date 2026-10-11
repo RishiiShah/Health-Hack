@@ -231,7 +231,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
       </nav>
 
       {/* ================= 2. MAIN HERO SECTION ================= */}
-      <main id="overview" className="relative w-full max-w-6xl mx-auto pt-32 pb-16 flex-1 flex flex-col items-center">
+      <main id="overview" className="relative w-full mx-auto px-4 sm:px-6 pt-32 pb-16 flex-1 flex flex-col items-center">
 
         {/* CENTERED HEADLINE */}
         <section className="text-center max-w-3xl mx-auto mb-8 px-4">
@@ -261,7 +261,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
         {/* ================= THE LIVING TOPOGRAPHIC US NETWORK MAP (ALWAYS IN MOTION) ================= */}
         <div id="network" className="relative w-full max-w-5xl aspect-[16/9] min-h-[460px] md:min-h-[580px] flex items-center justify-center my-4 scroll-mt-28">
-          
           {/* FLOATING GLASS CARD 1 (SEVARO REAL STAT: <45s) */}
           <div className="anim-float-1 absolute top-4 left-2 md:top-8 md:left-6 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-[#E5E0D5] px-5 py-4 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
             <div className="text-[11px] font-mono text-slate-500 font-medium">Synapse AI Response</div>
@@ -391,7 +390,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
               <g transform="translate(695, 545)" className="cursor-pointer">
                 <circle cx="0" cy="0" r="9" fill="#D97706" stroke="#FFFFFF" strokeWidth="2.5" />
                 <text x="20" y="6" fontFamily="'IBM Plex Sans'" fontSize="17" fontWeight="800" fill="#B45309">Dallas</text>
-                
+
                 <g transform="translate(0, -42)">
                   <rect x="-140" y="-15" width="280" height="30" rx="15" fill="#0F172A" stroke="#334155" strokeWidth="1.2" />
                   <polygon points="-6,15 0,21 6,15" fill="#0F172A" />
@@ -409,7 +408,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
         {/* ================= 3. TWO WORKSPACES (PREVIEW SHOWCASE) ================= */}
         <section id="roles" className="mt-20 w-full scroll-mt-28 border-t border-[#E5E0D5] pt-16">
-          
           <div className="text-center max-w-xl mx-auto mb-12">
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
               Two workspaces, one synchronized schedule
@@ -420,31 +418,41 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-            
+
             {/* Coordinator Workspace Card */}
-            <div className="hover-lift bg-white/95 rounded-3xl border border-[#E5E0D5] p-8 md:p-10 flex flex-col justify-between shadow-sm">
+            <div className="hover-lift bg-white/95 rounded-3xl border border-[#E5E0D5] p-5 sm:p-8 md:p-10 flex flex-col justify-between shadow-sm">
               <div>
-                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Command Center</h3>
+                <div className="flex flex-wrap gap-3 items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
+                    Coordinator Workspace
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    LIVE DISPATCH
+                  </span>
+                </div>
+
+                <h3 className="text-2xl font-bold text-slate-900 mt-4 tracking-tight">Command Center</h3>
                 <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
                   Real-time national grid oversight. Triage queue monitoring, predictive shortfall detection, and automated physician dispatch across 100+ partner hospitals.
                 </p>
 
                 <div className="mt-6 rounded-2xl bg-[#F7F4EB]/60 border border-[#E5E0D5] p-4 space-y-2.5">
-                  <div className="flex items-center justify-between text-xs font-medium">
+                  <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
                     <span className="text-slate-500 font-mono">Surge Mitigation Target</span>
                     <span className="text-teal-700 font-bold font-mono">&lt; 45s Response SLA</span>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                     <div className="bg-teal-600 h-2 rounded-full w-[82%]" />
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
+                  <div className="flex flex-wrap gap-3 items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
                     <span>Cross-regional pool balancing active</span>
                     <span className="text-emerald-600 font-bold">100+ Hospitals</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-start">
+              <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap gap-3 items-center justify-between">
                 <button
                   onClick={() => onGoToSignIn("coordinator")}
                   className="rounded-xl bg-[#161E2E] hover:bg-slate-900 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group cursor-pointer"
@@ -456,15 +464,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
             </div>
 
             {/* Physician Experience Card */}
-            <div className="hover-lift bg-white/95 rounded-3xl border border-[#E5E0D5] p-8 md:p-10 flex flex-col justify-between shadow-sm">
+            <div className="hover-lift bg-white/95 rounded-3xl border border-[#E5E0D5] p-5 sm:p-8 md:p-10 flex flex-col justify-between shadow-sm">
               <div>
-                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Mobile & Web Handoff</h3>
+                <div className="flex flex-wrap gap-3 items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
+                    Physician Experience
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-teal-700 font-semibold bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/50">
+                    1-TAP HANDOFF
+                  </span>
+                </div>
+
+                <h3 className="text-2xl font-bold text-slate-900 mt-4 tracking-tight">Mobile & Web Handoff</h3>
                 <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
                   Distraction-free emergency shift acceptance. Doctor rest intervals are checked against 8 clinical fatigue rules before alerts reach their phone. Zero patient PHI.
                 </p>
 
                 <div className="mt-6 rounded-2xl bg-teal-900/5 border border-teal-800/15 p-4 space-y-2.5">
-                  <div className="flex items-center justify-between text-xs font-medium">
+                  <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
                     <span className="text-slate-700 font-medium">Surge Shift Offer · Regional Match</span>
                     <span className="text-teal-800 font-bold font-mono text-[11px] bg-teal-100/70 px-2 py-0.5 rounded">60m Coverage</span>
                   </div>
@@ -472,14 +489,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
                     <span>8 Rest Safeguards Passed · Medical License Active</span>
                   </div>
-                  <div className="pt-1 flex items-center justify-between text-[11px]">
+                  <div className="pt-1 flex flex-wrap gap-3 items-center justify-between text-[11px]">
                     <span className="text-slate-500">HIPAA Safe Harbor Compliance</span>
                     <span className="text-slate-900 font-bold font-mono">100% Verified</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-start">
+              <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap gap-3 items-center justify-between">
                 <button
                   onClick={() => onGoToSignIn("physician")}
                   className="rounded-xl bg-teal-700 hover:bg-teal-800 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group cursor-pointer"

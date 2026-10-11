@@ -1,5 +1,6 @@
-**Owns:** `web/src/forecast/*`, `web/src/act/*`.
-**Uses** Anish's `api/client.ts` and `live.ts`; asks Anish for changes to them.
+**Owns:** `web/src/forecast/*`, `web/src/act/*`, `web/src/lead/*`.
+**Uses** Anish's `api/client.ts`, `live.ts` and `can(permission)`; asks Anish for changes to them.
+**Roles:** the coordinator uses the Decide/Act panels; the clinical lead gets a dashboard of their own (task 14), which mirrors the lead screens in the mobile app.
 
 ### Tasks
 1. Coverage forecast (`forecast/CoverageGrid.tsx`):
@@ -41,8 +42,19 @@
     - Check: T23 to T27 from Krish's file update the UI without a restart.
 12. Data quality panel → check: 1 duplicate, 23 reordered, 1 late, 0 rejected.
 13. `node --test` tests for the pure helpers (countdown, mapping cells to their status) → check: `npm test` passes.
+14. Clinical-lead dashboard (`lead/LeadDashboard.tsx`), loaded when `me.role` is lead:
+    - Home is the approval queue from task 7, newest first, with a count badge.
+    - Below it: stroke-risk Critical items from the snapshot's attention queue (read-only, the server's order and reasons), and the offer tracker from task 8 (read-only for the lead).
+    - Audit by gap from task 10.
+    - "Approval requested" voice alert: when a new Proposed offer appears, play `/alerts/{id}/audio` once, using the same enable/mute pattern as Anish's voice alerts.
+    - Usable at 390 px wide (a lead on the go may open the web on a phone).
+    - Check: with the lead token, approve and reject both work and the coordinator-only actions never render; with the coordinator token, approving returns 403.
 
-**Out of scope:** charting libraries, editing eligibility rules, and sending real SMS or push notifications.
+**Out of scope:** charting libraries, editing eligibility rules, client-side permission logic, and sending real SMS or push notifications.
+
+## Demo data
+
+`VITE_DEMO_DATA=1 npm run dev` (or `VITE_DEMO_DATA=1` in `web/.env.local`) answers every API call from `web/src/demo/`, an in-memory stand-in. Its data in `web/src/demo/data/` was captured from the real backend at 18:20 on the training day (snapshot, the Suncrest gap's candidates and trap check, a proposed offer and its audit), plus Anish's schedule roster with IDs matched to the reference files. Sign in as `coord@demo.sevaro`, `lead@demo.sevaro`, `okafor@demo.sevaro` or `shah@demo.sevaro` with any password. Propose, approve, reject, accept, decline, escalate, add events, pause and +5 min all work, and the header shows a "Demo data" badge. Without the variable the app calls the real backend and the demo code is left out of the build; `web/.env.local` applies to `npm run build` too, so remove it before building for deployment.
 
 ## Response shapes these screens need (proposal for the backend owner)
 
@@ -101,6 +113,18 @@ The screens render these fields as-is and compute no rules. Every timestamp is I
 | `GET /audit?gap_id=` | `{items: [{at, actor, action, detail}]}`, oldest first |
 | `POST /events/csv` (body `text/csv`) | the same report as `POST /events` |
 | `POST /admin/reset`, `POST /admin/clock {mode, at?, advance_s?, paused?}` | `{revision}` / the snapshot `clock` |
+
+### Sign-in and roles
+
+`POST /auth/login {email, password}` returns `{token, expires_at, user}` and `GET /auth/me` returns `{user}`; both are implemented in the backend (see backend/README.md). Sign-in automatically opens the account's workspace. Older clients may still send the optional `portal: "operations" | "physician"` field. The web app revalidates a saved session before opening a workspace and offers retry on connectivity errors. The server decides the role and must check every route:
+
+| Route | Roles |
+|---|---|
+| `GET /snapshot`, `/consults/*`, `/gaps/*`, `/offers`, `/audit`, `/interventions` | coordinator, lead |
+| `POST /offers` | coordinator |
+| `POST /offers/{id}/approve`, `/reject`, `POST /interventions/{id}/authorize` | lead |
+| `POST /events`, `/events/csv`, `/admin/*` | coordinator, lead |
+| `GET /me/offers` → `{now, items: Offer[]}`, `POST /me/offers/{id}/accept`, `/decline` | physician (their own offers, only once Sent) |
 
 `gap` is `{gap_id, hospital_ids, hospital_names, start, end, required, count, summary}`, where `summary` is the server's plain-language reason (for example the trailing count against the usual peak, and who leaves at the shift change).
 

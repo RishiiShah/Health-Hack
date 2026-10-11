@@ -1,0 +1,107 @@
+"""Step 7: routing model [B p3] and split-shift trap check, on small synthetic days (no sample IDs)."""
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from app.decide.routing_sim import _Doc, _arrivals, observed_service, route_key, simulate, threshold, trap_check
+from app.engine.physician import PhysicianView
+from app.engine.replay import replay
+from app.models import Event, EventInput
+from app.ops.refs import OpsRefs, RosterEntry
+from app.references import Hospital, Physician, Refs, Shift
+
+ET = ZoneInfo("America/New_York")
+
+
+def et(hh, mm=0):
+    return datetime(2026, 4, 7, hh, mm, tzinfo=ET)  # a Tuesday
+
+
+def doc(pid, count=0, hospitals=("G",), answered=None, free_at=None, start=et(17), end=et(23), limit=6):
+    return _Doc(pid, start, end, frozenset(hospitals), count, limit, answered, free_at or start)
+
+
+def test_low_volume_first_then_fewest_then_least_recent_answer():
+    assert threshold(et(8)) == 6 and threshold(et(17)) == 4 and threshold(et(16, 59)) == 6
+    # 6 on a day shift is still low volume; 5 on a night shift is not.
+    assert sorted(["day", "night"], key=lambda p: route_key(6 if p == "day" else 5, 6 if p == "day" else 4, None, p)) == ["day", "night"]
+    assert route_key(3, 6, et(18), "B") < route_key(3, 6, et(18, 5), "A")  # answered longer ago wins the tie
+    assert route_key(3, 6, None, "B") < route_key(3, 6, et(17), "A")  # never answered counts as longest ago
+
+
+def test_busy_and_cooldown_exclude_and_failures_retry_every_5_minutes():
+    # One physician, two consults one minute apart: the second waits for 6.5 min service + 2 min cooldown.
+    run = simulate("x", {"P": doc("P")}, [(et(18), "G", 6.5), (et(18, 1), "G", 6.5)], et(19))
+    assert run.load("P") == 2 and run.failures == {"G": 2}  # tried at 18:01 and 18:06, routed at 18:11
+    assert run.waits["G"] == (0.0, 10.0)
+    # Nobody credentialed: retried until the window ends, then counted as unrouted with its censored wait.
+    lost = simulate("x", {"P": doc("P", hospitals=("O",))}, [(et(18), "G", 6.5)], et(18, 20))
+    assert lost.failures == {"G": 4} and lost.unrouted == {"G": 1} and lost.waits["G"] == (20.0,)
+
+
+def test_shift_bounds_are_half_open():
+    run = simulate("x", {"P": doc("P", end=et(18))}, [(et(18), "G", 1)], et(18, 3))
+    assert run.load("P") == 0 and run.unrouted == {"G": 1}
+
+
+def test_demand_is_deterministic_and_missing_baseline_is_unknown():
+    refs = Refs({"G": Hospital("G", "America/New_York"), "U": Hospital("U", "America/New_York")}, {}, {})
+    ops = OpsRefs({("G", 1, 18): (2.0, 3.0)}, {}, {})
+    arrivals, unknown = _arrivals(replay(()), ops, refs, et(18), et(19), {"*": 5.0}, {})
+    assert [(t.astimezone(ET).strftime("%H:%M"), h) for t, h, _ in arrivals] == [("18:15", "G"), ("18:45", "G")]
+    assert unknown == ("U",)
+    surged, _ = _arrivals(replay(()), ops, refs, et(18), et(19), {"*": 5.0}, {"G": 4.0})
+    assert len(surged) == 4  # the surge scenario continues the observed trailing rate
+
+
+def ev(eid, kind, minute, pid="P", cid="C", **kw):
+    row = EventInput(event_id=eid, event_time=et(18) + timedelta(minutes=minute), ingested_at=et(18) + timedelta(minutes=minute),
+                     event_type=kind, consult_id=cid, physician_id=pid, **kw)
+    return Event(**{**row.model_dump(), "received_at": row.ingested_at, "raw_json": {}})
+
+
+def test_service_time_is_measured_from_calls_and_video():
+    events = (ev("1", "consult_received", 0, pid=None, hospital_id="G", consult_type="Stroke"),
+              ev("2", "incoming_call_started", 1), ev("3", "incoming_call_ended", 3),
+              ev("4", "video_started", 10), ev("5", "video_ended", 15),
+              ev("6", "video_ended", 30, cid="C"))  # an end without its start is skipped, not guessed
+    assert observed_service(events, replay(events)) == {"Stroke": 7.0, "*": 7.0}
+    assert observed_service((), replay(())) == {}
+
+
+def view(pid, count, hospitals, state="Available"):
+    return PhysicianView(pid, state, "Available", "Online", state == "Available", () if state == "Available" else ("busy",), (),
+                         count, count, 0, 300, frozenset(hospitals), None)
+
+
+def trap_day():
+    """Gap hospital G and a busy other hospital O. The joiner J is credentialed at both, the trap's precondition."""
+    refs = Refs({"G": Hospital("G", "America/New_York"), "O": Hospital("O", "America/New_York")},
+                {"P1": Physician("P1", (Shift(et(8), et(23)),)), "P2": Physician("P2", (Shift(et(8), et(23)),)), "J": Physician("J")},
+                {"P1": frozenset({"G", "O"}), "P2": frozenset({"O"}), "J": frozenset({"G", "O"})})
+    baseline = {(h, 1, hour): (mean, mean) for h, mean in (("G", 4.0), ("O", 6.0)) for hour in (18, 19)}
+    ops = OpsRefs(baseline, {}, {"J": RosterEntry("Day", True, et(0), None, 20, 0, "sms", 0)})
+    views = {"P1": view("P1", 10, {"G", "O"}), "P2": view("P2", 12, {"O"})}
+    return refs, ops, views
+
+
+def test_unguarded_joiner_floods_other_hospitals_and_guard_contains_it():
+    refs, ops, views = trap_day()
+    check = trap_check(replay(()), refs, ops, views, et(18), "J", et(18), et(20), {"G"}, {"*": 6.5})
+    none, trap, guarded = check.scenarios["baseline"]
+    assert check.trap_shown and check.spill["baseline"] > 0 and "O" in trap.sites("J")
+    assert check.seed == 10  # max(day threshold + 1, fewest consults among peers at the gap hospital)
+    assert guarded.sites("J") == {"G"} and check.passed, [c for c in check.criteria if not c.passed]
+    assert guarded.wait({"G"}) <= none.wait({"G"}) and check.relief["baseline"] >= 0
+    assert check == trap_check(replay(()), refs, ops, views, et(18), "J", et(18), et(20), {"G"}, {"*": 6.5})  # deterministic
+
+
+def test_trap_check_needs_observed_service_time():
+    refs, ops, views = trap_day()
+    assert trap_check(replay(()), refs, ops, views, et(18), "J", et(18), et(20), {"G"}, {}) is None
+
+
+def test_temporarily_unavailable_physician_takes_no_simulated_calls():
+    refs, ops, views = trap_day()
+    views["P1"] = view("P1", 3, {"G", "O"}, state="Temporarily Unavailable")
+    check = trap_check(replay(()), refs, ops, views, et(18), "J", et(18), et(20), {"G"}, {"*": 6.5})
+    assert all(run.load("P1") == 0 for run in check.scenarios["baseline"])
+    assert check.seed == 7  # an unavailable peer's low count does not lower the joiner's seed

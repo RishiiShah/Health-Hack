@@ -121,3 +121,43 @@ def load_refs(directory: str | Path, service_date: date) -> Refs:
     if not hospitals or not physicians:
         raise ValueError("reference tables must not be empty")
     return Refs(hospitals, physicians, credentials)
+
+
+def _aware(value):
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        raise ValueError(f"timestamp needs a UTC offset: {value}")
+    return parsed
+
+
+def load_pack_refs(directory: str | Path) -> Refs:
+    """Scenario-pack format: full timestamps, `timezone`, Y/N credentials, roster next shift with an end."""
+    directory = Path(directory)
+    hospitals, physicians, credentials = {}, {}, {}
+    for row in _rows(directory / "hospitals.csv", {"hospital_id", "hospital_name", "timezone"}):
+        _insert(hospitals, row["hospital_id"], Hospital(row["hospital_name"], row["timezone"]))
+    for row in _rows(directory / "physicians_on_shift.csv", {"physician_id", "physician_name", "shift_start", "shift_end"}):
+        _insert(physicians, row["physician_id"], Physician(row["physician_name"], (Shift(_aware(row["shift_start"]), _aware(row["shift_end"])),)))
+    for row in _rows(directory / "physicians_off_shift_roster.csv", {"physician_id", "physician_name", "next_shift_start", "next_shift_end"}):
+        shifts = (Shift(_aware(row["next_shift_start"]), _aware(row["next_shift_end"])),) if row["next_shift_start"] and row["next_shift_end"] else ()
+        _insert(physicians, row["physician_id"], Physician(row["physician_name"], shifts))
+    for row in _rows(directory / "credentialing_matrix.csv", {"physician_id", *hospitals}):
+        if set(row) != {"physician_id", *hospitals} or any(row[hid] not in {"Y", "N"} for hid in hospitals):
+            raise ValueError("credential cells must be Y/N with known hospital columns")
+        _insert(credentials, row["physician_id"], frozenset(hid for hid in hospitals if row[hid] == "Y"))
+    if not hospitals or not physicians:
+        raise ValueError("reference tables must not be empty")
+    return Refs(hospitals, physicians, credentials)
+
+
+def load_reference_dir(directory: str | Path, service_date: date | None = None) -> Refs:
+    """Pick the loader from the hospitals.csv header; unknown layouts are rejected, never guessed."""
+    with (Path(directory) / "hospitals.csv").open(newline="", encoding="utf-8-sig") as handle:
+        headers = set(next(csv.reader(handle), []))
+    if "local_timezone" in headers:
+        if service_date is None:
+            raise ValueError("the time-only sample format needs an explicit service date")
+        return load_refs(directory, service_date)
+    if "timezone" in headers:
+        return load_pack_refs(directory)
+    raise ValueError("unrecognized reference layout")

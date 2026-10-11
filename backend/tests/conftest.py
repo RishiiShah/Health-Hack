@@ -25,3 +25,11 @@ def new_db_url():
 @pytest.fixture
 def db_url(new_db_url):
     return new_db_url()
+
+
+from app.auth import Auth  # noqa: E402
+
+TEST_AUTH = Auth(coordinator_token="coord-token", lead_token="lead-token", admin_token="admin-token", lead_name="Dr. Lead", secret="test-secret")
+COORD = {"Authorization": "Bearer coord-token"}
+LEAD = {"Authorization": "Bearer lead-token"}
+ADMIN = {"Authorization": "Bearer admin-token"}

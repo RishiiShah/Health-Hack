@@ -15,7 +15,7 @@ test("a proposed offer waits on the lead's decision", () => {
   assert.deepEqual(steps.map((s) => s.status), ["done", "done", "current", "todo", "todo"]);
   assert.equal(steps[0].detail, "System · 18:20");
   assert.equal(steps[1].label, "Checked 6 people");
-  assert.equal(stateBadge("Proposed").text, "Waiting for you");
+  assert.equal(stateBadge("Proposed").text, "Awaiting lead approval");
 });
 
 test("a sent offer shows the reply countdown", () => {
