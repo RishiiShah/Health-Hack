@@ -1,3 +1,5 @@
+> **Document status:** Owner design checklist. The live backend adapter scope at the top of Mobile-App-Contract.md overrides design-only v1.1 routes. The server remains the authority for permissions and rules. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 # Mobile — Chandan (data, platform, deploy)
 
 You build everything the screens stand on: the API client, repositories, live feeds, server clock, browser alerts, fakes, sample JSON, deploy and the demo script. Hitanshu builds every screen on top of your interfaces and never writes HTTP code.

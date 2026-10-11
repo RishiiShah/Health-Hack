@@ -1,6 +1,7 @@
 import { offerSteps, stateBadge } from "./offerSteps.ts";
 import { clockTime, countdown } from "./time.ts";
 import type { Offer } from "./types.ts";
+import { OfferAudio } from "../api/OfferAudio.tsx";
 import "./act.css";
 
 export function OfferTracker({ offer, now }: { offer: Offer; now: number | null }) {
@@ -22,7 +23,7 @@ export function OfferTracker({ offer, now }: { offer: Offer; now: number | null 
         <>
           <p className="message">{offer.message}</p>
           <div className="tracker-actions">
-            {offer.audio_url && <button className="btn" onClick={() => new Audio(offer.audio_url!).play()}>Play</button>}
+            {offer.audio_url && <OfferAudio path={offer.audio_url} />}
             {offer.phone_url && <a href={offer.phone_url} target="_blank" rel="noreferrer">Open the physician's phone view</a>}
           </div>
         </>

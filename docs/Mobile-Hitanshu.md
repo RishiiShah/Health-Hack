@@ -1,3 +1,5 @@
+> **Document status:** Owner design checklist. Live mode uses the existing backend adapter; schedule views, preference updates, release and broadcasts below remain design-only features. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 # Mobile — Hitanshu (screens)
 
 You build every screen of the Flutter web app for two roles, physician and clinical lead, following the UI design (`Sevaro Command Center Screens.pdf`) and the theme reference. Chandan builds the data layer; you only call his interfaces.

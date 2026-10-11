@@ -1,3 +1,5 @@
+> **Document status:** Owner acceptance checklist. Current delivery uses password login, serialized REST snapshot polling and server-provided lexicographic order. WebSocket transport, token-paste login and once-per-item automatic voice announcements remain planned. Do not treat numeric PRD G15 scores below as current output. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 **Owns:** `web/` setup, `web/src/api/*`, `web/src/auth/*`, `web/src/App.tsx`, `web/src/styles.css`, `web/src/detect/*`, `web/src/physician/*`.
 **Doesn't own:** the Decide/Act and clinical-lead screens (Joy) or any rule logic (the server computes it).
 **Roles on web:** coordinator, clinical lead and physician, each with their own dashboard chosen from `GET /me` (see RBAC in `00-Boundaries-and-Contracts.md`).

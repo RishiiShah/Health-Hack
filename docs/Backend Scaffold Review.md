@@ -1,3 +1,5 @@
+> **Document status:** Historical scaffold review and measurements. SQLite, old Python versions and test totals below describe earlier increments, not the current release. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 # Backend scaffold review
 
 Reviewed Oct 10, 2026 against the two design documents and all nine supplied CSVs. At the initial review, the repository contained planning documents and data without a backend implementation. This review verifies fixture facts; implementation status and runtime validation are tracked separately in the backend README.

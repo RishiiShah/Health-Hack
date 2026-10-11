@@ -1,0 +1,117 @@
+{
+  "columns": [
+    {
+      "label": "Now",
+      "at": "2026-03-17T18:22:00-04:00"
+    },
+    {
+      "label": "19:00",
+      "at": "2026-03-17T19:00:00-04:00"
+    },
+    {
+      "label": "19:45",
+      "at": "2026-03-17T19:45:00-04:00"
+    }
+  ],
+  "hospitals": [
+    {
+      "hospital_id": "SYN-005",
+      "name": "Suncrest",
+      "status_text": "Short at 19:00 · offer out",
+      "level": "short",
+      "cells": [
+        {
+          "staffed": 3,
+          "required": 2,
+          "marker": null
+        },
+        {
+          "staffed": 1,
+          "required": 2,
+          "marker": "*"
+        },
+        {
+          "staffed": 1,
+          "required": 1,
+          "marker": null
+        }
+      ]
+    },
+    {
+      "hospital_id": "SYN-010",
+      "name": "Oak Valley",
+      "status_text": "No one free for stroke",
+      "level": "no_one_free",
+      "cells": [
+        {
+          "staffed": 1,
+          "required": 1,
+          "marker": null
+        },
+        {
+          "staffed": 1,
+          "required": 1,
+          "marker": null
+        },
+        {
+          "staffed": 1,
+          "required": 1,
+          "marker": null
+        }
+      ]
+    },
+    {
+      "hospital_id": "SYN-009",
+      "name": "Lakeview",
+      "status_text": "At minimum",
+      "level": "at_minimum",
+      "cells": [
+        {
+          "staffed": 3,
+          "required": 1,
+          "marker": null
+        },
+        {
+          "staffed": 1,
+          "required": 1,
+          "marker": null
+        },
+        {
+          "staffed": 1,
+          "required": 1,
+          "marker": null
+        }
+      ]
+    },
+    {
+      "hospital_id": "SYN-008",
+      "name": "Northfield",
+      "status_text": "Covered",
+      "level": "covered",
+      "cells": [
+        {
+          "staffed": 5,
+          "required": 2,
+          "marker": null
+        },
+        {
+          "staffed": 3,
+          "required": 2,
+          "marker": null
+        },
+        {
+          "staffed": 3,
+          "required": 2,
+          "marker": null
+        }
+      ]
+    }
+  ],
+  "footnotes": [
+    {
+      "marker": "*",
+      "text": "Counts Dr. Cho, who is scheduled from 19:00 but not signed in yet."
+    }
+  ],
+  "server_now": "2026-03-17T18:22:00-04:00"
+}

@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, test } from "node:test";
 import assert from "node:assert/strict";
-import { api, ApiError, post } from "./client.ts";
+import { api, apiBlob, ApiError, post } from "./client.ts";
 import { clearSession, readSession, saveSession, type Session } from "../auth/session.ts";
 
 const originalFetch = globalThis.fetch;
@@ -54,4 +54,35 @@ test("network failures are retryable without discarding the session", async () =
   globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
   await assert.rejects(api("/auth/me"), /Can't reach the server/);
   assert.equal(readSession()?.token, "current");
+});
+
+test("protected media receives bearer authentication and returns binary audio", async () => {
+  saveSession(session("audio-token"));
+  globalThis.fetch = async (path, init) => {
+    assert.equal(path, "/offers/example/audio");
+    assert.equal(new Headers(init?.headers).get("Authorization"), "Bearer audio-token");
+    return new Response(new Uint8Array([73, 68, 51]), { headers: { "Content-Type": "audio/mpeg" } });
+  };
+  const blob = await apiBlob("/offers/example/audio");
+  assert.equal(blob.type, "audio/mpeg");
+  assert.deepEqual([...new Uint8Array(await blob.arrayBuffer())], [73, 68, 51]);
+});
+
+test("media errors surface the server detail and expired authentication signs out", async () => {
+  saveSession(session("audio-token"));
+  globalThis.fetch = async () => response(503, "Speech is not configured.");
+  await assert.rejects(apiBlob("/alerts/example/audio"), /Speech is not configured/);
+  assert.equal(readSession()?.token, "audio-token");
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: { code: "speech_unavailable", message: "text-to-speech unavailable" } }),
+    { status: 503, headers: { "Content-Type": "application/json" } });
+  await assert.rejects(apiBlob("/alerts/example/audio"), /text-to-speech unavailable/);
+  globalThis.fetch = async () => response(401);
+  await assert.rejects(apiBlob("/alerts/example/audio"), ApiError);
+  assert.equal(readSession(), null);
+});
+
+test("media never sends the session token to a foreign host", () => {
+  globalThis.fetch = async () => { assert.fail("foreign media must not be fetched"); };
+  for (const path of ["https://other.example/audio", "//other.example/audio", "/\\other.example/audio"])
+    assert.throws(() => apiBlob(path), /Audio must come from this application/);
 });

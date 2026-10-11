@@ -98,6 +98,7 @@ test("demo clock pauses and jumps forward", () => {
   const server = createDemoServer(() => local);
   const start = server.now();
   post(server, "/admin/clock", { paused: true }, LEAD);
+  assert.equal(get<{ clock_mode: string }>(server, "/me/offers", DOC).clock_mode, "fixed");
   local += 60_000;
   assert.equal(server.now(), start);
   post(server, "/admin/clock", { advance_s: 300 }, LEAD);

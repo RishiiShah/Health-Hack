@@ -131,7 +131,7 @@ export function createDemoServer(localNow: () => number = Date.now) {
     if (parts[0] === "me" && parts[1] === "offers") {
       // Physicians only ever see offers a lead has approved and sent to them.
       const mine = offers.filter((o) => o.physician_id === user.physician_id && !["Proposed", "Approved", "Rejected"].includes(o.state));
-      if (method === "GET") return { now: iso(), items: mine };
+      if (method === "GET") return { now: iso(), server_now: iso(), clock_mode: pausedAt !== null ? "fixed" : "demo", items: mine };
       const offer = mine.find((o) => o.offer_id === parts[2]);
       if (!offer) throw { status: 404, detail: "offer not found" };
       if (offer.state !== "Sent") throw { status: 409, detail: `This offer is ${offer.state.toLowerCase()}.` };

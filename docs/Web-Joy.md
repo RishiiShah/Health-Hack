@@ -1,3 +1,5 @@
+> **Document status:** Owner acceptance checklist. Current Decide/Act, approvals, reference loading and live web schedule are implemented; current scope and verification are recorded separately. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 **Owns:** `web/src/forecast/*`, `web/src/act/*`, `web/src/lead/*`.
 **Uses** Anish's `api/client.ts`, `live.ts` and `can(permission)`; asks Anish for changes to them.
 **Roles:** the coordinator uses the Decide/Act panels; the clinical lead gets a dashboard of their own (task 14), which mirrors the lead screens in the mobile app.

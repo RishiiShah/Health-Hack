@@ -1,0 +1,10 @@
+{
+  "escalation_id": "ESC-0002",
+  "hospital_name": "Oak Valley Medical",
+  "reason": "Stroke consult unassigned 10 min; every credentialed physician busy.",
+  "proposed_intervention": "Clinical lead to contact Dr. Kim to take the consult after his current call.",
+  "status": "pending",
+  "created_at": "2026-03-17T18:18:00-04:00",
+  "authorized_by": null,
+  "authorized_at": null
+}

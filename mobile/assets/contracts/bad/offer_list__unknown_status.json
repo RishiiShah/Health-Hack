@@ -1,0 +1,248 @@
+{
+  "offers": [
+    {
+      "offer_id": "OFF-0007",
+      "gap_id": "GAP-SYN-005-1900",
+      "hospitals": [
+        {
+          "hospital_id": "SYN-005",
+          "name": "Suncrest Medical Pavilion"
+        }
+      ],
+      "start": "2026-03-17T19:00:00-04:00",
+      "end": "2026-03-17T23:00:00-04:00",
+      "hours": 4.0,
+      "reason": "You are credentialed at Suncrest Medical Pavilion and available tonight.",
+      "status": "pending",
+      "status_reason": null,
+      "sent_at": "2026-03-17T18:25:00-04:00",
+      "expires_at": "2026-03-17T18:35:00-04:00",
+      "responded_at": null,
+      "routing_hospitals": [
+        {
+          "hospital_id": "SYN-005",
+          "name": "Suncrest Medical Pavilion"
+        }
+      ],
+      "approved_at": "2026-03-17T18:24:00-04:00",
+      "gap_summary": "Suncrest will be one physician short from 19:00. You'd be the second.",
+      "sign_in_by": "2026-03-17T18:55:00-04:00",
+      "why_you": [
+        "Credentialed at Suncrest",
+        "12 h rested since your last shift",
+        "40 of 60 h this week, so you stay under the limit"
+      ],
+      "allowed_actions": [
+        "accept",
+        "decline"
+      ],
+      "next_steps": [],
+      "coverage_after": null
+    },
+    {
+      "offer_id": "OFF-0006",
+      "gap_id": "GAP-SYN-008-1300",
+      "hospitals": [
+        {
+          "hospital_id": "SYN-008",
+          "name": "Northfield Medical"
+        }
+      ],
+      "start": "2026-03-16T13:00:00-04:00",
+      "end": "2026-03-16T17:00:00-04:00",
+      "hours": 4.0,
+      "reason": "You are credentialed at Northfield Medical.",
+      "status": "released",
+      "status_reason": null,
+      "sent_at": "2026-03-16T12:20:00-04:00",
+      "expires_at": "2026-03-16T12:30:00-04:00",
+      "responded_at": "2026-03-16T12:24:00-04:00",
+      "routing_hospitals": [
+        {
+          "hospital_id": "SYN-008",
+          "name": "Northfield Medical"
+        }
+      ],
+      "approved_at": "2026-03-16T12:20:00-04:00",
+      "gap_summary": "Northfield Medical was one physician short.",
+      "sign_in_by": "2026-03-16T12:55:00-04:00",
+      "why_you": [
+        "Credentialed at Northfield Medical"
+      ],
+      "allowed_actions": [],
+      "next_steps": [],
+      "coverage_after": null
+    },
+    {
+      "offer_id": "OFF-0005",
+      "gap_id": "GAP-SYN-004-1900",
+      "hospitals": [
+        {
+          "hospital_id": "SYN-004",
+          "name": "Meadowlands Community Hospital"
+        }
+      ],
+      "start": "2026-03-15T19:00:00-04:00",
+      "end": "2026-03-15T23:00:00-04:00",
+      "hours": 4.0,
+      "reason": "You are credentialed at Meadowlands Community Hospital.",
+      "status": "accepted",
+      "status_reason": null,
+      "sent_at": "2026-03-15T18:20:00-04:00",
+      "expires_at": "2026-03-15T18:30:00-04:00",
+      "responded_at": "2026-03-15T18:23:00-04:00",
+      "routing_hospitals": [
+        {
+          "hospital_id": "SYN-004",
+          "name": "Meadowlands Community Hospital"
+        }
+      ],
+      "approved_at": "2026-03-15T18:20:00-04:00",
+      "gap_summary": "Meadowlands Community Hospital was one physician short.",
+      "sign_in_by": "2026-03-15T18:55:00-04:00",
+      "why_you": [
+        "Credentialed at Meadowlands Community Hospital"
+      ],
+      "allowed_actions": [],
+      "next_steps": [],
+      "coverage_after": null
+    },
+    {
+      "offer_id": "OFF-0004",
+      "gap_id": "GAP-SYN-010-1500",
+      "hospitals": [
+        {
+          "hospital_id": "SYN-010",
+          "name": "Oak Valley Medical"
+        }
+      ],
+      "start": "2026-03-14T15:00:00-04:00",
+      "end": "2026-03-14T19:00:00-04:00",
+      "hours": 4.0,
+      "reason": "You are credentialed at Oak Valley Medical.",
+      "status": "declined",
+      "status_reason": null,
+      "sent_at": "2026-03-14T14:20:00-04:00",
+      "expires_at": "2026-03-14T14:30:00-04:00",
+      "responded_at": "2026-03-14T14:22:00-04:00",
+      "routing_hospitals": [
+        {
+          "hospital_id": "SYN-010",
+          "name": "Oak Valley Medical"
+        }
+      ],
+      "approved_at": "2026-03-14T14:20:00-04:00",
+      "gap_summary": "Oak Valley Medical was one physician short.",
+      "sign_in_by": "2026-03-14T14:55:00-04:00",
+      "why_you": [
+        "Credentialed at Oak Valley Medical"
+      ],
+      "allowed_actions": [],
+      "next_steps": [],
+      "coverage_after": null
+    },
+    {
+      "offer_id": "OFF-0003",
+      "gap_id": "GAP-SYN-005-1600",
+      "hospitals": [
+        {
+          "hospital_id": "SYN-005",
+          "name": "Suncrest Medical Pavilion"
+        }
+      ],
+      "start": "2026-03-13T16:00:00-04:00",
+      "end": "2026-03-13T20:00:00-04:00",
+      "hours": 4.0,
+      "reason": "You are credentialed at Suncrest Medical Pavilion.",
+      "status": "expired",
+      "status_reason": null,
+      "sent_at": "2026-03-13T15:10:00-04:00",
+      "expires_at": "2026-03-13T15:20:00-04:00",
+      "responded_at": null,
+      "routing_hospitals": [
+        {
+          "hospital_id": "SYN-005",
+          "name": "Suncrest Medical Pavilion"
+        }
+      ],
+      "approved_at": "2026-03-13T15:10:00-04:00",
+      "gap_summary": "Suncrest Medical Pavilion was one physician short.",
+      "sign_in_by": "2026-03-13T15:55:00-04:00",
+      "why_you": [
+        "Credentialed at Suncrest Medical Pavilion"
+      ],
+      "allowed_actions": [],
+      "next_steps": [],
+      "coverage_after": null
+    },
+    {
+      "offer_id": "OFF-0002",
+      "gap_id": "GAP-SYN-008-1900",
+      "hospitals": [
+        {
+          "hospital_id": "SYN-008",
+          "name": "Northfield Medical"
+        }
+      ],
+      "start": "2026-03-12T19:00:00-04:00",
+      "end": "2026-03-12T23:00:00-04:00",
+      "hours": 4.0,
+      "reason": "You are credentialed at Northfield Medical.",
+      "status": "withdrawn",
+      "status_reason": "filled_by_another_physician",
+      "sent_at": "2026-03-12T18:15:00-04:00",
+      "expires_at": "2026-03-12T18:25:00-04:00",
+      "responded_at": null,
+      "routing_hospitals": [
+        {
+          "hospital_id": "SYN-008",
+          "name": "Northfield Medical"
+        }
+      ],
+      "approved_at": "2026-03-12T18:15:00-04:00",
+      "gap_summary": "Northfield Medical was one physician short.",
+      "sign_in_by": "2026-03-12T18:55:00-04:00",
+      "why_you": [
+        "Credentialed at Northfield Medical"
+      ],
+      "allowed_actions": [],
+      "next_steps": [],
+      "coverage_after": null
+    },
+    {
+      "offer_id": "OFF-0001",
+      "gap_id": "GAP-SYN-004-1900",
+      "hospitals": [
+        {
+          "hospital_id": "SYN-004",
+          "name": "Meadowlands Community Hospital"
+        }
+      ],
+      "start": "2026-03-11T19:00:00-04:00",
+      "end": "2026-03-11T23:00:00-04:00",
+      "hours": 4.0,
+      "reason": "You are credentialed at Meadowlands Community Hospital.",
+      "status": "withdrawn",
+      "status_reason": "gap_closed",
+      "sent_at": "2026-03-11T18:05:00-04:00",
+      "expires_at": "2026-03-11T18:15:00-04:00",
+      "responded_at": null,
+      "routing_hospitals": [
+        {
+          "hospital_id": "SYN-004",
+          "name": "Meadowlands Community Hospital"
+        }
+      ],
+      "approved_at": "2026-03-11T18:05:00-04:00",
+      "gap_summary": "Meadowlands Community Hospital was one physician short.",
+      "sign_in_by": "2026-03-11T18:55:00-04:00",
+      "why_you": [
+        "Credentialed at Meadowlands Community Hospital"
+      ],
+      "allowed_actions": [],
+      "next_steps": [],
+      "coverage_after": null
+    }
+  ],
+  "server_now": "2026-03-17T18:25:04-04:00"
+}

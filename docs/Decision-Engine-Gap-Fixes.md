@@ -1,4 +1,4 @@
-# Decision-engine review: items 1–10
+# Decision-engine review: completed cohorts and delivery gaps
 
 Completed in order after the repository, problem statement, handbook and branch
 review. The backend remains a deterministic rules engine. No AI/ML model,
@@ -29,7 +29,34 @@ events and other operational state. An independent reconnect rebuilt and
 verified the normalized and operational references. No Render service was
 deployed or populated.
 
-## Verification
+## Third cohort: items 11–15
+
+Checkpoint **ba9d597** (`Fix decision workflows and persist reference data`)
+committed the first two cohorts and production reference documentation, and was
+pushed to `origin/rishi` before this cohort started. The personal local handoff,
+source CSVs, environments, databases and secrets were excluded.
+
+| Item | Cause | Correction/status | Evidence |
+| --- | --- | --- | --- |
+| 11. Snapshot responses could arrive out of order | Overlapping interval requests applied every result, including after cleanup | Serialize requests, queue/coalesce manual refreshes, discard the pre-refresh result, abort cleanup and ignore old generations. Accept new epochs/lower revisions and clock-only updates. Own-offer polling also serializes and honors paused clocks | `web/src/act/poll.test.ts`; web tests/build |
+| 12. Native audio requests omitted bearer auth | `new Audio(protectedUrl)` bypassed the authenticated fetch wrapper | Fetch an authenticated binary response, play a temporary blob URL, stop/abort on cleanup and revoke on end/failure. Show server and browser errors. Own-physician playback is wired; unauthorized coordinator offer controls are hidden | `client.test.ts`, `audio.test.ts`; native browser played a silent synthetic WAV, verified auth and released the URL; visible 503 checked at desktop and 390px |
+| 13. CI omitted public HTTP/client coverage | Module-wide private-pack skip and no mobile job | Scope skips to actual pack-dependent cases; add synthetic login/permissions/WS/live CSV/audio/reset/recovery checks. Add pinned Flutter analysis/tests/live and fake web builds; web checks already run | Full local backend **337 passed**; source-only backend **169 passed, 36 skipped**; source-only web **44 passed** and build; integrated mobile **149 passed**, clean analysis and both builds |
+| 14. Planning docs looked like current contracts | Historical SQLite/scaffold statements, stale auth precedence and contradictory scoring/scope claims | Add a document authority index; label historical and owner planning docs; reconcile password auth, account precedence, PostgreSQL, RDS status, dependencies, scope and judge plan. Explicitly retain the G15 weighted-versus-lexicographic policy difference | `docs/README.md`, PRD status, boundaries, backend/mobile READMEs and judge plan; no algorithm policy changed |
+| 15. Mobile deliverables were absent from the release checkout | Component source and adapter lived on a separate branch/worktree | Integrate **141** mobile/contract/test files from `origin/mobile@35cc674` plus the verified adapter, without copying old backend/web code. Add the missing `/schedule` Vite proxy and portable build instructions. **Partial delivery gap remains:** `scripts/synth` is absent from every fetched remote branch and is labeled undelivered | Integrated source builds/tests and shared synthetic fixture equality; private data remains excluded. Hosted application/device rehearsal is not claimed |
+
+This cohort changes client correctness, public verification and documentation,
+not routing rules, objective weights, capacities or stable tie-breakers. The
+undelivered generator is not replaced by a claim that manual synthetic fixtures
+provide every planned generator dataset. The G15 policy discrepancy, A41 surge
+criterion and fallback-reservation policy remain explicit decisions.
+
+The new CI jobs have been verified locally in the stated environments. Their
+GitHub execution requires committing/pushing this cohort; the public clean
+checkout intentionally cannot run the protected source/pack checks. Real
+ElevenLabs playback, native devices, cross-origin hosting and Render deployment
+remain separate checks.
+
+## Verification of cohorts 1–10
 
 - Python 3.14.7: **335 backend tests passed**, including all four local packs.
 - Four-pack five-minute sweep: field agreement **100%**, scenario recall **6/6**

@@ -1,0 +1,15 @@
+{
+  "on_shift": false,
+  "shift_start": null,
+  "shift_end": null,
+  "consults_today": 0,
+  "calls_today": 0,
+  "hospitals_count": 0,
+  "update": null,
+  "consults": [],
+  "next_shift": {
+    "start": "2026-03-18T19:00:00-04:00",
+    "end": "2026-03-19T07:00:00-04:00"
+  },
+  "server_now": "2026-03-17T18:20:00-04:00"
+}

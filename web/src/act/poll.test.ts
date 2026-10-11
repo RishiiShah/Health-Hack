@@ -56,3 +56,44 @@ test('polling retries failed requests and one-shot calls remain one-shot', async
   t.mock.timers.tick(10_000);
   assert.equal(calls, 3);
 });
+
+test('manual refresh discards a pre-reset response and coalesces requests without overlap', async () => {
+  type Snapshot = { epoch: string; revision: number; clock: string };
+  const resolvers: ((value: Snapshot) => void)[] = [];
+  const received: Snapshot[] = [];
+  const stop = startPolling(() => new Promise<Snapshot>((resolve) => resolvers.push(resolve)),
+    (value) => received.push(value), assert.fail, 0);
+  stop.refresh();
+  stop.refresh();
+  assert.equal(resolvers.length, 1);
+  resolvers[0]({ epoch: 'old', revision: 10, clock: '18:20' });
+  await flush();
+  assert.deepEqual(received, []);
+  assert.equal(resolvers.length, 2);
+  resolvers[1]({ epoch: 'new', revision: 1, clock: '18:30' });
+  await flush();
+  stop.refresh();
+  resolvers[2]({ epoch: 'new', revision: 1, clock: '18:40' });
+  await flush();
+  assert.deepEqual(received, [
+    { epoch: 'new', revision: 1, clock: '18:30' },
+    { epoch: 'new', revision: 1, clock: '18:40' },
+  ]);
+  stop();
+  stop.refresh();
+  assert.equal(resolvers.length, 3);
+});
+
+test('a late response from an old polling generation cannot overwrite the new session', async () => {
+  let finishOld!: (value: string) => void;
+  const received: string[] = [];
+  const old = startPolling(() => new Promise<string>((resolve) => { finishOld = resolve; }),
+    (value) => received.push(value), assert.fail, 0);
+  old();
+  const current = startPolling(async () => 'new epoch', (value) => received.push(value), assert.fail, 0);
+  await flush();
+  finishOld('old epoch');
+  await flush();
+  assert.deepEqual(received, ['new epoch']);
+  current();
+});

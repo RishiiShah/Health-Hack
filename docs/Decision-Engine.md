@@ -211,6 +211,11 @@ Deterministic discrete-event replay over the horizon:
 - Pass for (c): joiner gets calls only at gap hospitals, failed routes at gap hospitals do not increase vs (a), joiner load ≤ busiest peer, and no peer's load rises by more than 1 consult vs (a) [A41].
 
 ### 5.5 Queue ranking [H ch2 #6]
+**Current implementation policy:** PRD G15 still describes weighted numeric
+scores. This section documents the implemented ordering, and its display score
+is ordinal. No weighted-score parity or change to the PRD policy is claimed;
+see [document authority](README.md#policy-differences-are-explicit).
+
 Lexicographic, every component shown as a reason, no weights:
 1. Severity (Critical > Warning > Info)
 2. In horizon before outlook

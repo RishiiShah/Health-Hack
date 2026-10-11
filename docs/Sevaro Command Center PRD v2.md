@@ -1,5 +1,24 @@
 # Sevaro Command Center PRD v2.3
 
+## Current implementation status
+
+This PRD retains challenge requirements and acceptance targets. Use
+[document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md)
+for current delivered behavior and verification. Backend storage is PostgreSQL;
+production RDS is provisioned in us-west-2. The Act loop and existing-workflow
+mobile adapter are implemented, despite the original stretch schedule below.
+Web/mobile source now shares one checkout; hosted application/device verification
+is separate from local tests and builds. Tailwind is installed for the landing
+page; ECharts is not installed.
+
+**Open policy discrepancy:** G15's weighted score and numeric example values
+below are requirements under review. The current backend uses the documented
+lexicographic ordering and ordinal display score in Decision Engine §5.5.
+This status note does not approve changing either policy or claim weighted-score
+acceptance. G18/G19 implementation assumptions are detailed in Decision Engine.
+Forecast display uses the last complete shift boundary within 120 minutes;
+the routing simulator remains 90 minutes. Missing schedule ends remain unknown.
+
 Oct 10, 2026 · @Rishabh
 
 Updated against the supplied March 17, 2026 fixtures. [Backend Scaffold Review](Backend%20Scaffold%20Review.md) records the original discrepancies; [Command Center Backend Scaffold](Command%20Center%20Backend%20Scaffold.md) defines the implementation contract. The source CSVs remain unchanged. Expected values below describe this dataset; synthetic cases are explicitly identified.

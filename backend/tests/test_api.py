@@ -1,4 +1,4 @@
-"""Step 9: the API contract over the scenario packs [00-Boundaries]. Needs Postgres; skipped without the packs."""
+"""API contract checks. Only pack-dependent cases skip when protected packs are absent."""
 import csv
 import io
 from datetime import datetime, timedelta, timezone
@@ -13,7 +13,7 @@ from app.main import create_app
 from app.models import Event
 from app.service import load_references
 
-pytestmark = pytest.mark.skipif(not PACKS, reason="scenario packs are not committed")
+needs_packs = pytest.mark.skipif(not PACKS, reason="scenario packs are not committed")
 by_pack = pytest.mark.parametrize("path", PACKS, ids=lambda p: p.name)
 FIELDS = ["event_id", "event_time", "ingested_at", "consult_id", "event_type", "physician_id", "hospital_id", "description"]
 
@@ -108,6 +108,7 @@ def test_ingesting_the_same_file_twice_changes_no_decision(path, db_url):
         assert served_queue(client) == before
 
 
+@needs_packs
 def test_roles_permissions_and_physician_isolation(db_url):
     path = PACKS[0]
     pack, api = app_for(path, db_url)
@@ -216,6 +217,7 @@ def test_interventions_recorded_and_escalations_need_the_lead(db_url):
         assert shown[assign["id"]]["state"] == "RECORDED" and shown[escalation["id"]]["state"] == "AUTHORIZED"
 
 
+@needs_packs
 def test_websocket_sends_whole_snapshots_and_refuses_bad_tokens(db_url):
     path = PACKS[0]
     pack, api = app_for(path, db_url)
@@ -229,6 +231,7 @@ def test_websocket_sends_whole_snapshots_and_refuses_bad_tokens(db_url):
                 ws.receive_json()
 
 
+@needs_packs
 def test_admin_clock_moves_and_reset_starts_clean(db_url):
     path = PACKS[0]
     pack, api = app_for(path, db_url)
@@ -251,6 +254,7 @@ def test_decisions_need_references(db_url):
         assert client.get("/gaps/x/candidates", headers=COORD).status_code == 503
 
 
+@needs_packs
 def test_password_accounts_reach_the_same_routes(db_url):
     """Web and mobile sign in with an email and password; the token carries the same permissions as the role tokens."""
     import json
@@ -304,6 +308,7 @@ def test_judge_file_on_the_original_kit_updates_without_restart(db_url):
         assert next(s for s in snap["forecast"]["surges"] if s["hospital_id"] == "SYN-005")["count"] == 6  # repeat call is not new demand
 
 
+@needs_packs
 def test_uploaded_references_turn_decisions_on_and_survive_a_restart(db_url, monkeypatch):
     """A host has no CC_DATA_DIR: decisions are off until the reference CSVs are uploaded; the database keeps them."""
     from dataclasses import replace

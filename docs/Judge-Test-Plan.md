@@ -1,5 +1,11 @@
 # Judge test plan: what the judges provide and how we pass
 
+Current implementation, policy differences and historical document labels are
+indexed in [document authority](README.md). Protected-pack results are local
+verification; clean CI uses synthetic API worlds. The current queue has
+lexicographic ordering, so PRD G15 weighted numeric scores remain an explicit
+acceptance difference rather than a passed claim.
+
 ## What the judges will do (handbook Chapter 4, brief "What Teams Must Demonstrate" #8)
 - **One CSV** in exactly the `event_stream.csv` format: `event_id, event_time, ingested_at, consult_id, event_type, physician_id, hospital_id, description`.
 - Same doctors, hospitals and kinds of events as the kit; **new records that move the day forward** (who is free, what is stuck, what to do next). Example given: another stroke consult at the surging hospital.
@@ -27,10 +33,12 @@
 3. Walk the eight demonstrations at 18:20.
 4. Judges' file: upload it on the Data page; a CSV upload moves the clock to its latest event (`/events/csv?advance_clock=true`, never backwards) and the report says where the clock moved. Never restart the server.
 5. If something looks wrong, `POST /admin/reset` starts a clean generation (the old one stays in the database).
-6. Hosted: the image has no reference CSVs. Before the demo run `python3 scripts/upload_references.py data --url https://<host> --service-date 2026-03-17` once; the database keeps them across restarts.
+6. Hosted: the image has no reference CSVs. Production RDS already stores the complete six-file reference kit; connect the backend to that database and verify with `python3 scripts/upload_references.py data --url https://<host> --service-date 2026-03-17 --check`. For a different database, upload first. The database keeps references across restarts; see [Reference Data](Reference-Data.md).
 
-## Open items for teammates
-- **Web Detect screens (Anish):** `web/src/detect/` does not exist, so the web has no attention queue, consult board, physician board, stuck-consult panel, signal flags or voice alerts (demonstrations 2–3). The backend serves all of it in `/snapshot` (`queue`, `consults`, `physicians`).
-- **Web dev proxy** does not forward `/ws`; the app polls `/snapshot` every 2 s, which is fine.
-- Fixed: the Data page uploads with `advance_clock=true`; TypeScript is pinned to 5.9.3 so `npm ci` installs cleanly (7.0.2 conflicted with `openapi-typescript`).
-- **Mobile (Hitanshu/Chandan):** calls `/lead/queue`, `/lead/offers` and `/notifications`, which the backend does not serve; not checked against the backend yet.
+## Current delivery and remaining rehearsal
+
+- Web Detect components exist and display server queue, consults, physician state and findings. Snapshot polling is serialized, aborts on cleanup and coalesces manual refreshes. No current web transport depends on the unproxied `/ws` route.
+- Web schedule now has a backend route and a matching Vite proxy. Offer audio is fetched with bearer authentication, played through a temporary blob URL and released on completion, stop or navigation. Playback failures are visible; the physician's own offers screen includes playback. The server still restricts offer audio to lead/own physician. Automatic once-per-critical-item announcements remain a planned feature; `VoiceAlerts` supports manual playback and is not mounted on the current command page.
+- Mobile live mode uses `BackendApiClient` for supported existing backend routes and DTOs. Broadcasts, mobile schedule/preferences/release remain outside the agreed live integration. Fake/design workflow tests do not establish those production capabilities.
+- Backend, web and mobile source now share this checkout. CI builds/tests the public synthetic worlds; protected scenario packs remain uncommitted and require a separate local run. The specified `scripts/synth` generator is undelivered.
+- Render deployment, cross-origin gateway configuration, physical-device checks and real speech-provider playback remain separate rehearsal work. The synthetic audio tests validate auth and lifecycle without invoking ElevenLabs or claiming production audio quality.

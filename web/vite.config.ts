@@ -9,6 +9,6 @@ export default defineConfig({
   plugins: [tailwindcss()],
   esbuild: { jsx: "automatic" },
   server: {
-    proxy: { "^/(auth|me|snapshot|events|gaps|offers|interventions|audit|admin|alerts|consults|ready|health)": api },
+    proxy: { "^/(auth|me|snapshot|events|gaps|offers|interventions|audit|admin|alerts|consults|schedule|ready|health)": api },
   },
 });

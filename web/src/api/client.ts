@@ -13,8 +13,9 @@ export class ApiError extends Error {
 export const DEMO = import.meta.env?.VITE_DEMO_DATA === "1";
 let demo: Promise<ReturnType<typeof import("../demo/server.ts").createDemoServer>> | null = null;
 
-async function send<T>(path: string, init: RequestInit, token: string | null): Promise<T> {
+async function send<T>(path: string, init: RequestInit, token: string | null, binary = false): Promise<T> {
   if (DEMO) {
+    if (binary) throw new ApiError(503, "Audio is unavailable in the presentation demo.");
     demo ??= import("../demo/server.ts").then((m) => m.createDemoServer());
     try {
       return (await demo).handle({ method: init.method ?? "GET", path, body: init.body as string | undefined, token }) as T;
@@ -36,19 +37,21 @@ async function send<T>(path: string, init: RequestInit, token: string | null): P
     if (error instanceof Error && error.name === "TimeoutError") throw new Error("The server took too long to respond. Try again.");
     throw new Error("Can't reach the server. Check your connection and try again.");
   }
+  if (response.ok && binary) return await response.blob() as T;
   const body = response.headers.get("Content-Type")?.includes("json") ? await response.json() : await response.text();
   if (!response.ok) {
-    const detail = typeof body === "object" && body && "detail" in body ? body.detail : body;
+    const detail = typeof body === "object" && body && "detail" in body ? body.detail
+      : typeof body === "object" && body && "error" in body ? body.error?.message : body;
     const message = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((d) => d.msg).join("; ") : "";
     throw new ApiError(response.status, message || `Request failed (${response.status})`);
   }
   return body as T;
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function authenticated<T>(path: string, init: RequestInit, binary = false): Promise<T> {
   const token = path === "/auth/login" ? null : readSession()?.token ?? null;
   try {
-    return await send<T>(path, init, token);
+    return await send<T>(path, init, token, binary);
   } catch (e) {
     // An expired or revoked token sends the user back to sign-in; a failed sign-in itself does not.
     if (e instanceof ApiError && e.status === 401 && token) {
@@ -56,6 +59,15 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw e;
   }
+}
+
+export const api = <T>(path: string, init: RequestInit = {}) => authenticated<T>(path, init);
+
+export function apiBlob(path: string, init: RequestInit = {}): Promise<Blob> {
+  const origin = globalThis.location?.origin ?? "http://localhost";
+  const url = new URL(path, origin);
+  if (url.origin !== origin) throw new Error("Audio must come from this application.");
+  return authenticated<Blob>(url.pathname + url.search, init, true);
 }
 
 export const post = <T>(path: string, payload?: unknown) =>

@@ -4,19 +4,21 @@ import { unavailableText, useApi } from "../act/hooks.ts";
 import { stateBadge } from "../act/offerSteps.ts";
 import { clockTime, countdown } from "../act/time.ts";
 import type { Offer } from "../act/types.ts";
+import { OfferAudio } from "../api/OfferAudio.tsx";
+import { serverNow } from "../act/time.ts";
 
 // A physician's own offers. The server only lists offers a clinical lead has approved and sent to them.
 export function OffersPage() {
   const [reloadKey, setReloadKey] = useState(0);
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
   // Re-poll every 5 s; redraw the countdown every second from the server's clock.
-  const { data, error } = useApi<{ now: string; items: Offer[] }>("/me/offers", `${reloadKey}:${Math.floor(tick / 5)}`);
+  const { data, error } = useApi<{ now: string; clock_mode: string; items: Offer[] }>("/me/offers", reloadKey, 5000);
   const fetchedAt = useMemo(() => Date.now(), [data]);
   useEffect(() => {
     const timer = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(timer);
   }, []);
-  const now = data ? Date.parse(data.now) + (Date.now() - fetchedAt) : null;
+  const now = data ? serverNow(data.now, data.clock_mode, fetchedAt, Date.now()) : null;
 
   return (
     <div className="page">
@@ -54,6 +56,7 @@ function OfferCard({ offer, now, onChanged }: { offer: Offer; now: number | null
         <span className={`badge ${badge.tone}`}>{open ? "Waiting for you" : badge.text}</span>
       </div>
       {offer.message && <p className="message">{offer.message}</p>}
+      {offer.audio_url && <OfferAudio path={offer.audio_url} />}
       {open && offer.expires_at && now !== null && <p className="mono" style={{ margin: "0 0 12px" }}>Reply within {countdown(offer.expires_at, now)}</p>}
       {open && (
         <div style={{ display: "flex", gap: 10 }}>

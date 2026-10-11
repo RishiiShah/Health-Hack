@@ -1,6 +1,6 @@
 # Deployment: Render first, AWS second, Azure last
 
-The same Python 3.14.7 Docker image runs on all three providers. It binds `0.0.0.0:$PORT` (default 8000), keeps one uvicorn worker, writes logs to stdout/stderr, handles SIGTERM directly and closes its database connection during application shutdown. `/health` is liveness; `/ready` checks startup of the implemented consult-replay foundation and reports unsupported capabilities. Sign-in and role checks protect the implemented operations routes; the remaining operations gates are still pending.
+The same Python 3.14.7 Docker image runs on all three providers. It binds `0.0.0.0:$PORT` (default 8000), keeps one uvicorn worker, writes logs to stdout/stderr, handles SIGTERM directly and closes its database connections during application shutdown. `/health` is liveness; `/ready` checks startup and reports capabilities. Sign-in and role checks protect the implemented operations routes; [document authority](README.md) records current functionality and open policy differences.
 
 Events, holds, quarantine and metrics live in **Amazon RDS for PostgreSQL** (see the decision record in [Boundaries and Contracts](00-Boundaries-and-Contracts.md)). The application process has no local durable state, so any host that can reach RDS can run it.
 
@@ -51,8 +51,8 @@ python3 scripts/stress.py --url https://YOUR-SERVICE --seed 2000 --readers 16 --
 
 ## Render
 
-1. Create the RDS instance in us-east-1 and a database for the service.
-2. Create a Render Blueprint from the repository's root `render.yaml`. It runs the Dockerfile in the Virginia region with one instance and `/ready` as the health check.
+1. Use the existing RDS **commandcenter** database in **us-west-2**, whose complete reference source and 1,163 events are already persisted. Provision a separate database only when intentionally starting another environment.
+2. Align the region in the repository's root `render.yaml` with that database before creating a Render Blueprint. The current template still names Virginia. It runs the Dockerfile with one instance and `/ready` as the health check.
 3. Set `CC_DATABASE_URL` in the Render dashboard (it is marked `sync: false`, so it never lives in Git). Keep `PORT` managed by Render. Do not run more than one worker or instance.
 4. Confirm `/ready` responds. A new database starts with an empty event log and, since the image has no reference CSVs, with decisions off (`detection: false`).
 5. Upload the six reference CSVs once: `python3 scripts/upload_references.py data --url https://YOUR-SERVICE --service-date 2026-03-17` (`--service-date` only for the kit's sample layout). They are stored in the database, so restarts and redeploys keep them; `/ready` then reports `detection: true`. Repeat with `--check` to compare the stored fingerprint with localhost. Matching uploads do not write; changing a persisted version requires the script's `--replace` flag. See [persistent reference data](Reference-Data.md) for exact commands, the local kit fingerprint, and replay-clock setup.
@@ -69,7 +69,7 @@ docker compose -f deploy/compose.yaml ps
 curl --fail http://127.0.0.1:8000/ready
 ```
 
-Install a TLS reverse proxy on the same host that forwards to `127.0.0.1:8000`, or place a load balancer in front of it. The Compose service exposes the application only on loopback. The proxy must preserve forwarding headers and support WebSockets when those routes are implemented.
+Install a TLS reverse proxy on the same host that forwards to `127.0.0.1:8000`, or place a load balancer in front of it. The Compose service exposes the application only on loopback. The proxy must preserve forwarding headers and support WebSockets for clients using the implemented `/ws` transport.
 
 ## Azure last resort
 
@@ -83,7 +83,7 @@ Use an Azure Linux VM with Docker Engine and Compose and the same commands. The 
 | `CC_DATABASE_URL` | PostgreSQL URL (RDS in deployment) | local `postgres:postgres@127.0.0.1:5432/postgres` |
 | `CC_USERS` | JSON list of accounts: `email`, `name`, `role` (`coordinator`, `lead` or `physician`), `password_hash` from `python -m app.auth`, and `physician_id` for physicians | needed for web and mobile sign-in; without accounts only the fixed role tokens work, and with neither the server refuses to start |
 | `CC_AUTH_SECRET` | 32+ random characters that sign sign-in tokens (`python3 -c "import secrets; print(secrets.token_urlsafe(32))"`) | required with `CC_USERS` |
-| `CC_AUTH_CONFIG` | Private JSON file with `secret` and `users`; used if `CC_USERS` is absent | local Compose mounts the gitignored setup file read-only |
+| `CC_AUTH_CONFIG` | Private JSON file with `secret` and `users`; explicit file takes precedence over `CC_USERS` and `CC_AUTH_SECRET` | local Compose mounts the gitignored setup file read-only |
 | `CC_DATA_DIR` | Reference CSVs (hospitals, shifts, off-shift roster, credentials, baseline volume, coverage requirements), sample or scenario-pack layout. Missing: the API runs, `/ready` reports detection unavailable, decision routes return 503. References uploaded with `POST /admin/references` are kept in the database and take precedence; hosted deployments use only the upload | unset (local Compose: the kit's `data/`) |
 | `CC_CLOCK_MODE` | `auto`, `wall`, `anchored`, `fixed` | `auto` |
 | `CC_CLOCK_FIXED` | Offset-aware fixed/anchor time, when needed | unset |
@@ -101,4 +101,4 @@ Backups use RDS automated backups and snapshots. To move providers, point the ne
 
 CI runs the backend tests against a `postgres:17` service container, then builds the image, starts it against Postgres, commits a synthetic consult, replaces the container and checks recovery from the database.
 
-The latest local validation passed 335 backend tests against PostgreSQL; current cohort results are recorded in [Decision-engine gap fixes](Decision-Engine-Gap-Fixes.md). The earlier image-level flow (build, seed, health probe, replace, verify) passed against local PostgreSQL, and the image loads the RDS CA bundle. The production RDS reference load verified certificate and hostname validation over TLS 1.3, durable reconnect recovery, and unchanged operational state. No hosted application deployment was performed in this step; application-level recovery on Render remains unverified.
+The latest local validation passed 337 backend tests against PostgreSQL; a source-only checkout passed 169 tests with 36 protected-source/pack skips. Current cohort results are recorded in [Decision-engine gap fixes](Decision-Engine-Gap-Fixes.md). The earlier image-level flow (build, seed, health probe, replace, verify) passed against local PostgreSQL, and the image loads the RDS CA bundle. The production RDS reference load verified certificate and hostname validation over TLS 1.3, durable reconnect recovery, and unchanged operational state. No hosted application deployment was performed in this step; application-level recovery on Render remains unverified.

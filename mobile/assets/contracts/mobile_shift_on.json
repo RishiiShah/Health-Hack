@@ -1,0 +1,32 @@
+{
+  "on_shift": true,
+  "shift_start": "2026-03-17T08:00:00-04:00",
+  "shift_end": "2026-03-17T20:00:00-04:00",
+  "consults_today": 15,
+  "calls_today": 18,
+  "hospitals_count": 5,
+  "update": {
+    "text": "CON-2113, a stroke consult from Suncrest, has a note due.",
+    "at": "2026-03-17T18:19:00-04:00"
+  },
+  "consults": [
+    {
+      "consult_id": "CON-2104",
+      "consult_type": "Stroke",
+      "hospital_name": "Meadowlands Community Hospital",
+      "badge": "New",
+      "status_text": "Provider contacted 6 min ago",
+      "level": "critical"
+    },
+    {
+      "consult_id": "CON-2113",
+      "consult_type": "Stroke",
+      "hospital_name": "Suncrest Medical Pavilion",
+      "badge": "Note due",
+      "status_text": "Note open 8 of 30 min",
+      "level": "warning"
+    }
+  ],
+  "next_shift": null,
+  "server_now": "2026-03-17T18:20:00-04:00"
+}

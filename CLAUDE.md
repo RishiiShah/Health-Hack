@@ -5,7 +5,7 @@
 ## Read first
 - Problem: `problem/Sevaro_…_Command_Center.pdf`. Scope and gates: `docs/Sevaro Command Center PRD v2.md`.
 - Boundaries, API contract, ElevenLabs, RDS and allowed dependencies: `docs/00-Boundaries-and-Contracts.md`.
-- Each person's task doc is in `docs/` (Web-Anish, Web-Joy, Mobile-Hitanshu, Mobile-Chandan, Synthetic-Data-Krish).
+- Each person's task doc is in `docs/` (Web-Anish, Web-Joy, Mobile-Hitanshu, Mobile-Chandan, Synthetic-Data-Krish). Read `docs/README.md` for current implementation authority and historical/planned status; owner checklists are not evidence that every feature is delivered.
 
 ## Boundaries
 - Edit only the area of the person you're working for (see the ownership table). Needing a change elsewhere means writing an issue, not editing the file.
@@ -25,7 +25,7 @@
 - Backend: `cd backend && pytest` (needs Postgres: `docker run -d --name cc-pg -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:5432:5432 postgres:17`)
 - Web: `cd web && npm run gen:api && npm test && npm run build`
 - Mobile: `cd mobile && flutter test && flutter build web`
-- Synthetic data: `python3 scripts/synth/generate.py --seed 1 --date 2026-04-07 --now 18:20 --prefix T --out data/synthetic/practice-0407`, then `python3 -m unittest discover scripts/synth`
+- Synthetic API/contract checks run with the backend suite without private CSVs. `scripts/synth/generate.py` and the generator unittest command are planned but undelivered; see `docs/Synthetic-Data-Krish.md`. Do not run those nonexistent commands or report generator validation as passed.
 
 ## Before pushing
 - Run the tests for your area. If you touched `backend/`, run the backend tests too.

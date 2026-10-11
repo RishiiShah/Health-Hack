@@ -1,0 +1,75 @@
+{
+  "week_start": "2026-03-15",
+  "days": [
+    {
+      "date": "2026-03-15",
+      "kind": "off"
+    },
+    {
+      "date": "2026-03-16",
+      "kind": "day"
+    },
+    {
+      "date": "2026-03-17",
+      "kind": "day"
+    },
+    {
+      "date": "2026-03-18",
+      "kind": "day"
+    },
+    {
+      "date": "2026-03-19",
+      "kind": "off"
+    },
+    {
+      "date": "2026-03-20",
+      "kind": "day"
+    },
+    {
+      "date": "2026-03-21",
+      "kind": "off"
+    }
+  ],
+  "today": {
+    "status": "on_shift",
+    "start": "2026-03-17T08:00:00-04:00",
+    "end": "2026-03-17T20:00:00-04:00",
+    "consults": 15,
+    "calls": 18,
+    "hospitals": 5
+  },
+  "with_you": {
+    "hospital_name": "Suncrest Medical Pavilion",
+    "window_start": "2026-03-17T06:00:00-04:00",
+    "window_end": "2026-03-18T00:00:00-04:00",
+    "rows": [
+      {
+        "display_name": "Ramirez",
+        "label": "to 19:00",
+        "start": "2026-03-17T07:00:00-04:00",
+        "end": "2026-03-17T19:00:00-04:00",
+        "is_you": false
+      },
+      {
+        "display_name": "Lee",
+        "label": "to 19:00",
+        "start": "2026-03-17T07:00:00-04:00",
+        "end": "2026-03-17T19:00:00-04:00",
+        "is_you": false
+      },
+      {
+        "display_name": "You",
+        "label": "to 20:00",
+        "start": "2026-03-17T08:00:00-04:00",
+        "end": "2026-03-17T20:00:00-04:00",
+        "is_you": true
+      }
+    ],
+    "note": "From 19:00 you're the only confirmed physician here. Your clinical lead is arranging a second."
+  },
+  "next_shift": {
+    "start": "2026-03-18T08:00:00-04:00",
+    "end": "2026-03-18T20:00:00-04:00"
+  },
+  "server_now": "2026-03-17T18:20:00-04:00"
+}

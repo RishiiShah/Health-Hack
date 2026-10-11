@@ -1,0 +1,114 @@
+{
+  "date": "2026-03-17",
+  "banner": {
+    "text": "Suncrest short at 19:00. Offer waiting.",
+    "proposal_id": "PRP-0003"
+  },
+  "window_start": "2026-03-17T12:00:00-04:00",
+  "window_end": "2026-03-18T00:00:00-04:00",
+  "on_shift": [
+    {
+      "physician_id": "PHY-001",
+      "display_name": "Patel",
+      "kind": "day",
+      "start": "2026-03-17T08:00:00-04:00",
+      "end": "2026-03-17T20:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-002",
+      "display_name": "Kim",
+      "kind": "day",
+      "start": "2026-03-17T08:00:00-04:00",
+      "end": "2026-03-17T20:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-003",
+      "display_name": "Ramirez",
+      "kind": "day",
+      "start": "2026-03-17T07:00:00-04:00",
+      "end": "2026-03-17T19:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-004",
+      "display_name": "Brooks",
+      "kind": "day",
+      "start": "2026-03-17T09:00:00-04:00",
+      "end": "2026-03-17T21:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-005",
+      "display_name": "Shah",
+      "kind": "day",
+      "start": "2026-03-17T08:00:00-04:00",
+      "end": "2026-03-17T20:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-006",
+      "display_name": "Lee",
+      "kind": "day",
+      "start": "2026-03-17T07:00:00-04:00",
+      "end": "2026-03-17T19:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-007",
+      "display_name": "Torres",
+      "kind": "day",
+      "start": "2026-03-17T10:00:00-04:00",
+      "end": "2026-03-17T22:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-008",
+      "display_name": "Williams",
+      "kind": "day",
+      "start": "2026-03-17T08:00:00-04:00",
+      "end": "2026-03-17T20:00:00-04:00"
+    }
+  ],
+  "off_shift": [
+    {
+      "physician_id": "PHY-009",
+      "display_name": "Okafor",
+      "kind": "offer",
+      "start": "2026-03-17T19:00:00-04:00",
+      "end": "2026-03-17T23:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-010",
+      "display_name": "Alvarez",
+      "kind": "away",
+      "start": null,
+      "end": null
+    },
+    {
+      "physician_id": "PHY-011",
+      "display_name": "Cho",
+      "kind": "night",
+      "start": "2026-03-17T19:00:00-04:00",
+      "end": "2026-03-18T07:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-012",
+      "display_name": "Haddad",
+      "kind": "night",
+      "start": "2026-03-17T20:00:00-04:00",
+      "end": "2026-03-18T08:00:00-04:00"
+    },
+    {
+      "physician_id": "PHY-013",
+      "display_name": "Brennan",
+      "kind": "away",
+      "start": null,
+      "end": null
+    },
+    {
+      "physician_id": "PHY-014",
+      "display_name": "Menon",
+      "kind": "away",
+      "start": null,
+      "end": null
+    }
+  ],
+  "off_shift_working_today": 3,
+  "off_shift_total": 6,
+  "server_now": "2026-03-17T18:22:00-04:00"
+}

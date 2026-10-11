@@ -1,3 +1,9 @@
+## Current contract
+
+See [document authority](README.md) for current implementation, historical
+handoffs and open policy differences. This file describes implemented contracts;
+the PRD's weighted G15 score is not the backend's current ordering policy.
+
 ## Goal
 Detect, then Decide, then Approve (a person), then Act, then Update, then back to Detect. Don't rebuild Sevaro's existing live-workload view. Every screen should answer "what's wrong, why, and what do we do".
 
@@ -34,7 +40,7 @@ event CSV / JSON ──► backend (1 process, in-memory replay) ──► RDS P
 | `GET /health`, `GET /ready` | none | deploy |
 | `GET /me` → `{role, display_name, physician_id, permissions[]}` | any valid token | Anish, Chandan. Both apps pick the dashboard from this |
 | `GET /snapshot` | coordinator, lead | web; mobile lead (polled; the response is cached server side) |
-| `WS /ws` | coordinator, lead | web. Sends `{epoch, seq, snapshot}` with the **whole snapshot** on every update; no partial updates |
+| `WS /ws` | coordinator, lead | Available API transport. Sends `{epoch, seq, snapshot}` with the **whole snapshot**; current web uses serialized REST polling |
 | `GET /gaps/{gap_id}/candidates` | coordinator, lead | Joy, Hitanshu |
 | `GET /gaps/{gap_id}/trap-check` | coordinator, lead | Joy, Hitanshu |
 | `POST /interventions` `{kind: reassign\|escalate, item_id, physician_id?}` | coordinator | Anish |
@@ -47,9 +53,9 @@ event CSV / JSON ──► backend (1 process, in-memory replay) ──► RDS P
 | `GET /audit?gap_id=` | coordinator, lead | Joy, Hitanshu |
 | `GET /schedule` | coordinator, lead | Web schedule: roster, accepted intervals and pending offers; incomplete future ends remain unknown |
 | `GET /alerts/{item_id}/audio` | coordinator, lead | Anish, Hitanshu |
-| `POST /events` (JSON batch), `POST /events/csv` | admin | Joy |
-| `POST /admin/reset`, `POST /admin/clock` | admin | Joy |
-| `POST /admin/references` `{files: {name: csv text}, service_date?, name?}` (the six reference CSVs) | admin | script / Joy's Data page |
+| `POST /events` (JSON batch), `POST /events/csv` | `admin.inject`: coordinator, lead, admin | Joy |
+| `POST /admin/reset`, `POST /admin/clock` | `admin.inject`: coordinator, lead, admin | Joy |
+| `POST /admin/references` `{files: {name: csv text}, service_date?, name?}` (the six reference CSVs) | `admin.inject`: coordinator, lead, admin | script / Joy's Data page |
 | `GET /admin/references` | `admin.inject` | Persisted reference counts, service date and SHA-256 manifest; no CSV contents |
 | `POST /admin/physician-tokens` `{physician_id}` | admin | demo setup: issues a physician's sign-in link |
 
@@ -61,12 +67,13 @@ event CSV / JSON ──► backend (1 process, in-memory replay) ──► RDS P
 | Coordinator | Full command center: Detect, forecast, candidates, propose offers, interventions | "Use the web dashboard" screen |
 | Clinical lead | Approval queue (home), stroke-risk Critical items, offer tracker, audit | Same content in compact form: approvals (home), stroke-risk items, offer status |
 | Physician | My offers (accept/decline, countdown, audio) and my accepted shifts | Same |
-| Admin | Live injector and reset (inside the coordinator layout) | none |
+| Admin | API/setup tooling; no password-account dashboard | none |
 
 **Tokens.**
+- Normal web/mobile sign-in uses `POST /auth/login` with email and password, then `GET /auth/me`; the returned account role chooses the dashboard. Web stores the session in the browser tab; native mobile holds it in memory. A 401 clears the session. `CC_AUTH_CONFIG` supplies accounts/signing secret when set and takes precedence over `CC_USERS`/`CC_AUTH_SECRET`. The optional token mechanisms below coexist with accounts on the API; they are not the current web password-sign-in flow.
 - Coordinator, lead and admin each get a fixed demo token from an environment variable, checked with `hmac.compare_digest`. The lead's display name also comes from an environment variable and is written to the audit log as the approver.
 - A physician token is an HMAC over `physician_id` and an expiry time (`hmac`, `hashlib`), issued by `POST /admin/physician-tokens`. It identifies one physician, not one offer, so the same sign-in works for every offer they get. The simulated offer message links to `<app>/?token=…&offer=<id>`.
-- Both apps read `token` from the URL once, store it in `sessionStorage` (cleared when the tab closes) and remove it from the address bar with `history.replaceState`, so it doesn't leak through screenshots or shared links. A signed-out user pastes a token on the sign-in screen.
+- Token-based physician links remain an API/demo mechanism; the current password-sign-in web UI does not implement a token-paste login screen.
 
 **Permissions** (returned by `GET /me`; the server checks the same table on every request):
 
@@ -77,7 +84,7 @@ event CSV / JSON ──► backend (1 process, in-memory replay) ──► RDS P
 | `approvals.decide` (approve/reject offers, authorize interventions) | | ✓ | | |
 | `offers.view_all` | ✓ | ✓ | | |
 | `offers.view_own`, `offers.respond` | | | ✓ | |
-| `admin.inject` (events, reset, clock, physician tokens) | | | | ✓ |
+| `admin.inject` (events, reset, clock, physician tokens) | ✓ | ✓ | | ✓ |
 
 - The client shows a button only when `/me` lists its permission, but hiding a button is a convenience, not security. A request without the permission gets 403; an offer belonging to another physician gets 404, so offer IDs can't be probed.
 - A 401 (missing, wrong or expired token) sends either app back to the sign-in screen.
@@ -97,12 +104,12 @@ Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already
 - **If ElevenLabs fails:** the endpoint returns 503, the clients hide the play button, and the text is still shown. The loop never waits on audio.
 
 ## Decision record: Amazon RDS for PostgreSQL
-- **Status:** accepted and implemented in the backend; the RDS instance itself is not provisioned yet.
+- **Status:** implemented; production RDS **commandcenter** is provisioned in **us-west-2** and reference loading/reconnect verification succeeded. Application hosting remains unverified; see [Deployment](Deployment.md).
 - **Context:** the app will be stress tested, and the earlier SQLite-on-disk design tied storage to a single host's disk.
 - **Decision:**
-  - One RDS PostgreSQL instance, single availability zone for the demo, in us-east-1.
-  - Driver: `psycopg[binary]` only. No ORM and no migration tool: a `schema.sql` file using `CREATE TABLE IF NOT EXISTS` runs at startup.
-  - One connection per process, with short transactions.
+  - One RDS PostgreSQL database; the original region plan was us-east-1, while the configured instance is us-west-2. Its high-availability configuration was not inspected.
+  - Driver: `psycopg[binary]` only. No ORM and no migration tool: schema statements in the owning modules use `CREATE TABLE IF NOT EXISTS` at startup.
+  - Separate event, offer, intervention and speech-cache connections in one process, with short transactions.
   - Encrypted connections (`sslmode=verify-full` with the RDS certificate bundle).
   - The `CC_DATABASE_URL` environment variable replaces `CC_DB_PATH`.
 - **Consequences:**
@@ -112,7 +119,7 @@ Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already
   - Caching is in process: `/snapshot` reuses its encoded response until a commit, a newly visible event or the next clock second. Redis/ElastiCache was rejected: with one process it only adds a network hop.
   - CI uses a `postgres` service container, and local development uses a Postgres service in Compose.
   - Deployment.md, render.yaml, Compose and CI change in the same PR.
-  - The backend can run on Render's Virginia region or on EC2 in us-east-1. Limit the RDS security group to the backend's outbound addresses.
+  - Align the application region with the configured RDS instance before hosting. Limit the RDS security group to the backend's outbound addresses.
 - **Alternatives considered:**
   - Keep SQLite: zero dependencies and already working.
   - Aurora Serverless: more cost and more moving parts.
@@ -122,7 +129,7 @@ Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already
 | Area | Allowed | Explicitly not allowed |
 |---|---|---|
 | Backend | fastapi, uvicorn, pydantic (existing); psycopg[binary] (needed for RDS); pytest, httpx (tests) | requests, the ElevenLabs SDK, ORMs, alembic, celery, redis |
-| Web | react, react-dom, vite, typescript; openapi-typescript (development only) | Tailwind, ECharts, router, state, UI-kit, date or HTTP libraries |
+| Web | react, react-dom, vite, typescript; openapi-typescript (development only); existing tailwindcss and @tailwindcss/vite for the implemented landing-page styles | ECharts, router, state, UI-kit, date or HTTP libraries |
 | Mobile | Flutter SDK, `http`, `web` (both made by the Dart team) | state-management, router, Firebase or audio plugins |
 | Synthetic data | Python standard library only | numpy, pandas, faker |
 | Web tests | Node's built-in `node --test` (Node 24) | jest, vitest |

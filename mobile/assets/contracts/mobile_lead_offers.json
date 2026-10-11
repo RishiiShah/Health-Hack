@@ -1,0 +1,30 @@
+{
+  "broadcasts": [
+    {
+      "proposal_id": "PRP-0003",
+      "gap_id": "GAP-SYN-005-1900",
+      "hospitals": [
+        {
+          "hospital_id": "SYN-005",
+          "name": "Suncrest Medical Pavilion"
+        }
+      ],
+      "start": "2026-03-17T19:00:00-04:00",
+      "end": "2026-03-17T23:00:00-04:00",
+      "status": "open",
+      "filled_by": null,
+      "offers": [
+        {
+          "offer_id": "OFF-0007",
+          "physician_id": "PHY-009",
+          "display_name": "Dr. Grace Okafor",
+          "status": "sent",
+          "status_reason": null,
+          "expires_at": "2026-03-17T18:35:00-04:00",
+          "responded_at": null
+        }
+      ]
+    }
+  ],
+  "server_now": "2026-03-17T18:26:00-04:00"
+}

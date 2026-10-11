@@ -1,3 +1,5 @@
+> **Document status:** Planned and undelivered generator specification. No scripts/synth implementation exists in any currently fetched remote branch; commands below are acceptance targets, not working release commands. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+
 **Purpose:** create deterministic test datasets that exercise every scenario hidden in the brief, without touching the supplied data.
 **Owns:** `scripts/synth/generate.py`, `scenarios.py`, `validate.py`, `test_synth.py`; output goes to `data/synthetic/<name>/`, which is gitignored and never committed.
 **Standard library only:** `csv`, `json`, `random.Random(seed)`, `datetime`, `zoneinfo`, `argparse`, `hashlib`.

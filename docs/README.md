@@ -1,0 +1,77 @@
+# Current implementation and document authority
+
+Use this index to distinguish the current release contract from planning and
+historical handoffs. Backend decisions remain deterministic; clients display
+the server's findings, candidates, permissions and outcomes.
+
+| Question | Current authority |
+| --- | --- |
+| Challenge requirements, gates and acceptance cases | [PRD v2](Sevaro%20Command%20Center%20PRD%20v2.md); source brief and handbook remain requirements |
+| Implemented rule assumptions, capacities and stable tie-breakers | [Decision Engine](Decision-Engine.md), linked tests and `backend/app/` |
+| Implemented endpoints, roles and dependencies | [Boundaries and Contracts](00-Boundaries-and-Contracts.md), `/openapi.json`, API tests |
+| Current mobile adapter versus the larger design contract | [Mobile contract scope](Mobile-App-Contract.md), [mobile README](../mobile/README.md) |
+| Runtime, production database and startup recovery | [Deployment](Deployment.md), [Reference Data](Reference-Data.md) |
+| Completed review fixes and verification limits | [Gap fixes](Decision-Engine-Gap-Fixes.md), [Judge Test Plan](Judge-Test-Plan.md) |
+
+The backend uses **Python 3.14.7**, FastAPI, one Uvicorn worker and PostgreSQL.
+Production RDS is provisioned in **us-west-2**; a Render application deployment
+has not been verified. The original Virginia/us-east-1 hosting templates still
+need region alignment before deployment. There is no SQLite production store.
+
+Web uses React, Vite and TypeScript; the existing landing page also uses Tailwind.
+ECharts is not installed. The current web snapshot client uses serialized REST
+polling; `/ws` exists on the backend but is not the web client's transport.
+Password accounts determine roles; no login role selector changes permission.
+`CC_AUTH_CONFIG` overrides environment account configuration. Fixed role tokens
+and signed physician tokens are separate optional demo/API access mechanisms.
+
+The implemented Act loop supports one physician per offer, lead approval,
+sequential fallback, replies, expiry and durable audit. It is implemented scope,
+even where historical task schedules call it stretch. It records recommended
+reassignments; it does not drive Sevaro's production router. Mobile live mode
+adapts these existing workflows. Broadcasts, mobile schedule screens, preference
+editing, release and stored read receipts remain unimplemented design features.
+
+## Policy differences are explicit
+
+PRD G15 describes weighted attention scoring. The current backend orders by the
+lexicographic key in Decision Engine §5.5: severity, horizon, ownerless, stroke,
+repeat contacts, age, affected count, stable ID. Its displayed `score` is ordinal,
+not the PRD's weighted score. This documentation update does **not** approve a
+ranking-policy change or claim numeric G15 parity. The PRD's score examples are
+requirements under review, rather than assertions that the current UI produces
+them. Tests of this implementation establish its documented ordering.
+
+PRD G18's shorthand candidate order is expanded by the implemented gap-minute,
+arrival, declines, hours, weekly-offer and ID key. G19 includes explicit seeds,
+peer tolerance and multiple demand scenarios in Decision Engine §5.3–5.4.
+Changing A41's surge-load criterion or reserving fallback recommendations needs
+a separate explicit policy decision. Neither was changed during these cohorts.
+
+The displayed forecast extends at least 90 minutes through the last complete
+shift boundary within 120 minutes, with exact boundary steps. This resolves the
+18:20 → 20:00 display requirement; the routing simulator retains its documented
+90-minute horizon.
+
+## Historical and planned documents
+
+`Command Center Backend Scaffold.md`, `Backend Scaffold Review.md` and
+`P2-Backend.md` retain historical architecture, measurements and ownership
+handoffs. Their SQLite/Python/test-count statements are historical evidence,
+not current runtime instructions. Web and mobile owner task lists describe
+planned acceptance targets; their status banners identify current delivery
+differences. Use the live mobile adapter scope ahead of v1.1 design-only routes.
+
+`Synthetic-Data-Krish.md` is an **undelivered generator specification**.
+Inspection of every currently fetched remote branch found no `scripts/synth`
+implementation. The generator command in that specification is not runnable.
+CI instead runs hand-authored synthetic API worlds and contract fixtures without
+the protected CSVs. This does not claim generator delivery or private-pack
+acceptance. Source data, answer keys, databases and credentials stay uncommitted.
+
+The release checkout now contains backend, web and mobile source together.
+Run backend tests, web tests/build, and Flutter analysis/tests/web builds from
+their respective directories. CI runs the same public source checks. Private
+four-pack checks require the locally supplied `test_data/`; skipped private
+checks must not be reported as passed. Connected-device and hosted-browser
+rehearsals remain separate from compiling a Flutter web bundle.
