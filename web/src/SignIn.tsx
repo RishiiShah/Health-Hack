@@ -32,17 +32,17 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
   const roleTitle = selectedRole === "coordinator" ? "Coordinator" : selectedRole === "lead" ? "Clinical Lead" : "Physician";
 
   return (
-    <div className="min-h-screen bg-[#28323D] text-[#F5F3ED] flex flex-col p-6" style={{ background: "radial-gradient(circle at 50% 25%, #364550 0%, #28323D 75%)" }}>
+    <div className="tw min-h-screen bg-[#28323D] text-[#F5F3ED] flex flex-col p-6 selection:bg-[#B8D8EB] selection:text-[#101B2B]" style={{ background: "radial-gradient(circle at 50% 25%, #364550 0%, #28323D 75%)" }}>
       {/* Top Header */}
       <div className="max-w-4xl mx-auto w-full flex items-center justify-between pb-6">
-        <button onClick={onBackToLanding} className="flex items-center gap-2 text-[#F5F3ED] hover:text-[#B8D8EB] transition">
+        <button type="button" onClick={onBackToLanding} className="flex items-center gap-2.5 text-[#F5F3ED] hover:text-[#B8D8EB] transition !bg-transparent !border-0 !p-0 cursor-pointer">
           <span className="relative block h-5 w-6">
             <i className="absolute left-0 top-0 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#B8D8EB]" />
             <i className="absolute left-2.5 top-1.5 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#101B2B]" />
           </span>
           <strong className="text-base font-bold tracking-tight text-[#F5F3ED]">overlap</strong>
         </button>
-        <button onClick={onBackToLanding} className="text-xs font-medium text-[#BCC9D2] hover:text-[#F5F3ED] transition">
+        <button type="button" onClick={onBackToLanding} className="text-xs font-semibold text-[#BCC9D2] hover:text-[#F5F3ED] transition !bg-transparent !border-0 !p-0 cursor-pointer">
           ← Back to Overview
         </button>
       </div>
@@ -53,7 +53,7 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
           <div>
             <h1 className="text-2xl font-bold font-heading text-[#101B2B]">Sign in</h1>
             <p className="text-xs text-[#5D6D7E] mt-1">Select your operating role to access your dashboard</p>
-            {notice && <p role="status" className="text-xs text-[#8A5A00] mt-2 bg-[#FDF6E9] p-2 rounded-lg border border-[#D6A451]/30">{notice}</p>}
+            {notice && <p role="status" className="text-xs text-[#8A5A00] mt-2 bg-[#FDF6E9] p-2.5 rounded-xl border border-[#D6A451]/30">{notice}</p>}
           </div>
 
           <div>
@@ -96,7 +96,7 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-medium text-[#101B2B]">Password</label>
-                <button type="button" onClick={() => setForgot(!forgot)} className="text-[11px] text-[#284E67] font-semibold cursor-pointer hover:underline">
+                <button type="button" onClick={() => setForgot(!forgot)} className="text-[11px] text-[#284E67] font-semibold cursor-pointer hover:underline !bg-transparent !border-0 !p-0">
                   Forgot it?
                 </button>
               </div>
@@ -130,6 +130,7 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
                   ["physician", DEMO_EMAILS.physician, "Physician"],
                 ] as const).map(([role, address, label]) => (
                   <button
+                    type="button"
                     key={role}
                     disabled={busy}
                     onClick={() => void signIn(address, "demo", role as Role)}
@@ -144,7 +145,6 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
           )}
         </div>
       </div>
-      <div className="text-center text-[11px] text-[#BCC9D2]">© 2026 Overlap Systems · Sevaro Tele-Stroke Challenge</div>
     </div>
   );
 }

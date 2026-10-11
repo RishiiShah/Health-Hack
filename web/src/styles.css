@@ -52,6 +52,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.01em; margin: 0; 
 h1 { font-size: 32px; font-weight: 800; line-height: 1.15; }
 h2 { font-size: 19px; font-weight: 700; }
 button, input, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; color: inherit; }
 .mono { font-family: var(--font-mono); }
 .muted { color: var(--muted); }
 
