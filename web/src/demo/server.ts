@@ -1,6 +1,6 @@
 // In-memory presentation stand-in, used only when VITE_DEMO_DATA=1. Fixtures are hand-authored synthetic
 // examples, not source data or evidence that the decision algorithm passes the official kit.
-import type { AuditEntry, IngestReport, Offer } from "../act/types.ts";
+import type { AuditEntry, Offer } from "../act/types.ts";
 import auditData from "./data/audit.json" with { type: "json" };
 import candidatesData from "./data/candidates.json" with { type: "json" };
 import offerData from "./data/offer.json" with { type: "json" };
@@ -111,7 +111,7 @@ export function createDemoServer(localNow: () => number = Date.now) {
     expire();
     const url = new URL(path, "http://demo");
     const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
-    const json = body ? JSON.parse(body) : {};
+    const json = body && url.pathname !== "/events/csv" ? JSON.parse(body) : {};
 
     if (method === "POST" && url.pathname === "/auth/login") {
       const user = DEMO_ACCOUNTS.find((a) => a.email === String(json.email).trim().toLowerCase());
@@ -210,9 +210,7 @@ export function createDemoServer(localNow: () => number = Date.now) {
         return record;
       }
       if (url.pathname === "/events" || url.pathname === "/events/csv") {
-        const rows = url.pathname === "/events" ? [json].flat().length : (body ?? "").trim().split("\n").filter((l) => l && !l.startsWith("event_id")).length;
-        revision += 1;
-        return { accepted: rows, duplicates: 0, conflicts: 0, reordered: 0, late: 0, held_orphans: 0, quarantined: [], revision, pending_future: 0 } satisfies IngestReport;
+        throw { status: 503, detail: "Event testing requires the live backend. The presentation demo cannot process uploaded events." };
       }
       if (url.pathname === "/admin/clock") {
         if (json.advance_s) advancedMs += json.advance_s * 1000;

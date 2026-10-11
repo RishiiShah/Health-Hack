@@ -22,7 +22,7 @@ from app.db import EventDatabase
 from app.decide.eligibility import MAX_WEEKLY_OFFERS
 from app.ingest.adapters import FIXTURE_VERSION
 from app.models import EventInput
-from app.service import Engine, base_history, jsonable, load_references, reference_manifest, references_from_files
+from app.service import Engine, REFERENCE_FILES, base_history, jsonable, load_references, reference_manifest, references_from_files
 from app.tts import Speech
 
 log = logging.getLogger(__name__)
@@ -145,7 +145,8 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
             return {"name": "unnamed dataset", "description": "", "reference_files": 0}
         folder = Path(directory).resolve()
         name = folder.parent.name if folder.name == "inputs" else folder.name
-        return {"name": name, "description": f"reference files from {folder.name}", "reference_files": len(list(folder.glob("*.csv")))}
+        return {"name": name, "description": f"reference files from {folder.name}",
+                "reference_files": sum((folder / filename).is_file() for filename in REFERENCE_FILES)}
 
     def uploaded_dataset(source):
         return {"name": source["name"], "description": "uploaded reference files", "reference_files": len(source["files"]),

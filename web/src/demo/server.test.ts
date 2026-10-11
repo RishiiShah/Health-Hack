@@ -104,3 +104,14 @@ test("demo clock pauses and jumps forward", () => {
   post(server, "/admin/clock", { advance_s: 300 }, LEAD);
   assert.equal(server.now(), start + 300_000);
 });
+
+test("presentation demo rejects event uploads instead of reporting simulated acceptance", () => {
+  const server = createDemoServer(() => 0);
+  const before = get(server, "/snapshot");
+  assert.throws(() => server.handle({
+    method: "POST", path: "/events/csv?advance_clock=true", token: COORD,
+    body: "event_id,event_time,ingested_at,consult_id,event_type,physician_id,hospital_id,description\nNEW,2026-03-17T18:21:00-04:00,2026-03-17T18:21:00-04:00,C,consult_received,,SYN-005,Stroke consult request received\n",
+  }), { status: 503, detail: /requires the live backend/ });
+  assert.throws(() => post(server, "/events", { event_id: "NEW" }, COORD), { status: 503, detail: /requires the live backend/ });
+  assert.deepEqual(get(server, "/snapshot"), before);
+});

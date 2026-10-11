@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from "react";
-import { api, post } from "../api/client.ts";
+import { api, DEMO, post } from "../api/client.ts";
 import type { Snapshot } from "../api/live.ts";
 import { clockTimeSeconds, duration } from "./time.ts";
 import type { DataQuality, Dataset, IngestReport } from "./types.ts";
@@ -14,20 +14,20 @@ export function DataPage({ snapshot, now, onChanged }: { snapshot: Snapshot | nu
     <div className="page">
       <h1>Data</h1>
       <p className="intro">
-        Command runs on whichever dataset is loaded here. Nothing on the other screens is fixed to the training data, so loading
-        the test set updates everything.
+        Reference data defines the hospitals, physicians, credentials and capacity rules. Uploaded events are appended to
+        the current stream, and decisions are recalculated from its full history using the same references.
       </p>
       <div className="data">
         <section className="panel">
-          <div className="panel-head"><h2>Dataset</h2></div>
+          <div className="panel-head"><h2>Reference data</h2></div>
           {dataset ? (
             <div className="dataset"><b>{dataset.name}</b>{dataset.description} · {dataset.reference_files} reference files</div>
           ) : (
             <p className="unavailable">Not available yet: the server doesn't describe the loaded dataset.</p>
           )}
-          <h2 style={{ fontSize: 15, margin: "4px 0 8px" }}>Checks on the loaded data</h2>
+          <h2 style={{ fontSize: 15, margin: "4px 0 8px" }}>Checks on the event stream</h2>
           <Checks quality={quality} />
-          <Reset onChanged={onChanged} />
+          {!DEMO && <Reset onChanged={onChanged} />}
         </section>
         <LiveTest snapshot={snapshot} now={now} onChanged={onChanged} />
       </div>
@@ -69,12 +69,12 @@ function Reset({ onChanged }: { onChanged: () => void }) {
     <div style={{ marginTop: 18, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
       {confirming ? (
         <>
-          <span style={{ fontSize: 14 }}>Drop every added event and go back to the base data?</span>
-          <button className="btn danger" onClick={reset}>Reset to base</button>
+          <span style={{ fontSize: 14 }}>Start an empty event stream with the same references? Current consults, offers and interventions will be cleared.</span>
+          <button className="btn danger" onClick={reset}>Start empty stream</button>
           <button className="btn" onClick={() => setConfirming(false)}>Cancel</button>
         </>
       ) : (
-        <button className="btn" onClick={() => setConfirming(true)}>Reset to base…</button>
+        <button className="btn" onClick={() => setConfirming(true)}>Start empty stream…</button>
       )}
       {error && <p className="error" role="alert">{error}</p>}
     </div>
@@ -118,6 +118,13 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot | null; now
     event.target.value = "";
   }
 
+  if (DEMO) return (
+    <section className="panel inject">
+      <div className="panel-head"><h2>Live test</h2></div>
+      <p className="unavailable">Event testing requires the live backend. This presentation demo shows fixed example decisions and cannot process uploaded events.</p>
+    </section>
+  );
+
   return (
     <section className="panel inject">
       <div className="panel-head"><h2>Live test</h2></div>
@@ -130,7 +137,7 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot | null; now
       </div>
       <label htmlFor="events" style={{ fontWeight: 600, fontSize: 14 }}>Add events</label>
       <textarea id="events" value={text} onChange={(e) => setText(e.target.value)} placeholder="event_id,event_time,ingested_at,consult_id,event_type,…" />
-      <p className="hint">One row per line, same columns as event_stream.csv, or a JSON event or array. Late and repeated rows are handled like the base stream.</p>
+      <p className="hint">Use the columns from event_stream.csv, or a JSON event or array. Events are added to the existing history; references stay unchanged. Decisions update from the combined stream, and a CSV moves the test clock forward to its latest event when needed. An unchanged queue can mean duplicate rows, held events or no new decision trigger; check the upload report.</p>
       <button className="btn primary block" disabled={busy || !text.trim()} onClick={() => send(text)}>Add to stream</button>
       <label className="btn block" style={{ display: "block", textAlign: "center", marginTop: 10 }}>
         Upload a CSV file<input type="file" accept=".csv,text/csv" hidden onChange={upload} />

@@ -27,13 +27,15 @@ scenario retains site, wait and peer-harm constraints.
 | Two doctors accept within a minute | First committed wins, the other is told "already filled" | `test_double_accept…`, `test_concurrent_commands_from_two_instances_serialize` |
 | Full loop through the web UI | Coordinator proposes → lead approves and sends → physician accepts; grid, tracker and audit update | manual run on 2026-10-10 (backend + Joy's web, development pack) |
 | Judge file through the web | `make backend` stack + Joy's Data page: base kit 1,163/1/23/1; pasted judge CSV accepted 3, duplicate 1, clock moved to 18:30, Suncrest surge 6 | manual run on 2026-10-10 |
+| Development pack through computer use and Playwright | File chooser loads 1,709 base events; judge CSV adds 124 and drops 1 duplicate; all 1,709 original events and 147 original consults retained; 16 new consults; unchanged six references; queue matches full replay and contains the new consults in grouped Critical escalations. Repeat upload adds 0 and drops 125 duplicates. | Local isolated browser run on 2026-10-11; production untouched |
 
 ## Demo-day run sheet
 1. `make backend`: it mounts `data/` as `CC_DATA_DIR` and reads the root `.env` (from `.env.example`: service date 2026-03-17, fixed clock at 18:20, ElevenLabs key). Then `cd web && npm ci && npm run dev`.
 2. Load the base day: Data page upload of `data/event_stream.csv` (or `POST /events/csv`). Check the data-quality panel shows 1 duplicate, 23 reordered, 1 late, 0 rejected.
 3. Walk the eight demonstrations at 18:20.
 4. Judges' file: upload it on the Data page; a CSV upload moves the clock to its latest event (`/events/csv?advance_clock=true`, never backwards) and the report says where the clock moved. Never restart the server.
-5. If something looks wrong, `POST /admin/reset` starts a clean generation (the old one stays in the database).
+   The upload appends to the existing event history and recalculates decisions on the combined state; reference names, counts and hashes remain unchanged. The Data page separates reference data from event-stream checks. Presentation demo mode disables event testing because its fixed examples do not run the decision engine; use the live backend for unseen CSVs.
+5. For an independent rehearsal, Data → Start empty stream (`POST /admin/reset`) starts a clean generation with the same references and clears current consults, offers and interventions; it does not restore the original event file. The old event generation stays in the database.
 6. Hosted: the image has no reference CSVs. Production RDS already stores the complete six-file reference kit; connect the backend to that database and verify with `python3 scripts/upload_references.py data --url https://<host> --service-date 2026-03-17 --check`. For a different database, upload first. The database keeps references across restarts; see [Reference Data](Reference-Data.md).
 
 ## Current delivery and remaining rehearsal

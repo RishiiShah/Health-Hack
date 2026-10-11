@@ -1,5 +1,6 @@
 """Reference deployment checks run without the ignored challenge data."""
 from dataclasses import replace
+from datetime import timedelta
 from types import SimpleNamespace
 from fastapi.testclient import TestClient
 from app.config import settings
@@ -58,3 +59,49 @@ def test_manifest_depends_on_files_and_service_date_not_label():
     assert original==reference_manifest({**source,'name':'second','files':dict(reversed(list(source['files'].items())))})
     assert original!=reference_manifest({**source,'service_date':'2026-04-08'})
     assert original!=reference_manifest({**source,'files':{**source['files'],'hospitals.csv':source['files']['hospitals.csv'].replace('Hospital','Another')}})
+
+
+def test_directory_reference_count_excludes_event_and_snapshot_csvs(db_url, monkeypatch, tmp_path):
+    for name, text in files().items():
+        (tmp_path / name).write_text(text)
+    (tmp_path / 'event_stream.csv').write_text('event_id,event_time\n')
+    (tmp_path / 'snapshot_open_consults.csv').write_text('consult_id\n')
+    monkeypatch.setattr('app.main.settings', replace(settings, reference_dir=str(tmp_path), service_date='2026-04-07'))
+    with TestClient(create_app(db_url, FixedClock(START), auth=TEST_AUTH, sweep_s=0,
+                              speech=SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None)))) as client:
+        status = client.get('/admin/references', headers=ADMIN).json()
+        assert status['dataset']['reference_files'] == 6
+        assert status['event_count'] == 0
+
+
+def test_unseen_csv_appends_history_updates_decisions_and_preserves_references(db_url, monkeypatch):
+    payload = {'files': files(), 'name': 'Unchanged references', 'service_date': '2026-04-07'}
+    with TestClient(hosted(db_url, monkeypatch)) as client:
+        assert client.post('/admin/references', headers=ADMIN, json=payload).status_code == 200
+        assert client.post('/events', headers=COORD, json={
+            'event_id': 'OLD', 'event_type': 'consult_received', 'event_time': START.isoformat(),
+            'hospital_id': 'H', 'consult_id': 'OLD-CONSULT', 'consult_type': 'Stroke',
+        }).status_code == 200
+        before = client.get('/admin/references', headers=ADMIN).json()
+        persisted = client.app.state.db.metadata('references')
+        first, triaged, later = (START + timedelta(minutes=n) for n in (1, 2, 10))
+        body = ('event_id,event_time,ingested_at,consult_id,event_type,physician_id,hospital_id,description\n'
+                f'NEW-1,{first.isoformat()},{first.isoformat()},NEW-CONSULT,consult_received,,H,Acute stroke consult requested\n'
+                f'NEW-TRIAGE,{triaged.isoformat()},{triaged.isoformat()},NEW-CONSULT,consult_triaged,,H,Consult triaged\n'
+                f'NEW-2,{later.isoformat()},{later.isoformat()},NEW-CONSULT,consult_received,,H,Stroke consult request received\n')
+        response = client.post('/events/csv?advance_clock=true', headers=COORD, content=body)
+        assert response.status_code == 200, response.text
+        assert response.json()['accepted'] == 3
+        snap = client.get('/snapshot', headers=COORD).json()
+        assert {c['consult_id'] for c in snap['consults']} == {'OLD-CONSULT', 'NEW-CONSULT'}
+        assert any(item['where'].get('consult_id') == 'NEW-CONSULT' and item['severity'] == 'Critical'
+                   for item in snap['queue']['items'])
+        after = client.get('/admin/references', headers=ADMIN).json()
+        assert after['event_count'] == before['event_count'] + 3
+        for key in ('manifest', 'reference_revision', 'dataset', 'hospitals', 'physicians'):
+            assert after[key] == before[key]
+        assert client.app.state.db.metadata('references') == persisted
+        # A repeated upload preserves history and produces the same decisions.
+        duplicate = client.post('/events/csv?advance_clock=true', headers=COORD, content=body).json()
+        assert (duplicate['accepted'], duplicate['duplicates']) == (0, 3)
+        assert client.get('/snapshot', headers=COORD).json()['queue'] == snap['queue']
