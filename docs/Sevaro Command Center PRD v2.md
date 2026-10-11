@@ -1,12 +1,14 @@
-# Sevaro Command Center PRD v2.2
+# Sevaro Command Center PRD v2.3
 
 Oct 10, 2026 · @Rishabh
 
 Updated against the supplied March 17, 2026 fixtures. [Backend Scaffold Review](Backend%20Scaffold%20Review.md) records the original discrepancies; [Command Center Backend Scaffold](Command%20Center%20Backend%20Scaffold.md) defines the implementation contract. The source CSVs remain unchanged. Expected values below describe this dataset; synthetic cases are explicitly identified.
 
+**v2.3 (handbook alignment).** Reconciled against the Challenge 2 Handbook. Changes: G13 forecast horizon extended from a bare +90 min to the next shift cliff (reaches 20:00 from the 18:20 base) because the handbook stresses looking "at least 90 minutes ahead"; the handbook's confirmed shift timeline (19:00 / 20:00 / 21:00) recorded and verified against the roster; G12 and G15 clarified for the real-world repeat-call duplicate (same `consult_id` is the same patient, not new demand, no age reset, raised priority); held-out delivery format confirmed as one `event_stream.csv`-shaped CSV dropped in during the demo; state licensing confirmed folded into credentialing. Judging weights remain unconfirmed.
+
 ## Organizer clarification and testing data
 
-Carl Dugart confirmed that judging will introduce held-out data covering the same operational scenarios, including additional March 17, 2026 calls/consults. Longer-term history is unnecessary: these scenarios can occur within one day. For team-generated dataset extensions, he recommends a different date and different ID prefixes, such as `EVT-T0001`. Exact delivery format, clock control, reference changes and schema/value compatibility have not yet been confirmed.
+Carl Dugart confirmed that judging will introduce held-out data covering the same operational scenarios, including additional March 17, 2026 calls/consults. Longer-term history is unnecessary: these scenarios can occur within one day. For team-generated dataset extensions, he recommends a different date and different ID prefixes, such as `EVT-T0001`. The Challenge 2 Handbook (Chapter 4) now confirms the test delivery: one CSV with the same 8 columns as `event_stream.csv` (`event_id, event_time, ingested_at, consult_id, event_type, physician_id, hospital_id, description`), the same doctors/hospitals/event kinds, dropped into the tool during the demo and appended without restart. Clock control during judging, reference changes and exact schema/value tolerances are still unconfirmed.
 
 Maintain three separate uses: the unchanged March 17 base/snapshot fixtures; controlled March 17 append rehearsals in a disposable test database to prepare for judging; and independently generated single-day practice datasets on another service date with unique event/consult prefixes and consistent references. Generated rows must preserve scenario/schema relationships, not add invented external factors. Do not mix practice data into the judging base or replace it with a generated history.
 
@@ -44,6 +46,8 @@ We build a real-time command center that rebuilds physician state and consult li
 **Stretch:** reassignment actions, split-shift offers, approval, Flutter app for the clinical lead and physician (dashboard by role).
 
 **Out of scope:** clinical decisions, real scheduling, credentialing or messaging systems, compensation, changing the production routing engine.
+
+**Optional "going further" factors (handbook Chapter 7, not required).** Consider one or two if time allows: split-shift cost vs. the cost of a late stroke consult; where real data would originate and how offers would really send; HIPAA message constraints (already enforced by the no-patient-data offer rule); physician fatigue and fairness (do not always ask the same person); alert overload (G15 grouping already mitigates); and a stale-data indicator when events stop arriving (aligns with the clock mode and `agent_heartbeat_lost` handling). State licensing is folded into credentialing in the data, so it needs no separate logic.
 
 ## Stack and runtime
 
@@ -205,9 +209,9 @@ This window is `0 <= shift_end - as_of <= 60 min`; unfinished work after shift e
 
 **G11 Stuck consult.** Fires on: triaged, unassigned, with 1+ routing failures (next retry 5 min after last); assigned to a Temporarily Unavailable physician (stranded); assigned with a ring unanswered over 2 min. Lists each credentialed physician with their G7 exclusion reason.
 
-**G12 Demand spike.** Unique received consults in `(as_of - 60 min, as_of]`, against p90 for the reference's declared zone and day category. The supplied `hour_start_et` uses `America/New_York`; hospital-local formats require explicit metadata. Spike only if strictly greater. Spike raises that hospital's current requirement by 1 in G13. Missing day/hour baseline yields unknown demand comparison, not no spike.
+**G12 Demand spike.** Unique received consults in `(as_of - 60 min, as_of]`, against p90 for the reference's declared zone and day category. Count distinct `consult_id`s only: a repeat call about an already-received consult (hospital re-rings after no answer) is the same patient, so it never adds to demand and never restarts that consult's age; it only raises its queue priority through continued aging. Distinct `consult_id`s at the same hospital remain distinct patients and are never merged. The supplied `hour_start_et` uses `America/New_York`; hospital-local formats require explicit metadata. Spike only if strictly greater. Spike raises that hospital's current requirement by 1 in G13. Missing day/hour baseline yields unknown demand comparison, not no spike.
 
-**G13 Coverage, now and +90 min.** In 15-min steps.
+**G13 Coverage, now and at least +90 min.** In 15-min steps. The brief and handbook require looking **at least** 90 minutes ahead; the horizon extends to the next shift-change cliff so a near-horizon drop is not hidden. From the 18:20 base this means covering through 20:00: a bare +90 min window ends at 19:50 and would show the 19:00 departure of PHY-003 and PHY-006 but miss the larger 20:00 cliff when PHY-001, PHY-002, PHY-005 and PHY-008 all leave. Default horizon is `max(90 min, time to the next shift boundary within +120 min)`, configurable in one value.
 
 - Now: on shift, credentialed, routable (G7).
 - Projected at t: credentialed and scheduled on shift at t; drop shifts ending at or before t; add complete shift intervals starting by t; exclude Temporarily Unavailable until status changes. A next start without an end is incomplete schedule data, shown explicitly and excluded from confirmed counts.
@@ -226,7 +230,7 @@ The stroke bonus applies to consult items with supplied type Stroke; hospital ga
 
 Every value is written by one gate. If a number looks wrong, check the gate beside it.
 
-**Headline numbers:** open consults, consults past Critical, unassigned consults, overloaded physicians, hospitals with a gap now, hospitals with a gap in the next 90 min. Header also shows clock mode and current now.
+**Headline numbers:** open consults, consults past Critical, unassigned consults, overloaded physicians, hospitals with a gap now, hospitals with a gap within the forecast horizon (at least the next 90 min, through the next shift cliff). Header also shows clock mode and current now.
 
 | Panel | Shows | Gate | Expected at 18:20 |
 | --- | --- | --- | --- |
@@ -237,7 +241,7 @@ Every value is written by one gate. If a number looks wrong, check the gate besi
 | Workload | Consults, calls, open, minutes to shift end, overload badge | G8, G8b | PHY-003: 14, 17, 3, 40 min |
 | Shift-end risk | Leaving within 60 min with open notes | G10 | PHY-003 Critical, PHY-006 Warning |
 | Demand | Trailing 60-min count vs p90, surge badge | G12 | Suncrest 5 vs 1 (surge); Lakeview 1 vs 2 (none) |
-| Coverage forecast | Now plus potential scheduled coverage, hospitals x 15-min steps to +90 min; completeness and physician IDs | G13 | At 19:00 Suncrest requires 2 in the surge scenario; supplied complete intervals count only PHY-005. Cho is credentialed but has an incomplete future interval |
+| Coverage forecast | Now plus potential scheduled coverage, hospitals x 15-min steps across the horizon (at least +90 min, through the next shift cliff); completeness and physician IDs | G13 | At 19:00 Suncrest requires 2 in the surge scenario; supplied complete intervals count only PHY-005. Cho is credentialed but has an incomplete future interval. The 20:00 cliff (PHY-001/002/005/008 leave) is in-horizon |
 | Signal flags | Contradicting or unverified signals | G14 | PHY-001 external platform; PHY-007 offline |
 | Data quality | Rejected, duplicates, conflicts, reordered, late, pending/expired orphans, both lag measures | G1 to G4 | 0 rejected, 1 duplicate, 0 semantic conflicts, 23 reordered, 1 late, 0 pending orphans; reorder lag 5:55, delivery lag 6:45 |
 | Live injector | Upload or post events, reset to base | Ingest | Used for T23 to T27 |
@@ -292,7 +296,7 @@ Core is done when T1–T12 and T23–T28 pass with no restart between base load 
 | T8 | Nobody can take it (W1) | G11 | CON-2105: 3 failures, each credentialed physician with reason |
 | T9 | Shift-end notes (W4) | G10 | PHY-003 Critical, 2 open notes, 40 min left |
 | T10 | Spike and equality boundary | G12 | Base: Suncrest 5 > 1 surge; Lakeview 1 < 2 no surge. Synthetic: count equal to p90 produces no surge |
-| T11 | Projected coverage and schedule completeness | G13 | Surge scenario at 19:00: Suncrest requirement 2, complete-interval count 1 (PHY-005), schedule incomplete. Synthetic confirmed interval for Cho covering 19:00 gives count 2 and no gap; Cho is credentialed there |
+| T11 | Projected coverage and schedule completeness | G13 | Surge scenario at 19:00: Suncrest requirement 2, complete-interval count 1 (PHY-005), schedule incomplete. Synthetic confirmed interval for Cho covering 19:00 gives count 2 and no gap; Cho is credentialed there. Horizon reaches the 20:00 cliff: PHY-001/002/005/008 drop at 20:00 and the forecast reflects the deeper reduction rather than ending at 19:50 |
 | T12 | Workload from credentials | G8, G6 | PHY-007: 6 consults, 2 credentialed sites |
 | T28 | Overload (W2) | G8b | Open-work warning includes PHY-002, PHY-003, PHY-006; G10 risk escalates PHY-003 and PHY-006 to Critical. Separate synthetic tests cover rate cohort, zero median and insufficient peers |
 
@@ -308,7 +312,7 @@ This file is absent from the supplied data. The cases below are a controlled Mar
 | T26 | PHY-007 answers CON-2109 | PHY-007 busy, ring cleared, answered-call count increments; base G7 coverage does not decrease because the existing ring already excluded it. A separate synthetic no-ring/out-of-cooldown precondition tests a real current-coverage drop |
 | T27 | PHY-008 Available, calls on CON-2110 | Stranded clears; CON-2110 to Provider Contacted |
 
-**Core boundary and consistency checks:** exact warning/critical thresholds; continuous Note Pending-to-Documentation age; same-stage repeats; matched session endings; same-owner/reassignment history; ET, overnight and DST shifts; future-event exclusion and backward-clock rebuild; child-first orphan release and fixed-clock expiry; conflicting duplicates; missing baseline/schedule inputs; simultaneous ingest/reference/reset; failed durable commit; restart with the same reference revision; stale WebSocket message rejection; and slow-client isolation. Copy fixtures into CI because the current `data/` folder is gitignored.
+**Core boundary and consistency checks:** exact warning/critical thresholds; continuous Note Pending-to-Documentation age; same-stage repeats; repeat call about an existing `consult_id` (same patient: no new demand, no age reset, raised priority); forecast horizon reaching the next shift cliff; matched session endings; same-owner/reassignment history; ET, overnight and DST shifts; future-event exclusion and backward-clock rebuild; child-first orphan release and fixed-clock expiry; conflicting duplicates; missing baseline/schedule inputs; simultaneous ingest/reference/reset; failed durable commit; restart with the same reference revision; stale WebSocket message rejection; and slow-client isolation. Copy fixtures into CI because the current `data/` folder is gitignored.
 
 **Stretch tests:** T13 evaluates all R1–R8 using a separate fixture with complete schedules and offer history; Alvarez is ineligible for a Suncrest-only gap because he lacks that credential. T14 verifies gap closure, no worsened shared-capacity gap and disclosed load seeding without hardcoded physician/site counts. T15 no send without approval; T16 rejection returns item; T17 message has no patient data; T18 expiry after 10 min; T19 second acceptance gets Already filled; T20 gap closes and offers withdraw; T21 offer limits; T22 full audit trail.
 
@@ -348,6 +352,8 @@ Each assumption lives in one config value or one function, so it can change in o
 - Late = prior accepted event-time watermark lag over 60 s (G3); delivery lag is a separate measure. The brief sets no threshold.
 - An unanswered ring is not a call (G8) but blocks routing while it rings (G7).
 - Projected coverage counts complete scheduled intervals and excludes Temporarily Unavailable; now counts only G7-routable ones. Current busy sessions are assumed released in projected cells. Unknown upcoming intervals are exposed.
+- Forecast horizon is "at least 90 min" per the brief and handbook: `max(90 min, time to the next shift boundary within +120 min)`, in one config value. From 18:20 this reaches 20:00 so the four-physician cliff (PHY-001/002/005/008) is not hidden just past a bare 19:50 cutoff. The handbook's confirmed 18:20 timeline is 19:00 (PHY-003, PHY-006 out; Cho in), 20:00 (PHY-001/002/005/008 out; Haddad in), 21:00 (PHY-004 out); it matches the roster.
+- A repeat call about an already-received consult is the same patient (handbook issues 7 and Chapter 5): G8/G12 count distinct `consult_id`s only, G5/G9 never restart its age, and continued aging raises its G15 rank. Distinct `consult_id`s are never merged.
 - Spike uses the reference's declared time zone (ET for supplied files), recomputed as the count changes. Current spike uplift is carried through the forecast as an explicit scenario.
 - Overload thresholds and the proposed peer-cohort rule are initial operations assumptions, validated at H12. They do not determine dispatch eligibility.
 - Agent comes back online on any later camera event; the brief has no heartbeat-restored event.
@@ -358,13 +364,14 @@ Each assumption lives in one config value or one function, so it can change in o
 
 **Open questions**
 
-- [ ] How will the held-out March 17 data arrive: CSV upload, API batch or event stream? How is simulation time advanced during judging?
+- [x] How will the held-out data arrive? The handbook (Chapter 4) confirms one CSV matching `event_stream.csv` exactly (same 8 columns, same doctors/hospitals/event kinds), dropped into the tool during the demo and appended to the loaded day without restart. Simulation-time advancement during judging is still unstated.
 - [ ] Will new physician/hospital IDs come with updated rosters and credentials, or will the extension use existing reference IDs?
 - [ ] Will held-out columns, event types, description values and timestamp offsets follow the supplied CSV conventions?
-- [ ] What are the judging criteria and their weights? Decides whether live test work moves before H24.
+- [ ] What are the judging criteria and their weights? Still unstated; the handbook does not give weights. Decides whether live-test / Act-loop work moves before H24. The brief and handbook both list the full Detect-Decide-Act loop as required to demonstrate, so treat the Act loop as required rather than pure stretch where time allows.
 - [ ] How long is a Temporarily Unavailable status trusted before it is flagged stale?
 - [ ] What clears an unanswered ring when no answer/cancel event arrives? Until a policy is configured, retain the routing exclusion and expose its age.
 - [ ] What are the authoritative complete upcoming shifts and offer-history sources? Required before confirmed future staffing or offer eligibility.
 - [ ] Which workload/cohort rules and concurrent-assignment capacities should govern recommendations? Current overload warnings remain advisory.
-- [ ] Should General Neuro in Imaging Review get its own time standard?
+- [ ] Should General Neuro in Imaging Review get its own time standard? Neither brief nor handbook defines one; General Neuro imaging currently has no stage-breach alert.
+- [x] Does state licensing need separate handling? No. The handbook (Chapter 8) states the data folds licensing into credentialing, so the credential matrix already covers it; licensing is a real-world-only, optional "going further" consideration.
 - [ ] Who can see the audit log: coordinators, clinical leads, or both?
