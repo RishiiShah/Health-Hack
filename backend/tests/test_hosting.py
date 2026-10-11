@@ -66,3 +66,11 @@ def test_database_url_falls_back_to_the_image_ca_bundle(tmp_path, monkeypatch):
     present = f"postgresql://u:p@db.example/cc?sslrootcert={bundle}"
     assert db.usable_ca(present) == present  # an existing file is kept as given
     assert db.usable_ca("postgresql://u:p@db.example/cc?sslrootcert=system").endswith("sslrootcert=system")
+
+
+def test_server_connections_bound_lock_waits_and_idle_transactions(db_url):
+    """A session stuck holding the offer lock must not hang other instances forever."""
+    from app.db import connect
+    with connect(db_url) as conn:
+        settings = {k: conn.execute(f"SHOW {k}").fetchone()[k] for k in ("lock_timeout", "idle_in_transaction_session_timeout", "TimeZone")}
+    assert settings == {"lock_timeout": "15s", "idle_in_transaction_session_timeout": "1min", "TimeZone": "UTC"}

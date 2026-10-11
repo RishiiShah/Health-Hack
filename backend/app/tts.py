@@ -8,7 +8,8 @@ import json
 import os
 import urllib.request
 from threading import Lock
-import psycopg
+from psycopg.rows import tuple_row
+from app.db import connect
 
 SCHEMA = "CREATE TABLE IF NOT EXISTS tts_audio (sha256 TEXT PRIMARY KEY, voice_id TEXT NOT NULL, model_id TEXT NOT NULL, audio BYTEA NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())"
 URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
@@ -19,7 +20,7 @@ class Speech:
         self.api_key = api_key if api_key is not None else os.getenv("ELEVENLABS_API_KEY")
         self.voice_id = voice_id or os.getenv("ELEVENLABS_VOICE_ID")
         self.model_id = model_id or os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")
-        self.conn = psycopg.connect(url, autocommit=True)
+        self.conn = connect(url, row_factory=tuple_row)
         self.conn.execute(SCHEMA)
         self.lock = Lock()
 

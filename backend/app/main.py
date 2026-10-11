@@ -293,7 +293,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         except csv.Error as exc:
             raise HTTPException(422, f"CSV could not be parsed: {exc}") from None
         name = unquote(filename or "pasted-events.csv").replace("\r", " ").replace("\n", " ")[:255]
-        source = (request.app.state.db.metadata("references") or {}).get("source")
+        source = ((await run_in_threadpool(request.app.state.db.metadata, "references")) or {}).get("source")
         upload = {"batch_id": str(uuid4()), "filename": name, "sha256": hashlib.sha256(body).hexdigest(),
                   "actor": who.display_name, "reference_fingerprint": reference_manifest(source)["fingerprint"] if source else None}
         try:  # may switch to the stored kit the file's IDs belong to

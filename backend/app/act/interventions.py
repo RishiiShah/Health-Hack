@@ -6,9 +6,8 @@ that writes the intervention and its audit row together, serialized with offer c
 import json
 from datetime import datetime
 from threading import RLock
-import psycopg
-from psycopg.rows import dict_row
 from app.act.offers import OFFER_LOCK, OfferError
+from app.db import connect
 
 SCHEMA = (
     "SELECT pg_advisory_xact_lock(7310001)",
@@ -25,7 +24,7 @@ SCHEMA = (
 
 class InterventionLog:
     def __init__(self, url: str):
-        self.conn = psycopg.connect(url, autocommit=True, row_factory=dict_row, options="-c timezone=UTC")
+        self.conn = connect(url)
         self.lock = RLock()
         self.version = 0
         with self.conn.transaction():

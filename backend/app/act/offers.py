@@ -12,8 +12,8 @@ from threading import RLock
 from datetime import datetime, timedelta
 from typing import Callable
 import psycopg
-from psycopg.rows import dict_row
 from app.clock import Clock, utc
+from app.db import connect
 from app.decide.eligibility import MIN_OFFER, OfferHistory, Proposal, evaluate_proposal
 from app.engine.replay import State
 from app.ops.coverage import SplitShift, current_coverage, project, remaining_need
@@ -135,7 +135,7 @@ class OfferDesk:
                 self.conn.execute(statement)
 
     def _connect(self):
-        return psycopg.connect(self.url, autocommit=True, row_factory=dict_row, options="-c timezone=UTC")
+        return connect(self.url)
 
     # ---- reads -------------------------------------------------------------------------------------------
     def offers(self, physician_id: str | None = None) -> list[Offer]:
