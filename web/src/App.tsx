@@ -21,8 +21,9 @@ export default function App() {
   useEffect(() => { const onHash = () => { const nextHash = location.hash.slice(1) || "landing"; setHash(nextHash); if (!role && (nextHash === "landing" || nextHash === "signin")) setCurrentView(nextHash); }; addEventListener("hashchange", onHash); return () => removeEventListener("hashchange", onHash); }, [role]);
   const signIn = (nextRole: Role) => { sessionStorage.setItem("cc_demo_role", nextRole); setRole(nextRole); setCurrentView("app"); location.hash = nextRole === "lead" ? "approvals" : nextRole === "physician" ? "shift" : "command"; };
   const signOut = () => { sessionStorage.removeItem("cc_demo_role"); setRole(null); setCurrentView("landing"); location.hash = "landing"; };
-  if (currentView === "landing") return <LandingPage onEnter={signIn} onGoToSignIn={() => { setCurrentView("signin"); location.hash = "signin"; }} />;
-  if (currentView === "signin") return <SignIn onSignIn={signIn} onBackToLanding={() => { setCurrentView("landing"); location.hash = "landing"; }} />;
+  const [targetRole, setTargetRole] = useState<Role>("coordinator");
+  if (currentView === "landing") return <LandingPage onEnter={signIn} onGoToSignIn={(r?: Role) => { if (r) setTargetRole(r); setCurrentView("signin"); location.hash = "signin"; }} />;
+  if (currentView === "signin") return <SignIn initialRole={targetRole} onSignIn={signIn} onBackToLanding={() => { setCurrentView("landing"); location.hash = "landing"; }} />;
   if (!role) return <LandingPage onEnter={signIn} onGoToSignIn={() => setCurrentView("signin")} />;
   return <Shell role={role} page={hash as Page} signOut={signOut} />;
 }
