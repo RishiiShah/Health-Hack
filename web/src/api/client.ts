@@ -9,8 +9,8 @@ export class ApiError extends Error {
   }
 }
 
-// VITE_DEMO_DATA=1 answers every call from in-memory demo data; otherwise the demo code isn't bundled at all.
-export const DEMO = import.meta.env?.VITE_DEMO_DATA === "1";
+// Answers from in-memory demo data unless explicitly disabled via VITE_DEMO_DATA=0.
+export const DEMO = import.meta.env?.VITE_DEMO_DATA !== "0";
 let demo: Promise<ReturnType<typeof import("../demo/server.ts").createDemoServer>> | null = null;
 
 async function send<T>(path: string, init: RequestInit, token: string | null): Promise<T> {
