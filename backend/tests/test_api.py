@@ -82,7 +82,7 @@ def test_live_append_matches_a_full_replay_at_every_checkpoint(path, db_url):
     """The demo: base file at 18:20, then judge events arrive as they are delivered while the clock moves.
     The served queue equals a from-scratch replay of what had arrived, at every checkpoint."""
     pack, api = app_for(path, db_url)
-    judge = sorted(raw_rows(path, "live/judge_events.csv"), key=lambda r: r["ingested_at"])
+    judge = sorted(raw_rows(path, "live/judge_events.csv"), key=lambda r: at(r["ingested_at"]))  # offsets differ per hospital: compare instants, not strings
     with TestClient(api) as client:
         post_csv(client, raw_rows(path, "inputs/event_stream.csv"))
         sent = 0

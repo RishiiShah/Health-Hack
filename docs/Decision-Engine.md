@@ -230,19 +230,19 @@ Sample at 18:20: CON-2110 and CON-2105 escalate first; CON-2102 hands off to PHY
 - **Free soon, not absent:** when nobody credentialed is routable but one is in a call/video or the 2-minute cooldown, the consult is queued for them ("when their video consult ends", lead notified if Critical) instead of escalated [A49]. This removed most assign↔escalate flip-flops.
 - **Incidents:** escalations for consults at the same hospital merge into one `escalate:<hospital>` item that lists every consult and its wait [H ch7]; open notes merge into one item per owner. 22:20 queue: 31 → 12 items, escalations 17 → 4.
 
-**Metrics** (`tests/pack_metrics.py`; asserted in `tests/test_pack.py` and `tests/test_pack_sweep.py`, which run on every allowed pack: `01_development` and `02_validation_no_candidate`; 03 and 04 are held out). A rules engine has no ML accuracy; we measure agreement with the answer key, scenario recall and decision properties:
+**Metrics** (`tests/pack_metrics.py`; asserted in `tests/test_pack.py` and `tests/test_pack_sweep.py`, which run on all four packs; 03 and 04 were held out until the engine was finished and were scored blind, with no engine change: the two failures they exposed were both test bugs, fixed in the tests). A rules engine has no ML accuracy; we measure agreement with the answer key, scenario recall and decision properties:
 
-| Metric | 01 development | 02 validation (no candidate) |
-|---|---|---|
-| Field agreement with expected/ (4 checkpoints, forecast, candidate rules) | 11,661/11,661 (100%) | 11,661/11,661 (100%) |
-| Example offer | PHY-809 offered (answer key: the only eligible) | Escalated with every off-shift physician's failing rule (answer key: 0 eligible) |
-| Scenario recall (HB01-HB06; HB05 negative control not flagged) | 6/6 | 6/6 |
-| Safety/feasibility violations, 49 passes 18:20-22:20 | 0 | 0 |
-| Critical items without an action | 0/579 | 0/597 |
-| Offers passing the trap guard | 18/18 | no offers (nobody eligible) |
-| Fix churn / flip-flops (two free physicians swapping places in the router's order) | 15/692 / 6 | 22/711 / 8 |
-| Order invariance at checkpoints | 4/4 | 4/4 |
-| Latency per pass (replay + decide) | median 5 ms, p95 28 ms | median 5 ms, p95 6 ms |
+| Metric | 01 development | 02 validation (no candidate) | 03 two candidates (blind) | 04 changed winner (blind) |
+|---|---|---|---|---|
+| Field agreement with expected/ (4 checkpoints, forecast, candidate rules) | 11,661/11,661 (100%) | 11,661/11,661 (100%) | 11,607/11,607 (100%) | 11,637/11,637 (100%) |
+| Example offer | PHY-809 offered (answer key: the only eligible) | Escalated with every off-shift physician's failing rule (answer key: 0 eligible) | PHY-916 offered, PHY-435 shown as runner-up (answer key: both eligible, unranked); after PHY-916 accepts, PHY-435 is offered because the hospital still needs 2 | PHY-620 offered (answer key: the only eligible) |
+| Scenario recall (HB01-HB06; HB05 negative control not flagged) | 6/6 | 6/6 | 6/6 | 6/6 |
+| Safety/feasibility violations, 49 passes 18:20-22:20 | 0 | 0 | 0 | 0 |
+| Critical items without an action | 0/579 | 0/597 | 0/587 | 0/591 |
+| Offers passing the trap guard | 18/18 | no offers (nobody eligible) | 19/19 | 19/19 |
+| Fix churn / flip-flops (two free physicians swapping places in the router's order) | 15/692 / 6 | 22/711 / 8 | 25/694 / 10 | 24/699 / 9 |
+| Order invariance at checkpoints | 4/4 | 4/4 | 4/4 | 4/4 |
+| Latency per pass (replay + decide) | median 5 ms, p95 28 ms | median 5 ms, p95 6 ms | median 5 ms, p95 30 ms | median 5 ms, p95 28 ms |
 
 Not measured: whether following the advice improves outcomes over a whole evening. That needs a closed loop where our accepted actions feed back as events (the replay is open loop: nobody acts on our advice, so the same consults are re-decided every pass).
 

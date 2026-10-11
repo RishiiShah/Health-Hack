@@ -17,13 +17,13 @@ from app.engine.physician import physician_view
 from app.engine.replay import replay
 from app.fixture import load_fixture
 from app.models import Event
-from app.ops.coverage import SIGNAL_BUSY, current_coverage
+from app.ops.coverage import SIGNAL_BUSY, current_coverage, remaining_need
 from app.ops.detect import NOTE_STAGES, consult_sla, views_at
 from app.ops.refs import load_ops_refs
 from app.references import load_reference_dir
 
 ROOT = Path(__file__).resolve().parents[2] / "test_data"
-PACKS = [ROOT / n for n in ("01_development", "02_validation_no_candidate") if (ROOT / n / "manifest.json").exists()]
+PACKS = [ROOT / n for n in ("01_development", "02_validation_no_candidate", "03_integration_two_candidates", "04_holdout_changed_winner") if (ROOT / n / "manifest.json").exists()]
 STAGE_LABEL = {"Imaging Pending": "CT/CTA or Imaging Pending", "Video In Progress": "Video Consult In Progress"}
 ACTIVITY = {"Video Consult": "Video Consult In Progress", "Camera Active, No Session": "Camera Active - No Synapse Session",
             "Documentation": "Documentation / Note", "Available (meeting)": "In Meeting - Interruptible"}
@@ -260,6 +260,7 @@ def test_example_offer_goes_to_an_answer_key_eligible_physician_or_escalates(pat
     for i in items:
         if i.fix.kind == "split_shift":
             assert i.fix.physician_id in eligible
+            assert {c.physician_id for c in i.candidates if c.eligible} >= eligible  # the runner-up is shown too
         else:
             assert not eligible and i.fix.kind in {"escalate", "watch"}
             if i.fix.kind == "escalate":
@@ -294,4 +295,10 @@ def test_engine_offer_runs_end_to_end_through_the_desk(path, db_url):
     assert desk.accept(o["id"], best.physician_id)["state"] == "ACCEPTED"
     after = decide(state, pack.refs, pack.ops, now, desk.history(now), desk.accepted())
     assert not [i for i in after.items if i.fix.kind == "split_shift" and i.fix.physician_id == best.physician_id]
-    assert not [i for i in after.items if i.fix.kind == "split_shift" and set(i.where.get("hospital_ids") or [i.where.get("hospital_id")]) & set(best.hospitals)]
+    # One joiner may not fill a hospital that needs several (two-candidate pack): a further offer there is only
+    # made while the need, with the accepted joiner counted, is still above zero.
+    for i in after.items:
+        if i.fix.kind == "split_shift":
+            c = next(c for c in i.candidates if c.physician_id == i.fix.physician_id)
+            need = remaining_need(state, pack.refs, pack.ops, after.views, now, desk.accepted(), c.hospitals, c.start, c.end)
+            assert any(need.values()), (i.id, need)
