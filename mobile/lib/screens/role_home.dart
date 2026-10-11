@@ -110,7 +110,7 @@ class _RoleHomeState extends State<RoleHome> {
                   horizontal: 16,
                   vertical: 8,
                 ),
-                decoration: OverlapStyle.panel(radius: 10),
+                decoration: OverlapStyle.panel(),
                 child: Wrap(
                   alignment: WrapAlignment.spaceBetween,
                   crossAxisAlignment: WrapCrossAlignment.center,
@@ -137,7 +137,7 @@ class _RoleHomeState extends State<RoleHome> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Container(
                 padding: const EdgeInsets.all(4),
-                decoration: OverlapStyle.panel(radius: 10),
+                decoration: OverlapStyle.panel(),
                 child: LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -161,7 +161,7 @@ class _RoleHomeState extends State<RoleHome> {
                                       : Colors.transparent,
                                   shape: const RoundedRectangleBorder(
                                     borderRadius: BorderRadius.all(
-                                      Radius.circular(6),
+                                      Radius.zero,
                                     ),
                                   ),
                                   padding: const EdgeInsets.symmetric(

@@ -78,10 +78,10 @@ class _PhysicianSchedulePageState extends State<PhysicianSchedulePage> {
                           '${formatDate(day.date)}\n${day.kind == DayKind.split ? 'Extra shift' : day.kind.wire}',
                         ),
                         backgroundColor: switch (day.kind) {
-                          DayKind.day => const Color(0xFFB8D8EB),
-                          DayKind.night => const Color(0xFFD3DCE4),
-                          DayKind.split => const Color(0xFFDFEBF3),
-                          DayKind.off => const Color(0xFFE6ECF1),
+                          DayKind.day => const Color(0xFFD9CFBC),
+                          DayKind.night => const Color(0xFFCFC7B6),
+                          DayKind.split => const Color(0xFFF3E3DC),
+                          DayKind.off => const Color(0xFFEBE6DA),
                         },
                       ),
                   ],
@@ -356,11 +356,11 @@ class CoveragePage extends StatelessWidget {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.zero,
                             color: row.cells[i].staffed < row.cells[i].required
                                 ? OverlapStyle.redSoft
                                 : row.cells[i].staffed == row.cells[i].required
-                                ? const Color(0xFFDBEAFE)
+                                ? const Color(0xFFF3E3DC)
                                 : OverlapStyle.greenSoft,
                           ),
                           child: Text(
@@ -373,7 +373,7 @@ class CoveragePage extends StatelessWidget {
                                   ? OverlapStyle.red
                                   : row.cells[i].staffed ==
                                         row.cells[i].required
-                                  ? const Color(0xFF275B9A)
+                                  ? const Color(0xFFA93A24)
                                   : OverlapStyle.green,
                             ),
                           ),

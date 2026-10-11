@@ -23,7 +23,7 @@ class OverlapBrand extends StatelessWidget {
                   height: 20,
                   decoration: BoxDecoration(
                     color: OverlapStyle.accent,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.zero,
                   ),
                 ),
               ),
@@ -38,7 +38,7 @@ class OverlapBrand extends StatelessWidget {
                   height: 20,
                   decoration: BoxDecoration(
                     color: OverlapStyle.ink,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.zero,
                   ),
                 ),
               ),
@@ -101,7 +101,7 @@ class Notice extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isError ? colors.errorContainer : colors.secondaryContainer,
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.zero,
           border: Border.all(
             color: isError ? OverlapStyle.redSoft : OverlapStyle.tealSoft,
           ),

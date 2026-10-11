@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'theme.dart';
 
 enum TimelineKind {
-  day('Day', Color(0xFFB8D8EB)),
-  night('Night', Color(0xFF1E293B)),
+  day('Day', Color(0xFFD9CFBC)),
+  night('Night', Color(0xFF1A1712)),
   away('Away', Color(0xFFEFD6A4)),
   offer('Offer', OverlapStyle.tealSoft);
 
@@ -75,7 +75,7 @@ class ScheduleTimeline extends StatelessWidget {
               const Icon(
                 Icons.schedule_rounded,
                 size: 18,
-                color: Color(0xFFDC2626),
+                color: Color(0xFFB5402B),
               ),
               Text(
                 '$currentTimeLabel ET',
@@ -83,7 +83,7 @@ class ScheduleTimeline extends StatelessWidget {
               ),
               const Text(
                 'Schedule timeline',
-                style: TextStyle(color: Color(0xFF586777)),
+                style: TextStyle(color: Color(0xFF6B6457)),
               ),
             ],
           ),
@@ -141,10 +141,10 @@ class ScheduleTimeline extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: entries[index].kind.color,
-                                  borderRadius: BorderRadius.circular(5),
+                                  borderRadius: BorderRadius.zero,
                                   border: entries[index].highlighted
                                       ? Border.all(
-                                          color: const Color(0xFF0F1A27),
+                                          color: const Color(0xFF1A1712),
                                           width: 3,
                                         )
                                       : entries[index].kind ==
@@ -202,7 +202,7 @@ class ScheduleTimeline extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             color: (tick - currentHour).abs() < .5
-                                ? const Color(0xFF0F1A27)
+                                ? const Color(0xFF1A1712)
                                 : const Color(0xFF7E8388),
                           ),
                         ),
@@ -243,7 +243,7 @@ class ScheduleTimeline extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 6),
             child: Text(
               '${entry.name} · ${entry.kind.label} · ${entry.hoursLabel}',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF586777)),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6B6457)),
             ),
           ),
       ],
@@ -275,7 +275,7 @@ class _TimelineGrid extends CustomPainter {
       canvas.save();
       canvas.clipRect(Rect.fromLTRB(left, 0, size.width, size.height));
       final hatch = Paint()
-        ..color = const Color(0xFFF2F5F8)
+        ..color = const Color(0xFFF5F2EA)
         ..strokeWidth = 2;
       for (double x = left - size.height; x < size.width; x += 12) {
         canvas.drawLine(
@@ -301,7 +301,7 @@ class _NowLine extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final x = fraction * size.width;
     final pen = Paint()
-      ..color = const Color(0xFFDC2626)
+      ..color = const Color(0xFFB5402B)
       ..strokeWidth = 2;
     canvas.drawLine(Offset(x, 6), Offset(x, size.height), pen);
     canvas.drawCircle(Offset(x, 5), 5, Paint()..color = Colors.white);

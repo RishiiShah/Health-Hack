@@ -108,7 +108,7 @@ class _PreviewApprovalsState extends State<PreviewApprovals> {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
                           color: row.$3,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.zero,
                         ),
                         child: Text(row.$2, textAlign: TextAlign.center),
                       ),
@@ -253,7 +253,7 @@ class PreviewCoverage extends StatelessWidget {
           '3/2',
           '1/2*',
           '1/1',
-          Color(0xFFB4372A),
+          Color(0xFFA93A24),
         ),
         (
           'Oak Valley',
@@ -261,16 +261,16 @@ class PreviewCoverage extends StatelessWidget {
           '1/1',
           '1/1',
           '1/1',
-          Color(0xFF855700),
+          Color(0xFF7D5300),
         ),
-        ('Redwood Univ.', 'At minimum', '2/2', '2/2', '2/2', Color(0xFF855700)),
+        ('Redwood Univ.', 'At minimum', '2/2', '2/2', '2/2', Color(0xFF7D5300)),
         (
           'Cedar Ridge',
           'At minimum from 19:00',
           '4/2',
           '2/2',
           '2/2',
-          Color(0xFF855700),
+          Color(0xFF7D5300),
         ),
         (
           'Northfield',
@@ -278,7 +278,7 @@ class PreviewCoverage extends StatelessWidget {
           '4/2',
           '3/2',
           '3/2',
-          Color(0xFF855700),
+          Color(0xFF7D5300),
         ),
         (
           'Meadowlands',
@@ -286,7 +286,7 @@ class PreviewCoverage extends StatelessWidget {
           '4/1',
           '2/1',
           '2/1',
-          Color(0xFF855700),
+          Color(0xFF7D5300),
         ),
         (
           'Harbor Regional',
@@ -294,7 +294,7 @@ class PreviewCoverage extends StatelessWidget {
           '4/1',
           '3/1',
           '3/1',
-          Color(0xFF855700),
+          Color(0xFF7D5300),
         ),
         (
           'Westbridge',
@@ -302,7 +302,7 @@ class PreviewCoverage extends StatelessWidget {
           '4/1',
           '2/1',
           '2/1',
-          Color(0xFF855700),
+          Color(0xFF7D5300),
         ),
         (
           'Bluewater',
@@ -310,7 +310,7 @@ class PreviewCoverage extends StatelessWidget {
           '2/1',
           '2/1',
           '2/1',
-          Color(0xFF855700),
+          Color(0xFF7D5300),
         ),
         ('Lakeview', 'Covered', '4/1', '2/1', '2/1', previewGreen),
         ('Highland Valley', 'Covered', '3/1', '2/1', '2/1', previewGreen),
@@ -346,13 +346,13 @@ class PreviewCoverage extends StatelessWidget {
                                 int.parse(
                                   cell.$2.split('/').last.replaceAll('*', ''),
                                 )
-                            ? const Color(0xFFB4372A)
+                            ? const Color(0xFFA93A24)
                             : int.parse(cell.$2.split('/').first) >
                                   int.parse(
                                     cell.$2.split('/').last.replaceAll('*', ''),
                                   )
                             ? previewGreen
-                            : const Color(0xFF275B9A),
+                            : const Color(0xFFA93A24),
                       ),
                     ],
                   ),

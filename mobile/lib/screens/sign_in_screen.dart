@@ -88,7 +88,7 @@ class _SignInScreenState extends State<SignInScreen> {
             constraints: const BoxConstraints(maxWidth: 448),
             child: Container(
               padding: const EdgeInsets.all(24),
-              decoration: OverlapStyle.panel(radius: 10),
+              decoration: OverlapStyle.panel(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

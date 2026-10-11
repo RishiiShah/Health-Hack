@@ -235,7 +235,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
                           style: const TextStyle(
                             fontFamily: OverlapStyle.mono,
                             fontSize: 15,
-                            color: Color(0xFFD3DCE4),
+                            color: Color(0xFFCFC7B6),
                           ),
                         ),
                         if (result == null) ...[
@@ -286,7 +286,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
                           _RoundAction(
                             label: 'Decline call',
                             icon: Icons.call_end,
-                            color: const Color(0xFFDC2626),
+                            color: const Color(0xFFB5402B),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                           _RoundAction(
@@ -345,7 +345,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
                           Text(
                             _offer.gapSummary,
                             style: const TextStyle(
-                              color: Color(0xFFD3DCE4),
+                              color: Color(0xFFCFC7B6),
                               height: 1.4,
                             ),
                           ),
@@ -397,8 +397,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
 
 const _night = Color(0xFF111827);
 const _mint = Color(0xFF5EEAD4);
-const _soft = Color(0xFFB4C1CD);
-const _faint = Color(0xFF94A3B8);
+const _soft = Color(0xFF1A1712);
+const _faint = Color(0xFFA39883);
 
 class _Chip extends StatelessWidget {
   const _Chip(this.text);
@@ -503,7 +503,7 @@ class _AvatarState extends State<_Avatar> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: widget.done ? const Color(0xFF334155) : OverlapStyle.teal,
+          color: widget.done ? const Color(0xFF3A352C) : OverlapStyle.teal,
         ),
         child: const Text(
           'S',

@@ -63,7 +63,7 @@ class PreviewCard extends StatelessWidget {
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       color: color,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.zero,
       border: Border.all(
         color: accent ?? OverlapStyle.line,
         width: accent == null ? 1 : 1.5,
@@ -96,7 +96,7 @@ class PreviewPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.zero,
       ),
       child: Text(
         text,
@@ -161,7 +161,7 @@ class PreviewWeek extends StatelessWidget {
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.zero,
                   ),
                   backgroundColor: selectedDay == i + 15
                       ? previewTeal

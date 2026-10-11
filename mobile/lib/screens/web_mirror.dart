@@ -490,9 +490,9 @@ const _audit = [
 // ---------------------------------------------------------------- style bits
 
 const _amberLine = Color(0xFFD6A451);
-const _critical = Color(0xFFB4372A);
-const _criticalSoft = Color(0xFFFBE9E6);
-const _warningSoft = Color(0xFFFAF0DA);
+const _critical = Color(0xFFA93A24);
+const _criticalSoft = Color(0xFFF6E2DB);
+const _warningSoft = Color(0xFFF4EAD2);
 
 TextStyle _mono(
   double size, {
@@ -528,7 +528,7 @@ Widget _eyebrow(String text) => Text(
 
 Widget _badge(String text, Color fg, Color bg) => Container(
   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-  decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5)),
+  decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.zero),
   child: Text(
     text,
     style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
@@ -538,7 +538,7 @@ Widget _levelChip(String level) => level == 'Critical'
     ? _badge(level, _critical, _criticalSoft)
     : level == 'Warning'
     ? _badge(level, OverlapStyle.amber, _warningSoft)
-    : _badge(level, const Color(0xFF364658), const Color(0xFFE6ECF1));
+    : _badge(level, const Color(0xFF3A352C), const Color(0xFFEBE6DA));
 
 class _Card extends StatelessWidget {
   const _Card({
@@ -557,7 +557,7 @@ class _Card extends StatelessWidget {
     width: double.infinity,
     decoration: BoxDecoration(
       color: color,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.zero,
       border: Border.all(color: OverlapStyle.line),
     ),
     clipBehavior: Clip.antiAlias,
@@ -655,7 +655,7 @@ Widget _table(List<String> headers, List<List<Widget>> rows) => LayoutBuilder(
     clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(
       border: Border.all(color: OverlapStyle.line),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.zero,
     ),
     child: SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -699,7 +699,7 @@ ButtonStyle _pill(Color bg, Color fg, {Color? border}) =>
           ? OverlapStyle.ink
           : fg,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(6)),
+        borderRadius: BorderRadius.all(Radius.zero),
       ),
       side: border == null ? null : BorderSide(color: border),
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
@@ -817,7 +817,7 @@ class _Landing extends StatelessWidget {
             'Cerevia brings triage, coverage forecasts and lead-approved physician offers into one view of the Sevaro network.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF364658),
+              color: Color(0xFF3A352C),
               fontSize: 16,
               height: 1.6,
             ),
@@ -837,8 +837,8 @@ class _Landing extends StatelessWidget {
                 onPressed: () => onEnter(DemoRole.physician),
                 style: _pill(
                   Colors.white,
-                  const Color(0xFF334155),
-                  border: const Color(0xFFB4C1CD),
+                  const Color(0xFF3A352C),
+                  border: const Color(0xFF1A1712),
                 ),
                 child: const Text('View physician experience'),
               ),
@@ -881,7 +881,7 @@ class _Landing extends StatelessWidget {
           Text(
             '© 2026 Cerevia Systems. Intelligent Clinical Operations.',
             textAlign: TextAlign.center,
-            style: _mono(11, color: const Color(0xFF94A3B8)),
+            style: _mono(11, color: const Color(0xFFA39883)),
           ),
         ],
       ),
@@ -916,7 +916,7 @@ class _NetworkPreview extends StatelessWidget {
               builder: (context, c) => Container(
                 height: 10,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: const Color(0xFFF5F2EA),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Stack(
@@ -955,7 +955,7 @@ class _NetworkPreview extends StatelessWidget {
                 children: [
                   Text(
                     'ABSTRACT NETWORK VIEW',
-                    style: _mono(10, color: const Color(0xFF94A3B8)),
+                    style: _mono(10, color: const Color(0xFFA39883)),
                   ),
                   const SizedBox(height: 4),
                   Text('Network schedule', style: _head(18)),
@@ -965,13 +965,13 @@ class _NetworkPreview extends StatelessWidget {
             _badge(
               '● 24 Health Systems',
               OverlapStyle.tealDark,
-              const Color(0xFFDFEBF3),
+              const Color(0xFFF3E3DC),
             ),
           ],
         ),
         const Divider(height: 28),
         lane('Lane A', OverlapStyle.teal, .08, .54),
-        lane('Lane B', const Color(0xFF586777), .20, .66),
+        lane('Lane B', const Color(0xFF6B6457), .20, .66),
         lane('Lane C', const Color(0xFFD6A24C), .48, .50),
         lane('Coverage needed', const Color(0xFF99F6E4), .10, .32, gap: true),
         const SizedBox(height: 12),
@@ -982,12 +982,12 @@ class _NetworkPreview extends StatelessWidget {
             _badge(
               '⚡ 90-min lookahead active',
               const Color(0xFF78350F),
-              const Color(0xFFFFFBEB),
+              const Color(0xFFF4EAD2),
             ),
             _badge(
               '✓ Shift covered',
-              const Color(0xFF115E59),
-              const Color(0xFFDFEBF3),
+              const Color(0xFFA93A24),
+              const Color(0xFFF3E3DC),
             ),
           ],
         ),
@@ -1019,8 +1019,8 @@ class _RoleCard extends StatelessWidget {
       children: [
         _badge(
           label.toUpperCase(),
-          const Color(0xFF115E59),
-          const Color(0xFFDFEBF3),
+          const Color(0xFFA93A24),
+          const Color(0xFFF3E3DC),
         ),
         const SizedBox(height: 14),
         Text(title, style: _head(20)),
@@ -1029,7 +1029,7 @@ class _RoleCard extends StatelessWidget {
           text,
           style: const TextStyle(
             fontSize: 13,
-            color: Color(0xFF364658),
+            color: Color(0xFF3A352C),
             height: 1.6,
           ),
         ),
@@ -1039,7 +1039,7 @@ class _RoleCard extends StatelessWidget {
           style: FilledButton.styleFrom(
             backgroundColor: OverlapStyle.ink,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.zero,
             ),
           ),
           child: Text('$button  →'),
@@ -1084,7 +1084,7 @@ class _SignInState extends State<_SignIn> {
     const label = TextStyle(
       fontSize: 12,
       fontWeight: FontWeight.w600,
-      color: Color(0xFF334155),
+      color: Color(0xFF3A352C),
     );
     return Scaffold(
       body: SafeArea(
@@ -1139,7 +1139,7 @@ class _SignInState extends State<_SignIn> {
                                 selected: _role == role,
                                 button: true,
                                 child: InkWell(
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.zero,
                                   onTap: () => _select(role),
                                   child: Container(
                                     constraints: const BoxConstraints(
@@ -1148,13 +1148,13 @@ class _SignInState extends State<_SignIn> {
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color: _role == role
-                                          ? const Color(0xFFDFEBF3)
-                                          : const Color(0xFFF2F5F8),
-                                      borderRadius: BorderRadius.circular(16),
+                                          ? const Color(0xFFF3E3DC)
+                                          : const Color(0xFFF5F2EA),
+                                      borderRadius: BorderRadius.zero,
                                       border: Border.all(
                                         color: _role == role
                                             ? OverlapStyle.teal
-                                            : const Color(0xFFD3DCE4),
+                                            : const Color(0xFFCFC7B6),
                                         width: _role == role ? 2 : 1,
                                       ),
                                     ),
@@ -1240,10 +1240,10 @@ class _SignInState extends State<_SignIn> {
                         Padding(
                           padding: const EdgeInsets.only(top: 6),
                           child: Material(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(8),
+                            color: const Color(0xFFF5F2EA),
+                            borderRadius: BorderRadius.zero,
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.zero,
                               onTap: () => widget.onSignIn(role),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -1257,7 +1257,7 @@ class _SignInState extends State<_SignIn> {
                                         _roleEmail[role]!,
                                         style: _mono(
                                           12,
-                                          color: const Color(0xFF1E293B),
+                                          color: const Color(0xFF1A1712),
                                         ),
                                       ),
                                     ),
@@ -1288,7 +1288,7 @@ class _SignInState extends State<_SignIn> {
             const Text(
               '© 2026 Cerevia Systems. Intelligent Clinical Operations.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+              style: TextStyle(fontSize: 11, color: Color(0xFFA39883)),
             ),
           ],
         ),
@@ -1405,7 +1405,7 @@ class _ShellState extends State<_Shell> {
                                     minimumSize: const Size(48, 36),
                                     shape: const RoundedRectangleBorder(
                                       borderRadius: BorderRadius.all(
-                                        Radius.circular(6),
+                                        Radius.zero,
                                       ),
                                     ),
                                     backgroundColor: _page == i
@@ -1413,7 +1413,7 @@ class _ShellState extends State<_Shell> {
                                         : Colors.transparent,
                                     foregroundColor: _page == i
                                         ? Colors.white
-                                        : const Color(0xFF364658),
+                                        : const Color(0xFF3A352C),
                                     textStyle: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -1488,13 +1488,13 @@ class _CommandState extends State<_Command> {
                     ),
                     decoration: BoxDecoration(
                       color: _selected == item.id
-                          ? const Color(0xFFDFEBF3)
+                          ? const Color(0xFFF3E3DC)
                           : null,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.zero,
                       border: _selected == item.id
-                          ? Border.all(color: const Color(0xFFB4C1CD))
+                          ? Border.all(color: const Color(0xFF1A1712))
                           : const Border(
-                              bottom: BorderSide(color: Color(0xFFD3DCE4)),
+                              bottom: BorderSide(color: Color(0xFFCFC7B6)),
                             ),
                     ),
                     child: Row(
@@ -1523,7 +1523,7 @@ class _CommandState extends State<_Command> {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 11,
-                                  color: Color(0xFF586777),
+                                  color: Color(0xFF6B6457),
                                 ),
                               ),
                             ],
@@ -1574,7 +1574,7 @@ class _Dossier extends StatelessWidget {
             label.toUpperCase(),
             style: _mono(
               10,
-              color: const Color(0xFF586777),
+              color: const Color(0xFF6B6457),
               weight: FontWeight.w600,
             ),
           ),
@@ -1583,7 +1583,7 @@ class _Dossier extends StatelessWidget {
             text,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFF364658),
+              color: Color(0xFF3A352C),
               height: 1.55,
             ),
           ),
@@ -1675,9 +1675,9 @@ class _CoverageMatrix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const colors = {
-      'above': (Color(0xFFE1F1E8), Color(0xFF26744F), '2 / 1'),
-      'at': (Color(0xFFDBEAFE), Color(0xFF275B9A), '1 / 1'),
-      'gap': (Color(0xFFFBE9E6), Color(0xFFAE3029), '0 / 1'),
+      'above': (Color(0xFFE2EEDF), Color(0xFF26744F), '2 / 1'),
+      'at': (Color(0xFFF3E3DC), Color(0xFFA93A24), '1 / 1'),
+      'gap': (Color(0xFFF6E2DB), Color(0xFFAE3029), '0 / 1'),
     };
     Widget legend(Color c, String t) => Row(
       mainAxisSize: MainAxisSize.min,
@@ -1687,11 +1687,11 @@ class _CoverageMatrix extends StatelessWidget {
           height: 10,
           decoration: BoxDecoration(
             color: c,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.zero,
           ),
         ),
         const SizedBox(width: 4),
-        Text(t, style: const TextStyle(fontSize: 10, color: Color(0xFF586777))),
+        Text(t, style: const TextStyle(fontSize: 10, color: Color(0xFF6B6457))),
       ],
     );
     return _Card(
@@ -1729,7 +1729,7 @@ class _CoverageMatrix extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: bg,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.zero,
                         ),
                         child: Text(label, style: _mono(10, color: fg)),
                       );
@@ -1780,12 +1780,12 @@ class _OfferStatus extends StatelessWidget {
     );
     return _Card(
       top: _amberLine,
-      color: const Color(0xFFFBFCFD),
+      color: const Color(0xFFFCFBF7),
       children: [
         Row(
           children: [
             Expanded(child: Text('Extra shift offer', style: _head(17))),
-            _badge('Waiting', OverlapStyle.amber, const Color(0xFFFAF0DA)),
+            _badge('Waiting', OverlapStyle.amber, const Color(0xFFF4EAD2)),
           ],
         ),
         const SizedBox(height: 10),
@@ -1830,13 +1830,13 @@ class _AutoLog extends StatelessWidget {
       _cardHead(
         'Activity',
         'Done automatically',
-        _badge('4 events', OverlapStyle.green, const Color(0xFFE1F1E8)),
+        _badge('4 events', OverlapStyle.green, const Color(0xFFE2EEDF)),
       ),
       for (final (time, action, detail) in _autoLog)
         Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Color(0xFFD3DCE4))),
+            border: Border(top: BorderSide(color: Color(0xFFCFC7B6))),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1992,12 +1992,12 @@ class _DoctorsPage extends StatelessWidget {
                       ? _badge(
                           'Yes',
                           OverlapStyle.green,
-                          const Color(0xFFE1F1E8),
+                          const Color(0xFFE2EEDF),
                         )
                       : _badge(
                           canTake,
-                          const Color(0xFF364658),
-                          const Color(0xFFE6ECF1),
+                          const Color(0xFF3A352C),
+                          const Color(0xFFEBE6DA),
                         ),
                 ],
             ],
@@ -2027,11 +2027,11 @@ class _SchedulePageState extends State<_SchedulePage> {
 
   Widget _row(Doctor d) {
     final (bg, fg) = switch (d.tone) {
-      Tone.day => (const Color(0xFFB8D8EB), const Color(0xFF315D58)),
-      Tone.night => (const Color(0xFF1E293B), const Color(0xFFD6DEEA)),
-      Tone.unavailable => (const Color(0xFFFAF0DA), OverlapStyle.amber),
-      Tone.offer => (const Color(0xFFDFEBF3), OverlapStyle.tealDark),
-      Tone.off => (const Color(0xFFE6ECF1), const Color(0xFFA0A8AE)),
+      Tone.day => (const Color(0xFFD9CFBC), const Color(0xFF1A1712)),
+      Tone.night => (const Color(0xFF1A1712), const Color(0xFFD6DEEA)),
+      Tone.unavailable => (const Color(0xFFF4EAD2), OverlapStyle.amber),
+      Tone.offer => (const Color(0xFFF3E3DC), OverlapStyle.tealDark),
+      Tone.off => (const Color(0xFFEBE6DA), const Color(0xFFA0A8AE)),
     };
     final selected = _selected == d.id;
     return InkWell(
@@ -2039,13 +2039,13 @@ class _SchedulePageState extends State<_SchedulePage> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFDFEBF3) : null,
+          color: selected ? const Color(0xFFF3E3DC) : null,
           border: Border(
             left: BorderSide(
               color: selected ? OverlapStyle.teal : Colors.transparent,
               width: 3,
             ),
-            bottom: const BorderSide(color: Color(0xFFF2F5F8)),
+            bottom: const BorderSide(color: Color(0xFFF5F2EA)),
           ),
         ),
         child: Row(
@@ -2094,7 +2094,7 @@ class _SchedulePageState extends State<_SchedulePage> {
                             padding: const EdgeInsets.symmetric(horizontal: 6),
                             decoration: BoxDecoration(
                               color: bg,
-                              borderRadius: BorderRadius.circular(5),
+                              borderRadius: BorderRadius.zero,
                               border: d.tone == Tone.offer
                                   ? Border.all(color: OverlapStyle.teal)
                                   : null,
@@ -2114,7 +2114,7 @@ class _SchedulePageState extends State<_SchedulePage> {
                           bottom: 0,
                           child: Container(
                             width: 1,
-                            color: const Color(0xFFEF4444),
+                            color: const Color(0xFFB5402B),
                           ),
                         ),
                       ],
@@ -2169,7 +2169,7 @@ class _SchedulePageState extends State<_SchedulePage> {
                           : OverlapStyle.muted,
                     ),
                     shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(6)),
+                      borderRadius: BorderRadius.all(Radius.zero),
                     ),
                     onSelected: (_) => setState(() => _filter = label),
                   ),
@@ -2182,7 +2182,7 @@ class _SchedulePageState extends State<_SchedulePage> {
           padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
           decoration: BoxDecoration(
             color: OverlapStyle.ink,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.zero,
           ),
           child: Row(
             children: [
@@ -2197,7 +2197,7 @@ class _SchedulePageState extends State<_SchedulePage> {
                   minimumSize: const Size(48, 32),
                   backgroundColor: OverlapStyle.accent,
                   shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(6)),
+                    borderRadius: BorderRadius.all(Radius.zero),
                   ),
                 ),
                 onPressed: () => setState(() => _selected = 'PHY-009'),
@@ -2261,7 +2261,7 @@ class _SchedulePageState extends State<_SchedulePage> {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: const Color(0xFFDFEBF3),
+                      backgroundColor: const Color(0xFFF3E3DC),
                       child: Text(
                         doctor.avatar,
                         style: _mono(
@@ -2288,12 +2288,12 @@ class _SchedulePageState extends State<_SchedulePage> {
                     ? _badge(
                         'Off shift, offer pending',
                         const Color(0xFF92400E),
-                        const Color(0xFFFEF3C7),
+                        const Color(0xFFF4EAD2),
                       )
                     : _badge(
                         doctor.status,
                         const Color(0xFF5F6B74),
-                        const Color(0xFFE6ECF1),
+                        const Color(0xFFEBE6DA),
                       ),
                 const SizedBox(height: 8),
                 for (final (k, v) in [
@@ -2367,7 +2367,7 @@ class _AuditPage extends StatelessWidget {
     children: [
       _title('Immutable record', 'Audit', '18:20 ET · replay snapshot'),
       _Card(
-        color: const Color(0xFFFBFCFD),
+        color: const Color(0xFFFCFBF7),
         children: [
           for (final (time, actor, action, detail) in _audit)
             Container(
@@ -2434,8 +2434,8 @@ class _DataPageState extends State<_DataPage> {
           height: 250,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xFFFBFCFD),
-            borderRadius: BorderRadius.circular(10),
+            color: const Color(0xFFFCFBF7),
+            borderRadius: BorderRadius.zero,
             border: Border.all(color: OverlapStyle.line, width: 1.5),
           ),
           child: Column(
@@ -2443,7 +2443,7 @@ class _DataPageState extends State<_DataPage> {
             children: [
               const CircleAvatar(
                 radius: 21,
-                backgroundColor: Color(0xFFDDEBEA),
+                backgroundColor: Color(0xFFE2EEDF),
                 child: Text(
                   '↑',
                   style: TextStyle(fontSize: 22, color: OverlapStyle.teal),
@@ -2466,7 +2466,7 @@ class _DataPageState extends State<_DataPage> {
                 _badge(
                   'Ready for review',
                   OverlapStyle.green,
-                  const Color(0xFFE1F1E8),
+                  const Color(0xFFE2EEDF),
                 ),
               ],
             ],
@@ -2531,9 +2531,9 @@ class _ApprovalsState extends State<_Approvals> {
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF0DA),
+          color: const Color(0xFFF4EAD2),
           border: Border.all(color: const Color(0xFFE7D7B1)),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.zero,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2541,7 +2541,7 @@ class _ApprovalsState extends State<_Approvals> {
             _badge(
               'Coverage impact',
               OverlapStyle.amber,
-              const Color(0xFFFAF0DA),
+              const Color(0xFFF4EAD2),
             ),
             const SizedBox(height: 10),
             Text('Suncrest surge at 19:00', style: _head(19)),
@@ -2573,7 +2573,7 @@ class _ApprovalsState extends State<_Approvals> {
         [
           const _DecisionMatrix(),
           _Card(
-            color: const Color(0xFFFBFCFD),
+            color: const Color(0xFFFCFBF7),
             children: [
               Text('Lead action', style: _head(19)),
               const SizedBox(height: 4),
@@ -2587,12 +2587,12 @@ class _ApprovalsState extends State<_Approvals> {
                     ? _badge(
                         'Approved · offer sent to Dr. Okafor',
                         OverlapStyle.green,
-                        const Color(0xFFE1F1E8),
+                        const Color(0xFFE2EEDF),
                       )
                     : _badge(
                         'Rejected · note recorded',
                         OverlapStyle.red,
-                        const Color(0xFFFBE9E6),
+                        const Color(0xFFF6E2DB),
                       )
               else ...[
                 SizedBox(
@@ -2623,7 +2623,7 @@ class _ApprovalsState extends State<_Approvals> {
         flex: [3, 1],
       ),
       _Card(
-        color: const Color(0xFFFBFCFD),
+        color: const Color(0xFFFCFBF7),
         children: [
           Row(
             children: [
@@ -2633,7 +2633,7 @@ class _ApprovalsState extends State<_Approvals> {
                   style: _head(19),
                 ),
               ),
-              _badge('Critical', OverlapStyle.red, const Color(0xFFFBE9E6)),
+              _badge('Critical', OverlapStyle.red, const Color(0xFFF6E2DB)),
             ],
           ),
           const SizedBox(height: 10),
@@ -2645,7 +2645,7 @@ class _ApprovalsState extends State<_Approvals> {
               ? _badge(
                   'Override applied',
                   OverlapStyle.green,
-                  const Color(0xFFE1F1E8),
+                  const Color(0xFFE2EEDF),
                 )
               : OutlinedButton(
                   onPressed: () => setState(() => _overridden = true),
@@ -2661,7 +2661,7 @@ class _DecisionMatrix extends StatelessWidget {
   const _DecisionMatrix();
   @override
   Widget build(BuildContext context) => _Card(
-    color: const Color(0xFFFBFCFD),
+    color: const Color(0xFFFCFBF7),
     children: [
       _cardHead(
         '',
@@ -2732,7 +2732,7 @@ class _MyShift extends StatelessWidget {
       _cols(
         [
           _Card(
-            color: const Color(0xFFFBFCFD),
+            color: const Color(0xFFFCFBF7),
             children: [
               _eyebrow('Shift remaining'),
               const SizedBox(height: 10),
@@ -2751,7 +2751,7 @@ class _MyShift extends StatelessWidget {
             ],
           ),
           _Card(
-            color: const Color(0xFFFBFCFD),
+            color: const Color(0xFFFCFBF7),
             children: [
               _eyebrow('Hospitals covered'),
               const SizedBox(height: 8),
@@ -2767,12 +2767,12 @@ class _MyShift extends StatelessWidget {
         flex: [7, 13],
       ),
       _Card(
-        color: const Color(0xFFFBFCFD),
+        color: const Color(0xFFFCFBF7),
         children: [
           Row(
             children: [
               Expanded(child: Text('Active consults', style: _head(19))),
-              _badge('On shift', OverlapStyle.teal, const Color(0xFFDDEBEA)),
+              _badge('On shift', OverlapStyle.teal, const Color(0xFFE2EEDF)),
             ],
           ),
           const SizedBox(height: 10),
@@ -2802,8 +2802,8 @@ class _MyShift extends StatelessWidget {
                   Expanded(child: Text(hospital)),
                   _badge(
                     stage,
-                    const Color(0xFF364658),
-                    const Color(0xFFE6ECF1),
+                    const Color(0xFF3A352C),
+                    const Color(0xFFEBE6DA),
                   ),
                 ],
               ),
@@ -2851,7 +2851,7 @@ class _OfferState extends State<_Offer> {
           child: Container(
             padding: const EdgeInsets.all(26),
             decoration: const BoxDecoration(
-              color: Color(0xFFFBFCFD),
+              color: Color(0xFFFCFBF7),
               border: Border(
                 top: BorderSide(color: OverlapStyle.teal, width: 4),
                 left: BorderSide(color: OverlapStyle.line),
@@ -2879,7 +2879,7 @@ class _OfferState extends State<_Offer> {
                     _badge(
                       'Extra shift',
                       OverlapStyle.amber,
-                      const Color(0xFFFAF0DA),
+                      const Color(0xFFF4EAD2),
                     ),
                   ],
                 ),
@@ -2949,8 +2949,8 @@ class _OfferState extends State<_Offer> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     color: _status == 'accepted' && !expired
-                        ? const Color(0xFFE1F1E8)
-                        : const Color(0xFFFBE9E6),
+                        ? const Color(0xFFE2EEDF)
+                        : const Color(0xFFF6E2DB),
                     child: Text(
                       expired
                           ? 'Expired'
@@ -2999,7 +2999,7 @@ class _PhysicianSettings extends StatelessWidget {
     children: [
       _title('Physician workspace', 'Settings', 'Dr. Priya Shah'),
       _Card(
-        color: const Color(0xFFFBFCFD),
+        color: const Color(0xFFFCFBF7),
         children: [
           Text('Notifications', style: _head(19)),
           const SizedBox(height: 6),
