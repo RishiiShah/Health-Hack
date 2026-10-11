@@ -230,6 +230,10 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         if accounts is None:
             raise HTTPException(503, "Account sign-in is not configured on this server (set CC_USERS).")
         token, user, expires = accounts.login(body.email, body.password, body.portal)
+        clock = request.app.state.clock
+        if test_clock is None and clock.mode == "fixed":  # a paused replay runs again from where it stopped once someone signs in
+            request.app.state.clock = AnchoredClock(clock.now())
+            request.app.state.coordinator.set_clock(request.app.state.clock)
         response.headers["Cache-Control"] = "no-store"
         return {"token": token, "expires_at": expires, "user": user.public()}
 
