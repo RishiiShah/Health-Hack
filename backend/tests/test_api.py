@@ -117,7 +117,7 @@ def test_roles_permissions_and_physician_isolation(db_url):
         assert client.get("/snapshot", headers={"Authorization": "Bearer wrong"}).status_code == 401
         me = {h["Authorization"]: client.get("/me", headers=h).json() for h in (COORD, LEAD, ADMIN)}
         assert [m["role"] for m in me.values()] == ["coordinator", "lead", "admin"] and me[LEAD["Authorization"]]["display_name"] == "Dr. Lead"
-        assert client.post("/events/csv", content=b"", headers=COORD).status_code == 200  # the web Data page: coordinator and lead inject
+        assert client.post("/events/csv", content=b"", headers=COORD).status_code == 422  # authorized, but an empty CSV is invalid
         assert client.post("/offers/OFR-00001/approve", headers=COORD).status_code == 403
         assert client.post("/offers", json={"gap_id": "x", "physician_id": "y", "start": "2026-01-01T00:00:00Z", "end": "2026-01-01T02:00:00Z"},
                            headers=LEAD).status_code == 403

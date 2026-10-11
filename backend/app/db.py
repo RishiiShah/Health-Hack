@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS events (dataset_generation INTEGER NOT NULL, event_id
 CREATE INDEX IF NOT EXISTS events_by_time ON events(dataset_generation,event_time,ingested_at,event_id);
 CREATE TABLE IF NOT EXISTS quarantine (id BIGSERIAL PRIMARY KEY, dataset_generation INTEGER NOT NULL, received_at TIMESTAMPTZ, reason TEXT NOT NULL, raw_json TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS held_events (dataset_generation INTEGER NOT NULL, event_id TEXT NOT NULL, event_json TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, expired BOOLEAN NOT NULL, PRIMARY KEY(dataset_generation,event_id));
+CREATE TABLE IF NOT EXISTS event_uploads (batch_id TEXT PRIMARY KEY, dataset_generation INTEGER NOT NULL, received_at TIMESTAMPTZ NOT NULL, payload_json TEXT NOT NULL);
 INSERT INTO metadata VALUES('revision','0'),('dataset_generation','1') ON CONFLICT DO NOTHING;
 """
 EVENT_COLUMNS = tuple(Event.model_fields)
@@ -56,7 +57,11 @@ class EventDatabase:
         rows = self.conn.execute("SELECT * FROM held_events WHERE dataset_generation=%s", (self.generation,)).fetchall()
         return {r["event_id"]: (Event.model_validate_json(r["event_json"]), r["expires_at"], r["expired"]) for r in rows}
 
-    def commit_batch(self, events: list[Event], quarantined: list[tuple[str, str]], received_at=None, *, holds=None, stats=None, references=None, clock=None, expected_revision: int | None = None) -> int:
+    def uploads(self, limit=20):
+        rows = self.conn.execute("SELECT dataset_generation,payload_json FROM event_uploads ORDER BY received_at DESC,batch_id DESC LIMIT %s", (limit,)).fetchall()
+        return [{**json.loads(r["payload_json"]), "dataset_generation": r["dataset_generation"]} for r in rows]
+
+    def commit_batch(self, events: list[Event], quarantined: list[tuple[str, str]], received_at=None, *, holds=None, stats=None, references=None, clock=None, upload=None, expected_revision: int | None = None) -> int:
         """Commit in a few round trips; with expected_revision, refuse to write over another writer's commits."""
         if self.conn.broken: self.conn = self._connect()
         with self.conn.transaction(), self.conn.cursor() as cur:
@@ -69,6 +74,9 @@ class EventDatabase:
                             [(generation, *(json.dumps(e.raw_json, sort_keys=True) if c == "raw_json" else getattr(e, c) for c in EVENT_COLUMNS)) for e in events])
             cur.executemany("INSERT INTO quarantine(dataset_generation,received_at,reason,raw_json) VALUES(%s,%s,%s,%s)",
                             [(generation, received_at, reason, raw) for reason, raw in quarantined])
+            if upload:
+                cur.execute("INSERT INTO event_uploads VALUES(%s,%s,%s,%s)",
+                            (upload["batch_id"], generation, received_at, json.dumps(upload, sort_keys=True)))
             if holds is not None:
                 cur.execute("DELETE FROM held_events WHERE dataset_generation=%s", (generation,))
                 cur.executemany("INSERT INTO held_events VALUES(%s,%s,%s,%s,%s)", [(generation, eid, e.model_dump_json(), deadline, expired) for eid, (e, deadline, expired) in holds.items()])

@@ -1,6 +1,8 @@
 import asyncio
 import csv
 import io
+import hashlib
+from urllib.parse import unquote
 import json
 import logging
 from contextlib import asynccontextmanager
@@ -261,30 +263,49 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         return report
 
     @api.post("/events/csv")
-    async def ingest_csv(request: Request, advance_clock: bool = False, who: Principal = need("admin.inject")):
-        """The judges' file: same columns as event_stream.csv, appended without restart [H ch4].
-        Events after the clock stay pending (`pending_future`) until it reaches them; `advance_clock=true` moves the
-        simulated clock forward to the file's latest event so everything in it is visible at once (never backwards)."""
-        text = (await request.body()).decode("utf-8-sig")
-        rows = list(csv.DictReader(io.StringIO(text)))
-        if len(rows) > settings.max_batch_rows: raise HTTPException(413, "batch exceeds configured row limit")
-        report = await run_in_threadpool(request.app.state.coordinator.ingest_raw, rows, FIXTURE_VERSION)
-        times = []
-        for row in rows:
-            try:
-                times.append(utc(datetime.fromisoformat(row["event_time"])))
-            except (KeyError, TypeError, ValueError):
-                continue  # already quarantined by ingest
-        latest = max(times, default=None)
-        report["latest_event_time"] = latest.isoformat() if latest else None
-        clock = request.app.state.clock
-        if advance_clock and latest and latest > clock.now():
-            moved = FixedClock(latest) if clock.mode == "fixed" else AnchoredClock(latest)
-            request.app.state.coordinator.set_clock(moved)
-            request.app.state.clock = moved
-            report["clock_advanced_to"] = latest.isoformat()
-            report["pending_future"] = 0
+    async def ingest_csv(request: Request, advance_clock: bool = False,
+                         filename: str | None = Header(None, alias="X-Upload-Filename", max_length=1000),
+                         who: Principal = need("admin.inject")):
+        """Append a CSV batch. Accepted events, its report and any safe clock advance commit together."""
+        chunks, size = [], 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > 5_000_000:
+                raise HTTPException(413, "CSV exceeds the 5 MB upload limit")
+            chunks.append(chunk)
+        body = b"".join(chunks)
+        try:
+            text = body.decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text), strict=True)
+            required = {"event_id", "event_time", "ingested_at", "consult_id", "event_type", "physician_id", "hospital_id", "description"}
+            if not reader.fieldnames or not required <= set(reader.fieldnames) or len(reader.fieldnames) != len(set(reader.fieldnames)):
+                raise HTTPException(422, "CSV must have unique column headers including: " + ", ".join(sorted(required)))
+            rows = []
+            for row in reader:
+                if None in row:
+                    raise HTTPException(422, f"CSV row {len(rows) + 2} has more values than column headers")
+                rows.append(row)
+                if len(rows) > settings.max_batch_rows:
+                    raise HTTPException(413, "batch exceeds configured row limit")
+            if not rows:
+                raise HTTPException(422, "CSV contains no event rows")
+        except UnicodeDecodeError:
+            raise HTTPException(422, "CSV must use UTF-8 encoding") from None
+        except csv.Error as exc:
+            raise HTTPException(422, f"CSV could not be parsed: {exc}") from None
+        name = unquote(filename or "pasted-events.csv").replace("\r", " ").replace("\n", " ")[:255]
+        source = (request.app.state.db.metadata("references") or {}).get("source")
+        upload = {"batch_id": str(uuid4()), "filename": name, "sha256": hashlib.sha256(body).hexdigest(),
+                  "actor": who.display_name, "reference_fingerprint": reference_manifest(source)["fingerprint"] if source else None}
+        report = await run_in_threadpool(request.app.state.coordinator.ingest_raw, rows, FIXTURE_VERSION,
+                                         advance_clock=advance_clock, upload=upload)
+        request.app.state.clock = request.app.state.coordinator.clock
         return report
+
+    @api.get("/admin/uploads")
+    def uploads(request: Request, who: Principal = need("admin.inject")):
+        """Latest twenty CSV upload receipts across generations; no source CSV contents or credentials."""
+        return {"items": request.app.state.db.uploads()}
 
     # ---- snapshot ----------------------------------------------------------------------------------------
     def snapshot_bytes(app) -> bytes:

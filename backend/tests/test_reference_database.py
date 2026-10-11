@@ -112,5 +112,3 @@ def seed(client):
         'files': files(), 'name': 'Fixed reference kit', 'service_date': '2026-04-07'})
     assert response.status_code == 200, response.text
     return client.get('/admin/references', headers=ADMIN).json()
-
-

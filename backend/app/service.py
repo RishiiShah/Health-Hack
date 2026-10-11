@@ -504,7 +504,7 @@ ACTIONS = {"recommendation": "Recommended action", "propose": "Proposed offer", 
 
 def data_quality_view(p):
     st = dict(p.stats)
-    return {"supported": True, "events_read": st.get("accepted", 0) + st.get("duplicates", 0) + st.get("conflicts", 0) + st.get("rejected", 0),
+    return {"supported": True, "events_read": st.get("rows_received", 0), "counts_exact": st.get("counts_exact", False),
             "accepted": st.get("accepted", 0), "duplicates": st.get("duplicates", 0), "conflicts": st.get("conflicts", 0),
             "reordered": st.get("reordered", 0), "late": st.get("late", 0), "max_reorder_lag_s": st.get("max_reorder_lag_s", 0),
             "max_delivery_lag_s": st.get("max_delivery_lag_s", 0), "rejected": st.get("rejected", 0), "pending_orphans": p.held_orphans,
