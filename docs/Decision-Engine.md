@@ -241,7 +241,7 @@ Sample at 18:20: CON-2110 and CON-2105 escalate first; CON-2102 hands off to PHY
 | Safety/feasibility violations, 49 passes 18:20-22:20 | 0 | 0 | 0 | 0 |
 | Critical items without an action | 0/579 | 0/597 | 0/587 | 0/591 |
 | Offers passing the trap guard | 18/18 | no offers (nobody eligible) | 19/19 | 19/19 |
-| Fix churn / flip-flops (two free physicians swapping places in the router's order) | 15/692 / 6 | 22/711 / 8 | 25/694 / 10 | 24/699 / 9 |
+| Fix churn / flip-flops (before A52: 15/692 / 6, 22/711 / 8, 25/694 / 10, 24/699 / 9) | 9/698 / 1 | 14/719 / 1 | 15/704 / 1 | 15/708 / 1 |
 | Order invariance at checkpoints | 4/4 | 4/4 | 4/4 | 4/4 |
 | Latency per pass (replay + decide) | median 5 ms, p95 28 ms | median 5 ms, p95 6 ms | median 5 ms, p95 30 ms | median 5 ms, p95 28 ms |
 
@@ -376,6 +376,7 @@ Steps 1-7 are pure functions and can be tested without the database. Step 8 need
 | A48 | In the simulator a session in progress at `now` ends after one median service time | Start times of sessions are known, durations are not |
 | A49 | A physician in a call, video or the 2-minute cooldown is free soon: queue the consult for them; escalate only when nobody credentialed is free or free soon | Escalating every short session flip-flopped the advice every pass |
 | A50 | An accepted split shift counts from the doctor's observed online time (first `shift_started` after accepting), else acceptance + roster minutes to online; not seen 5 min after that, it stops counting | Counting from the shift start showed gaps as covered before anyone could take a call; same lateness rule as A38 |
+| A52 | An assign/reassign suggestion names the first in routing order among physicians free now or only briefly busy (call, video, cooldown); if that physician is busy, the action says "when their session ends" and names a physician free now as the fallback | Short sessions made the suggested name swap every pass (6-10 flip-flops per evening). Cost measured: 7-9 Critical suggestions per evening point at a briefly busy physician, so the free fallback is always named; the remaining flip is a higher-ranked consult taking the physician [A47] |
 | A51 | The simulator adds a scenario at today's observed demand pace (last 2 h vs baseline, 5-consult prior) and an offer must pass every scenario | The packs run at about 0.4 x baseline; a usual-day-only check overstates load, but replacing it would relax the guard |
 
 

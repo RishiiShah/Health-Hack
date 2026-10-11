@@ -37,6 +37,6 @@ def test_one_escalation_per_hospital_per_pass(ticks):
 def test_advice_is_stable_between_passes(ticks):
     from pack_metrics import flip_flops
     persisting = sum(t["persisting"] for t in ticks)
-    assert sum(len(t["changed"]) for t in ticks) <= 0.05 * persisting
-    # Remaining flips are two free physicians swapping places in the router's order as each takes calls.
-    assert len(flip_flops(ticks)) <= 0.02 * persisting
+    assert sum(len(t["changed"]) for t in ticks) <= 0.03 * persisting
+    # [A52] A short session changes when, not who; the flips left are a higher-ranked consult taking the physician for a pass.
+    assert len(flip_flops(ticks)) <= 0.005 * persisting

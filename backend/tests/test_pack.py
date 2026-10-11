@@ -7,7 +7,7 @@ import csv
 import functools
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import pytest
 from app.clock import utc
@@ -304,3 +304,23 @@ def test_engine_offer_runs_end_to_end_through_the_desk(path, db_url):
             c = next(c for c in i.candidates if c.physician_id == i.fix.physician_id)
             need = remaining_need(state, pack.refs, pack.ops, after.views, now, desk.accepted(), c.hospitals, c.start, c.end)
             assert any(need.values()), (i.id, need)
+
+
+@by_pack
+def test_assign_names_a_steady_choice_and_a_free_fallback_when_it_is_busy(path):
+    """[A52] The name comes from everyone free now or only briefly busy; when that physician is busy, a physician who
+    is free now and credentialed is named too, so a consult that cannot wait is never held for a short session."""
+    from app.decide.interventions import free_soon
+    pack = load_pack(path)
+    now, end, seen = pack.time("1820"), pack.time("2220"), 0
+    while now <= end:
+        d = decide(state_at(pack.rows, now), pack.refs, pack.ops, now, pack.history(now))
+        for i in d.items:
+            if i.fix.kind in {"assign", "reassign"} and "cannot wait" in i.fix.action:
+                t = d.views[i.fix.physician_id]
+                free = i.fix.action.rsplit(", ", 1)[1].split(" ")[0]
+                assert free_soon(t) and not t.routable
+                assert d.views[free].routable and i.where["hospital_id"] in d.views[free].credentialed_hospitals
+                seen += 1
+        now += timedelta(minutes=10)
+    assert seen  # the case occurs on every pack's evening

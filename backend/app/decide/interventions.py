@@ -101,11 +101,24 @@ def _consult_fix(f: Finding, views, refs, ops, now, reserved=()) -> Fix:
                    "nobody can take over before the owner leaves", tuple(_who_blocks(views, hid)))
     verb = "assign" if f.kind == "unassigned" else "reassign"
     if routable:
-        t = routable[0]
+        # Steady advice [A52]: the name comes from everyone free now or only briefly busy, so it does not swap each time
+        # someone starts or ends a short session; being busy changes only the timing, and a free alternative is named.
+        steady = sorted(routing_order([v for v in views.values() if (v.routable or free_soon(v)) and hid in v.credentialed_hospitals
+                                       and v.physician_id != exclude and v.physician_id not in reserved], refs),
+                        key=lambda v: v.physician_id in leaving)
+        t = steady[0]
+        later = f"{t.physician_id} is routable and credentialed at {hid}; first under the modeled routing order ({t.consults_this_shift} consults this shift)"
+        if not t.routable:
+            busy = "call cooldown" if t.derived_state not in SESSION_STATES else t.derived_state.lower()
+            free = next(v for v in routable if v.physician_id != t.physician_id)
+            return Fix(verb, "coordinator", f"{verb.title()} {f.consult_id} to {t.physician_id} when their {busy} ends; if it cannot wait, {free.physician_id} is free now",
+                       f"{t.physician_id} is first under the modeled routing order ({t.consults_this_shift} consults this shift) and only briefly busy; "
+                       f"{free.physician_id} ({free.consults_this_shift} consults) can take it immediately",
+                       (f"{free.physician_id}: free now", *(f"{v.physician_id}: also routable, later in routing order" for v in routable[1:3] if v is not free)),
+                       t.physician_id)
         return Fix(verb, "coordinator", f"{verb.title()} {f.consult_id} to {t.physician_id}",
-                   f"{t.physician_id} is routable and credentialed at {hid}; first under the modeled routing order ({t.consults_this_shift} consults this shift)"
-                   + (f"; shift ends in {t.minutes_to_shift_end} min, nobody staying is free" if t.physician_id in leaving else ""),
-                   tuple(f"{v.physician_id}: also routable, later in routing order" for v in routable[1:3]), t.physician_id)
+                   later + (f"; shift ends in {t.minutes_to_shift_end} min, nobody staying is free" if t.physician_id in leaving else ""),
+                   tuple(f"{v.physician_id}: also routable, later in routing order" for v in steady[1:3]), t.physician_id)
     alternatives = (f"{verb}: no routable credentialed physician at {hid}" + (f" left ({', '.join(taken)} already taking a higher-ranked consult)" if taken else ""),
                     *_who_blocks(views, hid), _split_alternative(hid, refs, ops, now))
     ringing = [v for v in views.values() if f.consult_id and "ringing" in v.exclusion_reasons and hid in v.credentialed_hospitals
