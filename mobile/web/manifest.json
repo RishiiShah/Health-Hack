@@ -1,11 +1,11 @@
 {
-    "name": "sevaro_mobile",
-    "short_name": "sevaro_mobile",
+    "name": "Cerevia",
+    "short_name": "Cerevia",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#EDF1F4",
+    "theme_color": "#B8D8EB",
+    "description": "Cerevia clinical operations, shifts and coverage offers.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

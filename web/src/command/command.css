@@ -52,6 +52,7 @@
 
 /* Dispatch */
 .tracker-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, max(26vw, 40vh)), 1fr)); gap: var(--s-3); }
+.tracker-list > * { min-width: 0; }
 .outcome-list { display: grid; }
 .outcome-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-2); padding: var(--s-2) 0; border-top: thin solid var(--line); }
 .outcome-row:first-child { border-top: 0; }

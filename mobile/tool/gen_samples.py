@@ -278,7 +278,7 @@ NOTIFICATIONS = {
         {"notification_id": "N-0012", "kind": "offer", "title": "Extra shift tonight at Suncrest",
          "body": "19:00 to 23:00 ET, approved by your clinical lead. Please answer within 10 min.",
          "at": t("18:25:00"), "offer_id": "OFF-0007", "unread": True},
-        {"notification_id": "N-0009", "kind": "schedule", "title": "Sevaro",
+        {"notification_id": "N-0009", "kind": "schedule", "title": "Cerevia",
          "body": "Your next shift: Wed 18 Mar, 19:00.", "at": t("08:02:00", 16),
          "offer_id": None, "unread": False},
     ],

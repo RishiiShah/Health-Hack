@@ -1,5 +1,5 @@
 /* Coverage outlook, demand and workload. */
-.coverage { display: grid; gap: var(--s-3); }
+.coverage { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
 .coverage-heading { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
 .coverage-heading p { margin: var(--s-1) 0 0; color: var(--muted); font-size: var(--t-sm); }
 .coverage-horizon, .coverage-count-hint, .coverage-scroll-hint { color: var(--muted); font-size: var(--t-xs); font-family: var(--font-mono); letter-spacing: .06em; }

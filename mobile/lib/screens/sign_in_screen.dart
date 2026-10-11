@@ -88,7 +88,7 @@ class _SignInScreenState extends State<SignInScreen> {
             constraints: const BoxConstraints(maxWidth: 448),
             child: Container(
               padding: const EdgeInsets.all(24),
-              decoration: OverlapStyle.panel(radius: 24),
+              decoration: OverlapStyle.panel(radius: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -247,7 +247,7 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         const SizedBox(height: 24),
         const Text(
-          'Overlap Systems \u00b7 Clinical Operations',
+          'Cerevia Systems \u00b7 Clinical Operations',
           textAlign: TextAlign.center,
           style: TextStyle(color: OverlapStyle.muted, fontSize: 11),
         ),

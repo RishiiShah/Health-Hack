@@ -1,5 +1,5 @@
 // The frame around every signed-in page: sidebar navigation, a top bar with the live clock, and the page itself.
-import { Component, type ReactNode } from "react";
+import { Component, useLayoutEffect, type ReactNode } from "react";
 import { DEMO } from "../api/client.ts";
 import { PAGES_BY_ROLE, clearSession, type Session } from "../auth/session.ts";
 import { Pulse } from "../ui/Pulse.tsx";
@@ -24,6 +24,9 @@ export type Clock = { text: string; live: boolean; dataset?: string };
 
 export function Shell({ session, page, clock, counts = {}, children }: { session: Session; page: string; clock?: Clock; counts?: Record<string, number>; children: ReactNode }) {
   const info = PAGES[page];
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [page]);
   return <div className="app">
     <aside className="sidebar">
       <Brand />

@@ -49,10 +49,11 @@
 .workspace-main { min-width: 0; padding: var(--s-4) var(--gut) var(--s-6); }
 
 @media (max-width: 60em) {
-  .app { grid-template-columns: minmax(0, 1fr); }
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
   .sidebar {
     position: sticky; z-index: 30; height: auto; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; gap: var(--s-2);
     padding: var(--s-2) var(--gut); border-right: 0; border-bottom: thin solid var(--line);
+    background: var(--bg-2);
   }
   .side-nav { grid-column: 1 / -1; grid-row: 2; display: flex; overflow-x: auto; gap: var(--s-1); scrollbar-width: none; }
   .side-nav-label, .side-user { display: none; }
@@ -63,3 +64,4 @@
   .topbar-meta { justify-content: flex-start; }
   .workspace-main { padding: var(--s-3) var(--gut) var(--s-6); }
 }
+@media (max-width: 32em) { .sidebar .brand em { display: none; } }

@@ -82,7 +82,7 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
           {ROLES.map(([role, title]) => <button key={role} disabled={busy} onClick={() => void signIn(DEMO_EMAILS[role], "demo", role)}><span>{DEMO_EMAILS[role]}</span><b>{title} →</b></button>)}
         </div>}
       </section>
-      <p className="auth-foot">© 2026 Overlap Systems · Sevaro Tele-Stroke Challenge</p>
+      <p className="auth-foot">© 2026 Cerevia Systems · Sevaro Tele-Stroke Challenge</p>
     </main>
   </div>;
 }

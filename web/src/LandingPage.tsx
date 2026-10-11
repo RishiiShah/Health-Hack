@@ -37,7 +37,7 @@ export function LandingPage({ onGoToSignIn }: { onGoToSignIn: (role?: Role) => v
       <div className="hero-copy">
         <span className="kicker rise"><b>●</b>Tele-neurology command center</span>
         <h1 className="rise" style={stagger(1)}>Time is brain.<em>See the coverage gap before the shift changes.</em></h1>
-        <p className="rise" style={stagger(2)}>Overlap gives Sevaro's operations team one deterministic view of the stroke network: what needs action now, where staffing runs short, and which physician can cover, approved by a clinical lead before anyone is called.</p>
+        <p className="rise" style={stagger(2)}>Cerevia gives Sevaro's operations team one deterministic view of the stroke network: what needs action now, where staffing runs short, and which physician can cover, approved by a clinical lead before anyone is called.</p>
         <div className="actions rise" style={stagger(3)}>
           <button className="btn primary" onClick={() => onGoToSignIn("coordinator")}>Open the command center<span aria-hidden="true">→</span></button>
           <button className="btn" onClick={() => onGoToSignIn("physician")}>Sign in as physician</button>
@@ -76,7 +76,7 @@ export function LandingPage({ onGoToSignIn }: { onGoToSignIn: (role?: Role) => v
     <footer className="colophon">
       <div><Brand /><p>Deterministic rules, explained decisions, a clinical lead in the loop.</p></div>
       <div><span className="kicker">Built for</span><p>Sevaro Tele-Stroke Challenge</p></div>
-      <div><span className="kicker">Status</span><p>Decision support prototype · © 2026 Overlap Systems</p></div>
+      <div><span className="kicker">Status</span><p>Decision support prototype · © 2026 Cerevia Systems</p></div>
     </footer>
   </div>;
 }

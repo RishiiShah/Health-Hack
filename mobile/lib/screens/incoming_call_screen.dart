@@ -235,7 +235,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
                           style: const TextStyle(
                             fontFamily: OverlapStyle.mono,
                             fontSize: 15,
-                            color: Color(0xFFE2E8F0),
+                            color: Color(0xFFD3DCE4),
                           ),
                         ),
                         if (result == null) ...[
@@ -345,7 +345,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
                           Text(
                             _offer.gapSummary,
                             style: const TextStyle(
-                              color: Color(0xFFE2E8F0),
+                              color: Color(0xFFD3DCE4),
                               height: 1.4,
                             ),
                           ),
@@ -397,7 +397,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen> {
 
 const _night = Color(0xFF111827);
 const _mint = Color(0xFF5EEAD4);
-const _soft = Color(0xFFCBD5E1);
+const _soft = Color(0xFFB4C1CD);
 const _faint = Color(0xFF94A3B8);
 
 class _Chip extends StatelessWidget {
@@ -591,7 +591,7 @@ class _Pill extends StatelessWidget {
         ? FilledButton(
             onPressed: onPressed,
             style: FilledButton.styleFrom(
-              backgroundColor: OverlapStyle.teal,
+              backgroundColor: OverlapStyle.accent,
               foregroundColor: Colors.white,
               minimumSize: size,
               shape: shape,

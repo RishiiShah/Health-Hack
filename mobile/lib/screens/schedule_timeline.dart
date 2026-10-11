@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'theme.dart';
 
 enum TimelineKind {
-  day('Day', Color(0xFFBDE9DF)),
+  day('Day', Color(0xFFB8D8EB)),
   night('Night', Color(0xFF1E293B)),
   away('Away', Color(0xFFEFD6A4)),
   offer('Offer', OverlapStyle.tealSoft);
@@ -83,7 +83,7 @@ class ScheduleTimeline extends StatelessWidget {
               ),
               const Text(
                 'Schedule timeline',
-                style: TextStyle(color: Color(0xFF687078)),
+                style: TextStyle(color: Color(0xFF586777)),
               ),
             ],
           ),
@@ -144,7 +144,7 @@ class ScheduleTimeline extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(5),
                                   border: entries[index].highlighted
                                       ? Border.all(
-                                          color: const Color(0xFF161E2E),
+                                          color: const Color(0xFF0F1A27),
                                           width: 3,
                                         )
                                       : entries[index].kind ==
@@ -202,7 +202,7 @@ class ScheduleTimeline extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             color: (tick - currentHour).abs() < .5
-                                ? const Color(0xFF161E2E)
+                                ? const Color(0xFF0F1A27)
                                 : const Color(0xFF7E8388),
                           ),
                         ),
@@ -243,7 +243,7 @@ class ScheduleTimeline extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 6),
             child: Text(
               '${entry.name} · ${entry.kind.label} · ${entry.hoursLabel}',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF687078)),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF586777)),
             ),
           ),
       ],
@@ -275,7 +275,7 @@ class _TimelineGrid extends CustomPainter {
       canvas.save();
       canvas.clipRect(Rect.fromLTRB(left, 0, size.width, size.height));
       final hatch = Paint()
-        ..color = const Color(0xFFF2F3F2)
+        ..color = const Color(0xFFF2F5F8)
         ..strokeWidth = 2;
       for (double x = left - size.height; x < size.width; x += 12) {
         canvas.drawLine(
