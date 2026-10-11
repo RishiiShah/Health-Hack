@@ -11,6 +11,7 @@ from pathlib import Path
 from uuid import uuid4
 from fastapi import Body, Depends, FastAPI, Header, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from typing import Literal
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -563,6 +564,9 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
             raise HTTPException(503, str(exc))
         return {"physician_id": physician_id, "token": token, "expires_at": expires.isoformat()}
 
+    # Mounted last so every API route above wins; same origin means the web app needs no CORS.
+    if settings.web_dir:
+        api.mount("/", StaticFiles(directory=settings.web_dir, html=True), name="web")
     return api
 
 app = create_app()

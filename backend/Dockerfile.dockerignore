@@ -1,0 +1,10 @@
+# backend/Dockerfile builds from the repository root: send only the backend package and the web sources.
+*
+!backend/pyproject.toml
+!backend/app
+!web
+web/node_modules
+web/dist
+web/.env*
+web/scripts
+**/__pycache__

@@ -22,3 +22,19 @@ def test_invalid_host_port_fails_before_server_start(monkeypatch, port):
     monkeypatch.setenv("PORT", port)
     with pytest.raises(ValueError, match="PORT"):
         server_port()
+
+
+def test_built_web_app_is_served_beside_the_api(db_url, monkeypatch, tmp_path):
+    from dataclasses import replace
+    from types import SimpleNamespace
+    from fastapi.testclient import TestClient
+    from conftest import COORD, TEST_AUTH
+    from app.config import settings
+    from app.main import create_app
+    (tmp_path / "index.html").write_text("<!doctype html><title>web</title>")
+    monkeypatch.setattr("app.main.settings", replace(settings, reference_fingerprint=None, reference_dir=None, web_dir=str(tmp_path)))
+    speech = SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None))
+    with TestClient(create_app(db_url, auth=TEST_AUTH, speech=speech, sweep_s=0)) as client:
+        assert "<title>web</title>" in client.get("/").text
+        assert client.get("/snapshot", headers=COORD).json()["clock"]
+        assert client.get("/ready").json()["ready"] is True

@@ -3,7 +3,7 @@ services:
     name: sevaro-command-center-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    dockerContext: .  # repository root: the image also builds and serves web/
     plan: starter
     region: oregon  # same AWS region as the RDS instance (us-west-2)
     numInstances: 1

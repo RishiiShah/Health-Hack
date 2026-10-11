@@ -81,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build the portable image
-        run: docker build -t cc-backend:ci backend
+        run: docker build -f backend/Dockerfile -t cc-backend:ci .
       - name: Start against Postgres on a Render-style port
         run: $RUN
       - name: Probe and commit a synthetic consult

@@ -49,6 +49,7 @@ class Settings:
     users: str = os.getenv("CC_USERS", "")  # sign-in accounts: JSON list with PBKDF2 hashes (python -m app.auth)
     auth_secret: str = os.getenv("CC_AUTH_SECRET", "")  # 32+ characters; signs account sign-in tokens
     auth_config: str | None = os.getenv("CC_AUTH_CONFIG")  # local file {users, secret} written by scripts/setup_auth.py
+    web_dir: str | None = os.getenv("CC_WEB_DIR")  # built web app (web/dist), served on the API's origin
 
     def fixed_datetime(self):
         return datetime.fromisoformat(self.clock_fixed) if self.clock_fixed else None

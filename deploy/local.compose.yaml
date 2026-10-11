@@ -16,7 +16,8 @@ services:
       retries: 20
   backend:
     build:
-      context: ../backend
+      context: ..
+      dockerfile: backend/Dockerfile
     env_file:  # gitignored secrets and demo settings; see .env.example
       - path: ../.env
         required: false

@@ -52,9 +52,9 @@ python3 scripts/stress.py --url https://YOUR-SERVICE --seed 2000 --readers 16 --
 ## Render
 
 1. Use the RDS database **commandcenter_v2** in **us-west-2**, whose official reference kit and 1,163 events are already persisted. Its URL is the existing RDS URL with the database name changed; keep `sslmode=verify-full` and the RDS CA bundle (`sslrootcert`).
-2. Align the region in the repository's root `render.yaml` with that database before creating a Render Blueprint. The current template still names Virginia. It runs the Dockerfile with one instance and `/ready` as the health check.
+2. Create a Render Blueprint from the repository's root `render.yaml` (Oregon, matching the database). It builds `backend/Dockerfile` from the repository root, so one service serves the API and the built web app on the same origin (`CC_WEB_DIR`); the web app needs no CORS or separate host. One instance, `/ready` as the health check.
 3. Set `CC_DATABASE_URL` in the Render dashboard (it is marked `sync: false`, so it never lives in Git). Keep `PORT` managed by Render. Do not run more than one worker or instance.
-4. Confirm `/ready` responds. A new database starts with an empty event log and, since the image has no reference CSVs, with decisions off (`detection: false`).
+4. Confirm `/ready` responds and `/` shows the sign-in page. If the stored replay clock was saved paused, press Resume on the Data page once; a stored clock overrides `CC_CLOCK_MODE`. A new database starts with an empty event log and, since the image has no reference CSVs, with decisions off (`detection: false`).
 5. Upload the six reference CSVs once: `python3 scripts/upload_references.py data --url https://YOUR-SERVICE --service-date 2026-03-17` (`--service-date` only for the kit's sample layout). They are stored in the database, so restarts and redeploys keep them; `/ready` then reports `detection: true`. Repeat with `--check` to compare the stored fingerprint with localhost. Matching uploads do not write. The first kit must be the official Sevaro kit; later kits are stored beside it and never replace it. See [persistent reference data](Reference-Data.md) for exact commands, the local kit fingerprint, and replay-clock setup.
 6. Verify persistence with `scripts/hosting_smoke.py seed`, a manual redeploy, then `verify`, against a disposable database before loading real operational data.
 
