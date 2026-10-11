@@ -99,7 +99,7 @@ void main() {
   });
 
   testWidgets('SSO shows the demo unavailable notice', (tester) async {
-    await tester.pumpWidget(const SevaroApp());
+    await tester.pumpWidget(const SevaroApp(home: SignInScreen()));
     await tester.ensureVisible(find.text('Use Sevaro single sign-on'));
     await tester.tap(find.text('Use Sevaro single sign-on'));
     await tester.pump();

@@ -64,7 +64,8 @@ class ApiClient {
       _send('PUT', path, parse, body: body);
 
   /// A binary body (offer audio). Same auth, timeout and error mapping as JSON
-  /// calls; any non-2xx other than 401/403/404/409/422 is [Unavailable].
+  /// calls; any non-2xx other than 401/403/404/422 is [Unavailable], including 409 (offer not sent):
+  /// the screen shows the offer text instead.
   Future<Uint8List> getBytes(String path, {String accept = 'audio/mpeg'}) async {
     final (res, token) = await _exchange('GET', path, accept: accept);
     if (res.statusCode >= 200 && res.statusCode < 300) return res.bodyBytes;
@@ -74,6 +75,7 @@ class ApiClient {
     } on FormatException {
       // Error bodies are optional.
     }
+    if (res.statusCode == 409) throw Unavailable(_errorMessage(decoded) ?? 'Offer audio is unavailable.');
     throw _failure(res.statusCode, decoded, token, signOutOn401: true);
   }
 
