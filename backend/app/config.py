@@ -6,6 +6,24 @@ import os
 DEFAULT_LATE_LAG_S = 60
 DEFAULT_ORPHAN_HOLD_S = 300
 DEFAULT_COOLDOWN_S = 120
+DEFAULT_FORECAST_CLIFF_LOOKAHEAD_MIN = 120
+
+
+@dataclass(frozen=True)
+class OverloadPolicy:
+    open_warning: int = 3
+    open_critical: int = 4
+    rate_multiple: float = 1.5
+    window_minutes: int = 120
+    minimum_peers: int = 3
+
+    def __post_init__(self):
+        if not (0 < self.open_warning < self.open_critical and self.rate_multiple > 0
+                and self.window_minutes > 0 and self.minimum_peers > 0):
+            raise ValueError("invalid overload policy")
+
+
+DEFAULT_OVERLOAD = OverloadPolicy()
 
 
 @dataclass(frozen=True)

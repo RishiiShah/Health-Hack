@@ -56,7 +56,7 @@ class EventDatabase:
         rows = self.conn.execute("SELECT * FROM held_events WHERE dataset_generation=%s", (self.generation,)).fetchall()
         return {r["event_id"]: (Event.model_validate_json(r["event_json"]), r["expires_at"], r["expired"]) for r in rows}
 
-    def commit_batch(self, events: list[Event], quarantined: list[tuple[str, str]], received_at=None, *, holds=None, stats=None, references=None, expected_revision: int | None = None) -> int:
+    def commit_batch(self, events: list[Event], quarantined: list[tuple[str, str]], received_at=None, *, holds=None, stats=None, references=None, clock=None, expected_revision: int | None = None) -> int:
         """Commit in a few round trips; with expected_revision, refuse to write over another writer's commits."""
         if self.conn.broken: self.conn = self._connect()
         with self.conn.transaction(), self.conn.cursor() as cur:
@@ -72,7 +72,7 @@ class EventDatabase:
             if holds is not None:
                 cur.execute("DELETE FROM held_events WHERE dataset_generation=%s", (generation,))
                 cur.executemany("INSERT INTO held_events VALUES(%s,%s,%s,%s,%s)", [(generation, eid, e.model_dump_json(), deadline, expired) for eid, (e, deadline, expired) in holds.items()])
-            updates = [(key, json.dumps(value, sort_keys=True)) for key, value in (("ingest_stats", stats), ("references", references)) if value is not None]
+            updates = [(key, json.dumps(value, sort_keys=True)) for key, value in (("ingest_stats", stats), ("references", references), ("clock", clock)) if value is not None]
             updates.append(("revision", str(revision + 1)))
             cur.executemany("INSERT INTO metadata VALUES(%s,%s) ON CONFLICT(key) DO UPDATE SET value=excluded.value", updates)
         return revision + 1

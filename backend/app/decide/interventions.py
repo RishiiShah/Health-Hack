@@ -51,11 +51,11 @@ def free_soon(v) -> bool:
 def _who_blocks(views, hospital_id):
     """Credentialed on-shift physicians and why each cannot take the consult now."""
     return [f"{v.physician_id}: {v.derived_state}" + (f" ({', '.join(v.exclusion_reasons)})" if v.exclusion_reasons else "")
-            for v in views.values() if hospital_id in v.credentialed_hospitals and "off_shift" not in v.exclusion_reasons]
+            for v in views.values() if hospital_id in v.allowed_hospitals and "off_shift" not in v.exclusion_reasons]
 
 
 def _routable(views, hospital_id, exclude=None):
-    return [v for v in views.values() if v.routable and hospital_id in v.credentialed_hospitals and v.physician_id != exclude]
+    return [v for v in views.values() if v.routable and hospital_id in v.allowed_hospitals and v.physician_id != exclude]
 
 
 def _split_alternative(hospital_id, refs, ops, now):
@@ -83,19 +83,19 @@ def _consult_fix(f: Finding, views, refs, ops, now, reserved=()) -> Fix:
                       key=lambda v: v.physician_id in leaving)
     taken = [p for p in reserved if p in {v.physician_id for v in _routable(views, hid, exclude)}]
     if f.kind == "handoff_needed":
-        end = refs.physicians[f.physician_id].shifts[0].end
-        stays = [v for v in routable if refs.physicians[v.physician_id].shifts[0].end > end]
+        end = views[f.physician_id].shift.end
+        stays = [v for v in routable if v.shift.end > end]
         if stays:
             t = stays[0]
             return Fix("handoff", "coordinator", f"Hand {f.consult_id} to {t.physician_id} before {f.physician_id}'s shift ends",
-                       f"{t.physician_id} is routable, credentialed at {hid}, on shift until {refs.physicians[t.physician_id].shifts[0].end.astimezone(ET):%H:%M}",
+                       f"{t.physician_id} is routable, credentialed at {hid}, on shift until {t.shift.end.astimezone(ET):%H:%M}",
                        (f"keep with {f.physician_id}: shift ends in {f.why['minutes_to_shift_end']} min",), t.physician_id)
-        later = routing_order([v for v in views.values() if hid in v.credentialed_hospitals and v.physician_id != f.physician_id
-                               and owner_can_act(v) and refs.physicians[v.physician_id].shifts[0].end > end], refs)
+        later = routing_order([v for v in views.values() if hid in v.allowed_hospitals and v.physician_id != f.physician_id
+                               and owner_can_act(v) and v.shift.end > end], refs)
         if later:
             t = later[0]
             return Fix("handoff", "coordinator", f"Hand {f.consult_id} to {t.physician_id} when they are free ({t.derived_state} now)",
-                       f"only credentialed physician at {hid} on shift past {end.astimezone(ET):%H:%M} (until {refs.physicians[t.physician_id].shifts[0].end.astimezone(ET):%H:%M})",
+                       f"only credentialed physician at {hid} on shift past {end.astimezone(ET):%H:%M} (until {t.shift.end.astimezone(ET):%H:%M})",
                        (f"keep with {f.physician_id}: shift ends in {f.why['minutes_to_shift_end']} min",), t.physician_id)
         return Fix("escalate", "clinical_lead", f"Escalate: no credentialed physician at {hid} stays past {end.astimezone(ET):%H:%M}",
                    "nobody can take over before the owner leaves", tuple(_who_blocks(views, hid)))
@@ -103,13 +103,14 @@ def _consult_fix(f: Finding, views, refs, ops, now, reserved=()) -> Fix:
     if routable:
         # Steady advice [A52]: the name comes from everyone free now or only briefly busy, so it does not swap each time
         # someone starts or ends a short session; being busy changes only the timing, and a free alternative is named.
-        steady = sorted(routing_order([v for v in views.values() if (v.routable or free_soon(v)) and hid in v.credentialed_hospitals
+        steady = sorted(routing_order([v for v in views.values() if (v.routable or free_soon(v)) and hid in v.allowed_hospitals
                                        and v.physician_id != exclude and v.physician_id not in reserved], refs),
                         key=lambda v: v.physician_id in leaving)
         t = steady[0]
+        session = lambda v: "call cooldown" if v.derived_state not in SESSION_STATES else v.derived_state.lower()
         later = f"{t.physician_id} is routable and credentialed at {hid}; first under the modeled routing order ({t.consults_this_shift} consults this shift)"
         if not t.routable:
-            busy = "call cooldown" if t.derived_state not in SESSION_STATES else t.derived_state.lower()
+            busy = session(t)
             free = next(v for v in routable if v.physician_id != t.physician_id)
             return Fix(verb, "coordinator", f"{verb.title()} {f.consult_id} to {t.physician_id} when their {busy} ends; if it cannot wait, {free.physician_id} is free now",
                        f"{t.physician_id} is first under the modeled routing order ({t.consults_this_shift} consults this shift) and only briefly busy; "
@@ -118,10 +119,11 @@ def _consult_fix(f: Finding, views, refs, ops, now, reserved=()) -> Fix:
                        t.physician_id)
         return Fix(verb, "coordinator", f"{verb.title()} {f.consult_id} to {t.physician_id}",
                    later + (f"; shift ends in {t.minutes_to_shift_end} min, nobody staying is free" if t.physician_id in leaving else ""),
-                   tuple(f"{v.physician_id}: also routable, later in routing order" for v in steady[1:3]), t.physician_id)
+                   tuple(f"{v.physician_id}: " + ("also routable" if v.routable else f"free when their {session(v)} ends")
+                         + ", later in routing order" for v in steady[1:3]), t.physician_id)
     alternatives = (f"{verb}: no routable credentialed physician at {hid}" + (f" left ({', '.join(taken)} already taking a higher-ranked consult)" if taken else ""),
                     *_who_blocks(views, hid), _split_alternative(hid, refs, ops, now))
-    ringing = [v for v in views.values() if f.consult_id and "ringing" in v.exclusion_reasons and hid in v.credentialed_hospitals
+    ringing = [v for v in views.values() if f.consult_id and "ringing" in v.exclusion_reasons and hid in v.allowed_hospitals
                and f.why.get("ringing_since")]
     if f.kind == "unassigned" and ringing and f.severity != "Critical":
         return Fix("contact_physician", "coordinator", f"Call {ringing[0].physician_id}, whose phone is ringing for {f.consult_id}",
@@ -130,7 +132,7 @@ def _consult_fix(f: Finding, views, refs, ops, now, reserved=()) -> Fix:
         return Fix("watch", "coordinator", f"Watch {f.consult_id}: routing still in progress", "no failed route and no breached limit yet", alternatives)
     # A credentialed physician in a call or video is busy for minutes, not absent: queue the consult for them
     # instead of escalating every short session (which made the advice flip between assign and escalate).
-    in_session = sorted(routing_order([v for v in views.values() if hid in v.credentialed_hospitals and v.physician_id != exclude
+    in_session = sorted(routing_order([v for v in views.values() if hid in v.allowed_hospitals and v.physician_id != exclude
                                        and v.physician_id not in reserved and free_soon(v)], refs),
                         key=lambda v: v.physician_id in leaving)
     if in_session:
@@ -169,6 +171,9 @@ def _finding_fix(f: Finding, views, refs, ops, now, reserved=()) -> Fix:
         return Fix("contact_physician", "coordinator", f"Call the physician being rung about {f.consult_id}", "the ring is unanswered and the hospital is waiting")
     if f.kind in {"external_platform", "agent_offline"}:
         return Fix("verify_physician", "coordinator", f"Confirm {f.physician_id}'s real availability", "signals disagree; routing may be wrong about this physician")
+    if f.kind == "overload":
+        return Fix("inform", "coordinator", f"Review {f.physician_id}'s workload and arrange support",
+                   "workload threshold reached; this warning does not prohibit routing or transfer note ownership")
     return Fix("inform", "automatic", "No live action; credentialing explains the load", "workload follows credentials, not effort")
 
 
@@ -209,7 +214,7 @@ def _rank_key(severity, in_horizon, ownerless, stroke, repeat, since, affected, 
 
 # Which finding drives the fix when several describe the same consult or physician.
 PRIMARY = ("stranded", "unassigned", "handoff_needed", "stage_breach", "unanswered_ring", "notes_at_shift_end", "note_overdue",
-           "external_platform", "agent_offline", "credential_imbalance")
+           "overload", "external_platform", "agent_offline", "credential_imbalance")
 
 
 def _subject(f: Finding, note_owners):
@@ -341,10 +346,10 @@ def _current_gap_items(state, refs, ops, views, now, hard, history, accepted=())
             waiting.setdefault(c.hospital_id, []).append(c.consult_id)
     free = [v for v in views.values() if "off_shift" not in v.exclusion_reasons and v.derived_state not in SIGNAL_BUSY]
     for cc in current_coverage(state, refs, ops, views, now):
-        if not cc.gap or len(cc.available) + joiners_now(state, ops, accepted, cc.hospital_id, now) >= cc.required:
+        if not cc.gap or len(cc.available) + joiners_now(state, ops, accepted, cc.hospital_id, now, views) >= cc.required:
             continue  # short by signals, but an accepted split shift is already the fix
         hid = cc.hospital_id
-        elsewhere = [f"{v.physician_id} is free but not credentialed here" for v in free if hid not in v.credentialed_hospitals]
+        elsewhere = [f"{v.physician_id} is free but not credentialed here" for v in free if hid not in v.allowed_hospitals]
         causes = (*_who_blocks(views, hid), *(["surge: +1 required"] if cc.surge else []), *elsewhere)
         probe = Gap(hid, now, end, "hard", cc.required, len(cc.available), 0, bool(cc.surge), True, causes)
         probes.append(probe)
@@ -415,7 +420,7 @@ def decide(state: State, refs: Refs, ops: OpsRefs, now: datetime, history: Offer
         windows.setdefault(s.physician_id, set(history.accepted.get(s.physician_id, ()))).add((s.start, s.end))
     if windows:
         history = replace(history, accepted={**history.accepted, **{p: tuple(sorted(w)) for p, w in windows.items()}})
-    views = views_at(state, refs, now)
+    views = views_at(state, refs, now, ops=ops, accepted=accepted)
     findings = detect(state, refs, views, now)
     gaps = project(state, refs, ops, views, now, accepted)
     hard = [g for g in gaps if g.kind == "hard"]

@@ -2,7 +2,9 @@
 
 Clients only display what this returns; every level, gap, candidate and fix is computed here [00-Boundaries].
 """
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+import hashlib
+import json
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -12,9 +14,10 @@ from app.act.offers import OPEN, Context, OfferDesk
 from app.decide.eligibility import OfferHistory, Proposal, evaluate, evaluate_proposal, load_offer_history, ranked_above
 from app.decide.interventions import Decisions, decide
 from app.decide.routing_sim import observed_service, trap_check
-from app.ops.coverage import HORIZON, current_coverage, outlook_end, supply, surge_at, _received
+from app.ops.coverage import HORIZON, current_coverage, forecast_steps, outlook_end, supply, surge_at, _received
 from app.ops.detect import NOTE_STAGES, UNASSIGNED_STAGES, consult_sla, sla_limit
 from app.ops.refs import ET, OpsRefs, load_ops_refs
+from app.ops.overload import overloads
 from app.references import Refs, load_reference_dir
 
 
@@ -25,6 +28,14 @@ def load_references(directory: str | Path, service_date: date | None = None) -> 
 
 REFERENCE_FILES = ("hospitals.csv", "physicians_on_shift.csv", "physicians_off_shift_roster.csv", "credentialing_matrix.csv",
                    "baseline_hourly_volume.csv", "coverage_requirements.csv")
+
+
+def reference_manifest(source):
+    """Exact uploaded CSV text plus service date identify the reference version; labels do not."""
+    content = {"files": source["files"], "service_date": source.get("service_date")}
+    encoded = json.dumps(content, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return {"fingerprint": hashlib.sha256(encoded).hexdigest(), "service_date": content["service_date"],
+            "files": {name: hashlib.sha256(text.encode("utf-8")).hexdigest() for name, text in sorted(content["files"].items())}}
 
 
 def references_from_files(files: dict[str, str], service_date: date | None = None) -> tuple[Refs, OpsRefs]:
@@ -127,6 +138,13 @@ class Engine:
         if ops is not None and p.refs is not None:
             service = observed_service(self.coordinator.visible_events(), p.state)
             decisions = decide(p.state, p.refs, ops, p.as_of, self.desk.history(p.as_of), self.desk.accepted(), service=service)
+            recommendations = []
+            for rank, item in enumerate(decisions.items, 1):
+                hospitals = item.where.get("hospital_ids") or [item.where.get("hospital_id")]
+                recommendations.append({**item_payload(rank, item),
+                                        "candidates": [{**asdict(c), "eligible": c.eligible} for c in item.candidates],
+                                        "gaps": [asdict(g) for g in decisions.gaps if g.hospital_id in hospitals]})
+            self.desk.record_decisions(Context(p.state, p.refs, ops, p.as_of, p.revision), recommendations)
         self._key, self._value = key, (p, decisions)
         return self._value
 
@@ -149,8 +167,8 @@ class Engine:
                 "scenarios": runs_view(check, best.physician_id)}
 
     def coverage_grid(self, p, d, coverage):
-        """Now (free by signals), then every 15 min to +90 min (everyone scheduled, accepted split shifts included)."""
-        steps = [p.as_of + STEP * n for n in range(7)]
+        """Now, then 15-minute observations and exact shift cliffs across the shared display horizon."""
+        steps = forecast_steps(p.refs, self.ops, p.as_of, self.desk.accepted())
         items = supply(p.state, p.refs, self.ops, d.views, p.as_of, self.desk.accepted())
         now_items = {i.id for i in d.items}
         current = {c.hospital_id: c for c in coverage}
@@ -178,7 +196,7 @@ class Engine:
                               "gap_id": gap_id if status == "gap" else None})
             hospitals.append({"hospital_id": hid, "hospital_name": p.refs.hospitals[hid].name, "nobody_reachable_now": not current[hid].routable,
                               "cells": cells})
-        return {"supported": True, "steps": [t.isoformat() for t in steps], "hospitals": hospitals,
+        return {"supported": True, "steps": [t.isoformat() for t in steps], "horizon_end": steps[-1].isoformat(), "hospitals": hospitals,
                 "assumption": "Now counts physicians free by signals; later steps count everyone scheduled (busy and temporarily unavailable included) "
                               "and starters from their start, with a surge's +1 until 60 minutes after its consults arrived"}
 
@@ -190,6 +208,9 @@ class Engine:
         item = next((i for i in d.items if i.id == gap_id), None)
         gap = next((g for g in d.gaps if g.id == gap_id), None)
         offer = next((o for o in self.desk.offers() if o.gap_id == gap_id and o.state in OPEN), None)
+        if gap is None and item is None and offer is not None and len(offer.hospitals) == 1:
+            gap = next((g for g in d.gaps if g.kind == "hard" and g.hospital_id in offer.hospitals
+                        and g.start < offer.end and max(offer.start, p.as_of) < g.end), None)
         if item is None and gap is None and offer is None:
             return None
         if offer is not None:
@@ -211,7 +232,7 @@ class Engine:
         required = gap.required if gap else why.get("required")
         count = (gap.confirmed + gap.scheduled) if gap else len(why.get("available", []))
         causes = list(gap.causes if gap else why.get("causes", []))
-        summary = (item.what if item else f"{p.refs.hospitals[gap.hospital_id].name} short of credentialed coverage") + (
+        summary = (item.what if item else f"{', '.join(p.refs.hospitals[h].name for h in hospitals)} coverage under review") + (
             ". " + "; ".join(causes[:4]) if causes else "")
         return {"item": item, "gap": gap, "offer": offer, "candidates": candidates, "now": p.as_of, "revision": p.revision,
                 "view": {"gap_id": gap_id, "hospital_ids": hospitals, "hospital_names": [p.refs.hospitals[h].name for h in hospitals],
@@ -241,10 +262,14 @@ class Engine:
                                         f"ranked below {ranked[ranked.index(c) - 1].physician_id}, who {ranked_above(ranked[ranked.index(c) - 1], c, self.ops, history)}"),
                         "window": {"start": c.start.isoformat(), "end": c.end.isoformat(), "ready_at": c.ready_at.isoformat(), "hospitals": list(c.hospitals)}})
         fix = g["item"].fix if g["item"] else None
-        return {"gap": g["view"], "revision": g["revision"], "rules": rules, "candidates": out,
+        return {"gap": g["view"], "revision": g["revision"], "rules": rules, "candidates": out, "server_now": p.as_of.isoformat(),
                 "fix": {"kind": fix.kind, "action": fix.action, "reason": fix.reason, "physician_id": fix.physician_id} if fix else None}
 
     def trap_view(self, gap_id):
+        result = self._trap_view(gap_id)
+        return {**result, "server_now": self.context().now.isoformat()} if result is not None else None
+
+    def _trap_view(self, gap_id):
         """The trap check for the gap's best eligible physician, summarized for the screen; raw runs under `scenarios`."""
         g = self.gap_view(gap_id)
         if g is None:
@@ -301,18 +326,26 @@ class Engine:
         if shift is None:
             shift = next(((s.start, s.end, s.hospitals) for s in self.desk.accepted() if s.physician_id == physician_id and s.start <= now < s.end), None)
         names = {h: x.name for h, x in refs.hospitals.items()} if refs else {}
+        _, decisions = self.decisions()
+        view = decisions.views.get(physician_id) if decisions else None
         mine = sorted((c for c in p.state.consults.values() if c.owner == physician_id and c.stage != "Signed Off"), key=lambda c: c.received_at)
         return {"name": refs.physicians[physician_id].name if refs and physician_id in refs.physicians else physician_id,
+                "server_now": now.isoformat(), "clock_mode": self.coordinator.clock.mode,
+                "on_shift": bool(view and view.shift), "shift_start": shift[0].isoformat() if shift else None,
+                "consults_this_shift": view.consults_this_shift if view else None,
+                "calls_this_shift": view.calls_this_shift if view else None,
                 "shift_end": shift[1].isoformat() if shift else None,
                 "minutes_to_shift_end": int((shift[1] - now).total_seconds() // 60) if shift else None,
                 "hospitals": [names.get(h, h) for h in sorted(shift[2])] if shift else [],
                 "consults": [{"consult_id": c.consult_id, "hospital_name": names.get(c.hospital_id, c.hospital_id), "consult_type": c.consult_type,
-                              "stage": c.stage, "minutes_in_stage": max(0, int((now - c.entered_at).total_seconds() // 60))} for c in mine]}
+                              "stage": c.stage, "level": consult_sla(c, now)[0],
+                              "minutes_in_stage": max(0, int((now - c.entered_at).total_seconds() // 60))} for c in mine]}
 
     def offer_view(self, o):
         refs = self.coordinator.refs
         sent = next((m["body"] for m in self.desk.outbox() if m["offer_id"] == o.id and m["kind"] == "offer"), None)
         return {"offer_id": o.id, "gap_id": o.gap_id, "physician_id": o.physician_id,
+                "server_now": self.context().now.isoformat(), "clock_mode": self.coordinator.clock.mode,
                 "physician_name": refs.physicians[o.physician_id].name if o.physician_id in refs.physicians else o.physician_id,
                 "hospital_ids": list(o.hospitals), "hospital_names": [refs.hospitals[h].name for h in o.hospitals],
                 "start": o.start.isoformat(), "end": o.end.isoformat(), "state": STATE_LABELS[o.state], "checked_count": len(self.ops.roster),
@@ -331,12 +364,60 @@ class Engine:
                 text = d.get("message", "")
             elif a["command"] == "propose":
                 text = f"{d.get('physician_id')} · {', '.join(d.get('hospitals', []))} · {readable(d.get('start'))} to {readable(d.get('end'))} ET"
+            elif a["command"] == "recommendation":
+                text = f"{d['what']}. {d['fix']['action']}"
             else:
-                text = "; ".join(f"{k.replace('_', ' ')}: {readable(v)}" for k, v in d.items() if v not in (None, "", [], {}))
+                text = "; ".join(f"{k.replace('_', ' ')}: {readable(v)}" for k, v in d.items()
+                                 if k not in {"decision", "final_coverage"} and v not in (None, "", [], {}))
             items.append({"at": a["at"].isoformat(), "actor": a["actor"],
                           "action": ACTIONS.get(a["command"], a["command"].replace(":", ": ").replace("_", " ")), "detail": text,
-                          "offer_id": a["offer_id"], "command": a["command"], "from_state": a["from_state"], "to_state": a["to_state"]})
-        return {"items": items}
+                          "offer_id": a["offer_id"], "gap_id": a["gap_id"], "revision": a["revision"], "evidence": jsonable(d),
+                          "command": a["command"], "from_state": a["from_state"], "to_state": a["to_state"]})
+        return {"items": items, "server_now": self.context().now.isoformat()}
+
+    def schedule_view(self):
+        p, d = self.decisions()
+        now = p.as_of.astimezone(ET)
+        offers, accepted = self.desk.offers(), self.desk.accepted()
+        doctors = []
+        for pid, physician in sorted(p.refs.physicians.items()):
+            v = d.views[pid]
+            shifts = [(s.start, s.end, "scheduled") for s in physician.shifts]
+            shifts += [(s.start, s.end, "accepted") for s in accepted if s.physician_id == pid]
+            shifts.sort()
+            current = next((s for s in shifts if s[0] <= p.as_of < s[1]), None)
+            upcoming = next((s for s in shifts if p.as_of < s[0]), None)
+            interval = current or upcoming
+            pending = next((o for o in offers if o.physician_id == pid and o.state in OPEN), None)
+            roster = self.ops.roster.get(pid)
+            incomplete = roster and roster.next_shift_start and roster.next_shift_end is None
+            label = lambda t: t.astimezone(ET).strftime("%H:%M")
+            on = "off_shift" not in v.exclusion_reasons
+            bar = f"{label(interval[0])}–{label(interval[1])}" if interval else "Off shift"
+            detail = f"{interval[2].capitalize()} {bar} ET" if interval else "No complete upcoming interval"
+            if incomplete:
+                detail += f"; next start {roster.next_shift_start.astimezone(ET):%d %b %H:%M} ET, end unknown"
+            tone = "night" if interval and (interval[0].astimezone(ET).hour >= 18 or interval[1].astimezone(ET).date() > interval[0].astimezone(ET).date()) else "day" if interval else "off"
+            status = v.derived_state if on else "Off shift"
+            if current and current[2] == "accepted" and not on:
+                status = "Accepted; awaiting observed arrival"
+            if v.derived_state == "Temporarily Unavailable":
+                tone = "unavailable"
+            if pending:
+                tone, bar = "offer", f"{label(pending.start)}–{label(pending.end)}"
+                detail += f"; {STATE_LABELS[pending.state]} offer {bar} ET, not confirmed"
+                status = f"{status}; offer {STATE_LABELS[pending.state].lower()}"
+            doctors.append({"id": pid, "name": physician.name, "group": "On shift" if on else "Off shift", "status": status,
+                            "bar": bar, "tone": tone, "detail": detail,
+                            "avatar": "".join(word[0] for word in physician.name.replace("Dr.", "").split())[:2],
+                            "workload": f"{v.consults_this_shift} consults · {v.calls_this_shift} calls this shift · {v.open_consults} open",
+                            "credentialed": ", ".join(p.refs.hospitals[h].name for h in sorted(v.credentialed_hospitals)),
+                            "intervals": [{"start": start.isoformat(), "end": end.isoformat(), "source": source} for start, end, source in shifts]})
+        filters = [{"label": "All", "ids": [r["id"] for r in doctors]}]
+        filters += [{"label": h.name, "ids": [pid for pid in sorted(p.refs.physicians) if hid in p.refs.credentials[pid]]}
+                    for hid, h in sorted(p.refs.hospitals.items())]
+        return {"date": now.date().isoformat(), "date_label": now.strftime("%a %d %b %Y"), "now_label": now.strftime("%H:%M"),
+                "server_now": p.as_of.isoformat(), "revision": p.revision, "alert": None, "filters": filters, "doctors": doctors}
 
     def snapshot(self, epoch: str, clock_mode: str) -> dict:
         p, d = self.decisions()
@@ -363,15 +444,18 @@ class Engine:
         coverage = current_coverage(p.state, p.refs, self.ops, d.views, p.as_of)
         open_states = [c for c in p.state.consults.values() if c.stage != "Signed Off"]
         short_now = {c.hospital_id for c in coverage if c.gap}
+        overload = overloads(p.state, d.views, p.as_of)
         return {**body,
                 "headline": {"open_consults": len(consults), "critical": sum(i.severity == "Critical" for i in d.items),
+                             "overloaded_physicians": sum(x["level"] is not None for x in overload.values()),
                              "hard_gaps_in_horizon": sum(g.kind == "hard" and g.in_horizon for g in d.gaps),
                              # The PRD's headline numbers [PRD: headline numbers]. Short now = by live signals; in the
-                             # horizon = short now or a schedule gap starting within 90 min.
+                             # horizon = short now or a schedule gap within the displayed horizon, including its final cliff.
                              "consults_past_critical": sum(consult_sla(c, p.as_of)[0] == "Critical" for c in open_states),
                              "unassigned_consults": sum(c.stage in UNASSIGNED_STAGES and c.owner == "Unassigned" for c in open_states),
                              "hospitals_short_now": len(short_now),
                              "hospitals_short_in_horizon": len(short_now | {g.hospital_id for g in d.gaps if g.kind == "hard" and g.in_horizon}),
+                             "forecast_horizon_minutes": int((forecast_steps(p.refs, self.ops, p.as_of, self.desk.accepted())[-1]-p.as_of).total_seconds()/60),
                              "offers_awaiting_approval": sum(o.state == "PROPOSED" for o in offers), "offers_out": sum(o.state == "SENT" for o in offers)},
                 "queue": {"supported": True, "items": [item_payload(n, i, done.get(i.id)) for n, i in enumerate(d.items, 1)]},
                 "physicians": {"supported": True, "items": [{"physician_id": v.physician_id, "derived_state": v.derived_state,
@@ -379,7 +463,8 @@ class Engine:
                                                              "routable": v.routable, "exclusion_reasons": list(v.exclusion_reasons), "flags": list(v.flags),
                                                              "consults_this_shift": v.consults_this_shift, "open_consults": v.open_consults,
                                                              "minutes_to_shift_end": v.minutes_to_shift_end,
-                                                             "credentialed_hospitals": sorted(v.credentialed_hospitals)} for v in d.views.values()]},
+                                                             "credentialed_hospitals": sorted(v.credentialed_hospitals),
+                                                             "routing_hospitals": sorted(v.allowed_hospitals)} for v in d.views.values()]},
                 "hospitals": {"supported": True, "items": [{"hospital_id": c.hospital_id, "name": p.refs.hospitals[c.hospital_id].name,
                                                             "required": c.required, "base_requirement": c.base_requirement, "surge": c.surge,
                                                             "trailing_60m": c.trailing_60m, "p90": c.p90, "available": list(c.available),
@@ -402,7 +487,7 @@ STATE_LABELS = {"PROPOSED": "Proposed", "APPROVED": "Approved", "REJECTED": "Rej
 RULE_CODES = {"off_shift_now": "Off", "opted_in": "R1", "credentialed_at_gap": "R2", "rest_at_start_at_least_10h": "R3",
               "trailing7d_plus_offer_at_most_60h": "R4", "no_schedule_overlap": "R5", "nominal_duration_at_least_2h": "R6",
               "useful_duration_at_least_2h": "R6b", "no_open_offer": "R7", "weekly_offer_count_below_3": "R8", "start_not_in_past": "Start"}
-ACTIONS = {"propose": "Proposed offer", "approve": "Approved offer", "send": "Sent offer", "reject": "Rejected offer", "accept": "Accepted offer",
+ACTIONS = {"recommendation": "Recommended action", "propose": "Proposed offer", "approve": "Approved offer", "send": "Sent offer", "reject": "Rejected offer", "accept": "Accepted offer",
            "decline": "Declined offer", "expire": "Offer expired", "withdraw": "Offer withdrawn (gap filled)", "cancel": "Offer cancelled",
            "accept:already_filled": "Accepted, but the gap was already filled", "approve:recheck_failed": "Cancelled at approval: a rule no longer passes",
            "next_candidate:none": "No other eligible physician: escalate", "reassign": "Reassignment recorded", "escalate": "Escalation requested",
@@ -425,20 +510,23 @@ def demand_view(p, coverage):
 
 
 def workload_view(p, d):
-    """On-shift physicians, riskiest first. Shift-end risk follows the open-notes rule (2+ notes Critical, 1 Warning, within 60 min)."""
+    """On-shift physicians, sorted by the higher of overload and exact-window open-note risk."""
     items = []
+    overload = overloads(p.state, d.views, p.as_of)
     for v in d.views.values():
         if "off_shift" in v.exclusion_reasons:
             continue
         notes = sum(c.owner == v.physician_id and c.stage in NOTE_STAGES for c in p.state.consults.values())
-        soon = v.minutes_to_shift_end is not None and v.minutes_to_shift_end <= 60
+        soon = v.shift is not None and timedelta(0) < v.shift.end - p.as_of <= timedelta(minutes=60)
         risk = ("Critical" if notes >= 2 else "Warning" if notes else None) if soon else None
-        shift = next((s for s in p.refs.physicians[v.physician_id].shifts if s.start <= p.as_of < s.end), None)
-        reason = (f"{notes} open note(s), shift ends in {v.minutes_to_shift_end} min" if risk else v.derived_state
+        shift = v.shift
+        reason = ("; ".join(overload[v.physician_id]["reasons"]) if overload[v.physician_id]["level"] else
+                  f"{notes} open note(s), shift ends in {v.minutes_to_shift_end} min" if risk else v.derived_state
                   + (f" ({', '.join(v.exclusion_reasons)})" if v.exclusion_reasons else ""))
         items.append({"physician_id": v.physician_id, "name": p.refs.physicians[v.physician_id].name, "consults": v.consults_this_shift,
                       "calls": v.calls_this_shift, "open_consults": v.open_consults, "shift_end": shift.end.isoformat() if shift else None,
-                      "minutes_to_shift_end": v.minutes_to_shift_end, "overload": None, "shift_end_risk": risk, "open_notes": notes, "reason": reason})
+                      "minutes_to_shift_end": v.minutes_to_shift_end, "overload": overload[v.physician_id]["level"],
+                      "overload_evidence": overload[v.physician_id], "shift_end_risk": risk, "open_notes": notes, "reason": reason})
     order = {"Critical": 0, "Warning": 1, None: 2}
-    items.sort(key=lambda i: (order[i["shift_end_risk"]], i["minutes_to_shift_end"] if i["minutes_to_shift_end"] is not None else 10**6, i["physician_id"]))
+    items.sort(key=lambda i: (min(order[i["shift_end_risk"]], order[i["overload"]]), i["minutes_to_shift_end"] if i["minutes_to_shift_end"] is not None else 10**6, i["physician_id"]))
     return {"supported": True, "items": items}

@@ -8,5 +8,6 @@ export type Physician = { id: string; name: string; status: string; derived: str
 export type Headline = {
   openConsults: number; pastCritical: number; freePhysicians: number; totalPhysicians: number;
   signalDisagreements: number; shortIn90: number; waitingOnPerson: number;
+  overloadedPhysicians: number; forecastHorizonMinutes: number;
 };
 export type DetectSnapshot = { headline: Headline; queue: QueueItem[]; consults: Consult[]; physicians: Physician[] };

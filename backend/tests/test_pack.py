@@ -316,6 +316,9 @@ def test_assign_names_a_steady_choice_and_a_free_fallback_when_it_is_busy(path):
     while now <= end:
         d = decide(state_at(pack.rows, now), pack.refs, pack.ops, now, pack.history(now))
         for i in d.items:
+            for alt in i.fix.alternatives:
+                if "also routable" in alt:
+                    assert d.views[alt.split(":")[0]].routable, alt
             if i.fix.kind in {"assign", "reassign"} and "cannot wait" in i.fix.action:
                 t = d.views[i.fix.physician_id]
                 free = i.fix.action.rsplit(", ", 1)[1].split(" ")[0]

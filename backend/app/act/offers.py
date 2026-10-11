@@ -7,7 +7,7 @@ Backstops in the schema: one open offer per physician (R7) and a trigger that re
 """
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from threading import RLock
 from datetime import datetime, timedelta
 from typing import Callable
@@ -16,7 +16,7 @@ from psycopg.rows import dict_row
 from app.clock import Clock, utc
 from app.decide.eligibility import MIN_OFFER, OfferHistory, Proposal, evaluate_proposal
 from app.engine.replay import State
-from app.ops.coverage import SplitShift, remaining_need
+from app.ops.coverage import SplitShift, current_coverage, project, remaining_need
 from app.ops.detect import views_at
 from app.ops.refs import ET, OpsRefs
 from app.references import Refs
@@ -43,6 +43,7 @@ SCHEMA = (
         id BIGSERIAL PRIMARY KEY, offer_id TEXT, gap_id TEXT, at TIMESTAMPTZ NOT NULL, actor TEXT NOT NULL, command TEXT NOT NULL,
         from_state TEXT, to_state TEXT, revision INTEGER, detail TEXT NOT NULL)""",
     "CREATE INDEX IF NOT EXISTS offer_audit_by_gap ON offer_audit(gap_id, id)",
+    "CREATE TABLE IF NOT EXISTS decision_passes (fingerprint TEXT PRIMARY KEY)",
     """CREATE TABLE IF NOT EXISTS offer_outbox (
         id BIGSERIAL PRIMARY KEY, offer_id TEXT NOT NULL, physician_id TEXT NOT NULL, at TIMESTAMPTZ NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL)""",
     "CREATE TABLE IF NOT EXISTS offer_idempotency (key TEXT PRIMARY KEY, request TEXT NOT NULL, response TEXT NOT NULL)",
@@ -154,6 +155,17 @@ class OfferDesk:
             rows = self.conn.execute("SELECT * FROM offer_audit WHERE %s::text IS NULL OR gap_id=%s ORDER BY id", (gap_id, gap_id)).fetchall()
         return [{**r, "detail": json.loads(r["detail"])} for r in rows]
 
+    def record_decisions(self, ctx, recommendations):
+        """A cached pass is recorded once, including across restarts; no offer version change on an audit write."""
+        encoded = json.dumps({"revision": ctx.revision, "as_of": ctx.now, "items": recommendations}, sort_keys=True, default=str)
+        fingerprint = hashlib.sha256(encoded.encode()).hexdigest()
+        with self.lock, self.conn.transaction(), self.conn.cursor() as cur:
+            cur.execute("INSERT INTO decision_passes VALUES(%s) ON CONFLICT DO NOTHING RETURNING fingerprint", (fingerprint,))
+            if cur.fetchone() is None:
+                return
+            for row in recommendations:
+                self._audit(cur, ctx, None, row["id"], "system", "recommendation", None, None, row)
+
     def outbox(self) -> list[dict]:
         with self.lock:
             return self.conn.execute("SELECT * FROM offer_outbox ORDER BY id").fetchall()
@@ -225,6 +237,14 @@ class OfferDesk:
         return response
 
     def _audit(self, cur, ctx, offer_id, gap_id, actor, command, from_state, to_state, detail):
+        if offer_id:
+            cur.execute("SELECT * FROM offers WHERE id=%s", (offer_id,))
+            row = cur.fetchone()
+            if row:
+                offer = _row(row)
+                offers = self._all(cur)
+                detail = {**detail, "decision": detail.get("decision") or self._decision_evidence(ctx, offers, offer),
+                          "final_coverage": self._coverage_evidence(ctx, offers, offer)}
         cur.execute("INSERT INTO offer_audit(offer_id,gap_id,at,actor,command,from_state,to_state,revision,detail) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     (offer_id, gap_id, ctx.now, actor, command, from_state, to_state, ctx.revision, json.dumps(detail, sort_keys=True, default=str)))
 
@@ -240,6 +260,7 @@ class OfferDesk:
 
     def _move(self, cur, ctx, offer: Offer, to: str, actor: str, command: str, detail: dict, **fields) -> Offer:
         assert (offer.state, to) in TRANSITIONS, (offer.state, to)
+        detail = {**detail, "decision": self._decision_evidence(ctx, self._all(cur), offer)}
         sets = {"state": to, "updated_at": ctx.now, **fields}
         cur.execute(f"UPDATE offers SET {', '.join(f'{k}=%s' for k in sets)} WHERE id=%s RETURNING *", (*sets.values(), offer.id))
         moved = _row(cur.fetchone())
@@ -251,13 +272,34 @@ class OfferDesk:
         return [_row(r) for r in cur.fetchall()]
 
     # ---- rule checks (from current state, inside the transaction) ----------------------------------------
+    def _coverage_evidence(self, ctx, offers, offer):
+        accepted = self._accepted(offers)
+        views = views_at(ctx.state, ctx.refs, ctx.now, ops=ctx.ops, accepted=accepted)
+        return {"as_of": ctx.now, "revision": ctx.revision,
+                "need": self._need(ctx, offers, offer.hospitals, max(ctx.now, offer.start), offer.end),
+                "current": [asdict(c) for c in current_coverage(ctx.state, ctx.refs, ctx.ops, views, ctx.now) if c.hospital_id in offer.hospitals],
+                "gaps": [asdict(g) for g in project(ctx.state, ctx.refs, ctx.ops, views, ctx.now, accepted)
+                         if g.hospital_id in offer.hospitals and g.start < offer.end and max(ctx.now, offer.start) < g.end]}
+
+    def _decision_evidence(self, ctx, offers, offer):
+        window = Proposal(max(ctx.now, offer.start), offer.end, offer.hospitals)
+        accepted = self._accepted(offers)
+        views = views_at(ctx.state, ctx.refs, ctx.now, ops=ctx.ops, accepted=accepted)
+        gaps = project(ctx.state, ctx.refs, ctx.ops, views, ctx.now, accepted)
+        candidates = evaluate_proposal(window, ctx.refs, ctx.ops, ctx.now, self._history(offers, ctx.now, exclude=offer.id), gaps)
+        return {"gap_id": offer.gap_id, "chosen_physician_id": offer.physician_id, "window": asdict(window),
+                "coverage": self._coverage_evidence(ctx, offers, offer),
+                "candidates": [{**asdict(c), "eligible": c.eligible, "rank": n if c.eligible else None}
+                               for n, c in enumerate(candidates, 1)]}
+
     def _accepted(self, offers, without=None):
         return tuple(SplitShift(o.physician_id, o.start, o.end, frozenset(o.hospitals), o.updated_at)
                      for o in offers if o.state == "ACCEPTED" and o.id != without)
 
     def _need(self, ctx, offers, hospitals, start, end, extra=()):
-        views = views_at(ctx.state, ctx.refs, ctx.now)
-        return remaining_need(ctx.state, ctx.refs, ctx.ops, views, ctx.now, (*self._accepted(offers), *extra), hospitals, start, end)
+        accepted = (*self._accepted(offers), *extra)
+        views = views_at(ctx.state, ctx.refs, ctx.now, ops=ctx.ops, accepted=accepted)
+        return remaining_need(ctx.state, ctx.refs, ctx.ops, views, ctx.now, accepted, hospitals, start, end)
 
     def _check(self, ctx, offers, physician_id, hospitals, start, end, exclude=None, every_hospital=True):
         """Every eligibility rule for this physician and window, and the offer must still be needed (at every offered

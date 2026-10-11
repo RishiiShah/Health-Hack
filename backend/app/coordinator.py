@@ -10,7 +10,7 @@ from app.config import DEFAULT_LATE_LAG_S, DEFAULT_ORPHAN_HOLD_S
 from app.db import EventDatabase, StaleRevision
 from app.models import Event, EventInput
 from app.engine.replay import State, replay
-from app.clock import Clock, ServerReceiptClock
+from app.clock import Clock, ServerReceiptClock, saved_clock
 from app.references import Refs
 from app.ingest.pipeline import normalize_row
 
@@ -213,9 +213,16 @@ class MutationCoordinator:
             return self._events[:self._visible_count]
 
     def set_clock(self, clock: Clock):
-        """Admin clock change; the next publication uses it. Offers refuse commands from a rewound clock themselves."""
+        """Commit the override before replacing the serving clock. Offers still refuse rewound commands."""
         with self.lock:
+            payload = saved_clock(clock, self.receipt_clock.now())
+            try:
+                revision = self.db.commit_batch([], [], clock=payload, expected_revision=self.published.revision)
+            except StaleRevision:
+                self._load()
+                revision = self.db.commit_batch([], [], clock=payload, expected_revision=self.published.revision)
             self.clock = clock
+            self.published = self._publication(self.published.state, revision, self.published.as_of)
 
     def reset(self):
         """Admin reset: a new, empty dataset generation (old generations stay in the database), same references."""

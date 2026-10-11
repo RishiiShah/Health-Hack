@@ -45,10 +45,12 @@ event CSV / JSON ──► backend (1 process, in-memory replay) ──► RDS P
 | `POST /offers/{id}/accept`, `POST /offers/{id}/decline` | physician, own offer only | Anish, Hitanshu |
 | `GET /offers/{id}/audio` | lead; physician, own offer only | everyone |
 | `GET /audit?gap_id=` | coordinator, lead | Joy, Hitanshu |
+| `GET /schedule` | coordinator, lead | Web schedule: roster, accepted intervals and pending offers; incomplete future ends remain unknown |
 | `GET /alerts/{item_id}/audio` | coordinator, lead | Anish, Hitanshu |
 | `POST /events` (JSON batch), `POST /events/csv` | admin | Joy |
 | `POST /admin/reset`, `POST /admin/clock` | admin | Joy |
 | `POST /admin/references` `{files: {name: csv text}, service_date?, name?}` (the six reference CSVs) | admin | script / Joy's Data page |
+| `GET /admin/references` | `admin.inject` | Persisted reference counts, service date and SHA-256 manifest; no CSV contents |
 | `POST /admin/physician-tokens` `{physician_id}` | admin | demo setup: issues a physician's sign-in link |
 
 ## Roles, authentication and RBAC (kept simple, standard library only)

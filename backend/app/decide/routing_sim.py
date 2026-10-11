@@ -36,7 +36,7 @@ def route_key(count: int, limit: int, last_answered: datetime | None, physician_
 
 
 def routing_order(views: list[PhysicianView], refs: Refs):
-    return sorted(views, key=lambda v: route_key(v.consults_this_shift, threshold(refs.physicians[v.physician_id].shifts[0].start),
+    return sorted(views, key=lambda v: route_key(v.consults_this_shift, threshold(v.shift.start if v.shift else refs.physicians[v.physician_id].shifts[0].start),
                                                  v.last_answered_at, v.physician_id))
 
 
@@ -160,11 +160,19 @@ def _doctors(state, refs, ops, views, now, end, accepted, seed, session: timedel
         joiner = " split shift" in s.label
         on_now = s.start <= now and v is not None and "off_shift" not in v.exclusion_reasons
         busy = on_now and v.derived_state in SIGNAL_BUSY
+        free_at = now + session if busy else now  # [A48] one remaining median session
+        p = state.physicians.get(s.physician_id)
+        if on_now and p is not None:
+            if p.last_call_end is not None:
+                free_at = max(free_at, p.last_call_end + COOLDOWN)
+            if p.rings:
+                # [A53] model an unanswered ring as connecting now, then one median call + cooldown.
+                free_at = max(free_at, now + session + COOLDOWN)
         docs[s.physician_id] = _Doc(s.physician_id, max(s.start, now), min(s.end or end, end), s.hospitals,
                                     seed if joiner else v.consults_this_shift if on_now else 0,
                                     LOW_VOLUME["day"] if joiner else threshold(s.start),
                                     v.last_answered_at if on_now else None,
-                                    now + session if busy else now)  # [A48] a session in progress needs one more median service time
+                                    free_at)
     return docs
 
 
@@ -222,7 +230,7 @@ def guard_seed(views: Mapping[str, PhysicianView], hospitals) -> int:
     """[A26] seed = max(day threshold + 1, fewest consults among on-shift peers credentialed at the gap hospitals),
     so the joiner is never 'low volume' and only takes calls once the least-loaded peer there is busy or level."""
     peers = [v.consults_this_shift for v in views.values() if "off_shift" not in v.exclusion_reasons
-             and v.derived_state != "Temporarily Unavailable" and v.credentialed_hospitals & set(hospitals)]  # TU peers take no calls
+             and v.derived_state != "Temporarily Unavailable" and v.allowed_hospitals & set(hospitals)]  # TU peers take no calls
     return max(LOW_VOLUME["day"] + 1, min(peers, default=0))
 
 

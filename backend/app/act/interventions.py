@@ -54,7 +54,7 @@ class InterventionLog:
             if not consult_id:
                 raise OfferError(422, "not_a_consult", "only a consult item can be reassigned")
             v = views.get(physician_id)
-            if v is None or "off_shift" in v.exclusion_reasons or item.where["hospital_id"] not in v.credentialed_hospitals:
+            if v is None or "off_shift" in v.exclusion_reasons or item.where["hospital_id"] not in v.allowed_hospitals:
                 raise OfferError(422, "not_eligible", f"{physician_id} is not on shift and credentialed at {item.where['hospital_id']}")
             state = "RECORDED"
         elif kind == "escalate":

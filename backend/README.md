@@ -4,6 +4,10 @@ This is a runnable FastAPI foundation for the event log and consult replay. It u
 
 ## Simple local startup
 
+Reference uploads and verification for localhost and Render are documented in
+[Persistent reference data](../docs/Reference-Data.md). Use the upload script's
+`--check` option to verify the same persisted reference version in either environment.
+
 With Docker Desktop running, run this from the repository root:
 
 ```sh

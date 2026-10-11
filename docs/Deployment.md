@@ -10,7 +10,7 @@ Events, holds, quarantine and metrics live in **Amazon RDS for PostgreSQL** (see
 | 2 | AWS EC2 Linux VM in us-east-1 running `deploy/compose.yaml` | Same RDS instance | 1 container, 1 worker |
 | 3 | Azure Linux VM running the same Compose file | Same RDS instance (cross-cloud latency; measure first) | 1 container, 1 worker |
 
-These are executable deployment configurations, not completed cloud deployments. No infrastructure has been provisioned, including the RDS instance. Use private access or a TLS and rate-limited gateway for hosted demos; session revocation, refresh, password recovery and login rate limiting are not implemented in the app.
+These are executable application deployment configurations, not verified hosted application deployments. The configured production RDS database **commandcenter** is provisioned in **us-west-2** and now contains the complete reference kit plus its existing 1,163 events; see [Reference data](Reference-Data.md). The table and `render.yaml` still describe the original us-east-1 plan, so align the application region with the existing database before hosting. Use private access or a TLS and rate-limited gateway for hosted demos; session revocation, refresh, password recovery and login rate limiting are not implemented in the app.
 
 For local development, `make backend` uses the separate `deploy/local.compose.yaml`, creates a local sign-in configuration on first use, and starts Python 3.14.7 plus PostgreSQL with no RDS or host virtual environment requirement. It binds the API to loopback and does not publish a database port. See [local startup](../backend/README.md#simple-local-startup).
 
@@ -19,6 +19,8 @@ The runtime is pinned to standard CPython 3.14.7 in `backend/Dockerfile` (`pytho
 ## One process, by design
 
 The backend keeps replay state in memory and is the single writer. RDS makes data durable; it does not make a second process safe. Keep `numInstances: 1` and one worker. Every commit checks the database revision it last loaded. If another instance has written since (for example, Render's old and new instances overlapping during a zero-downtime deploy), the writer reloads the event log from RDS and retries once instead of overwriting it. A reader on the instance that did not write may serve the older state until its next write or restart.
+
+Admin clock changes and CSV uploads with `advance_clock=true` persist their clock override in the same PostgreSQL metadata store before publishing it. On restart, a saved override takes precedence over `CC_CLOCK_MODE`/`CC_CLOCK_FIXED`. A paused clock resumes at exactly its saved time; a running anchored clock adds elapsed receipt-clock time, including downtime, with negative elapsed time clamped to zero. Its monotonic timer restarts in the new process. Explicit clocks injected by tests take precedence over saved metadata. Receipt and authentication clocks remain independent of simulation time. See `backend/tests/test_clock_recovery.py` for restart and failed-commit checks.
 
 ## Database connection
 
@@ -53,7 +55,7 @@ python3 scripts/stress.py --url https://YOUR-SERVICE --seed 2000 --readers 16 --
 2. Create a Render Blueprint from the repository's root `render.yaml`. It runs the Dockerfile in the Virginia region with one instance and `/ready` as the health check.
 3. Set `CC_DATABASE_URL` in the Render dashboard (it is marked `sync: false`, so it never lives in Git). Keep `PORT` managed by Render. Do not run more than one worker or instance.
 4. Confirm `/ready` responds. A new database starts with an empty event log and, since the image has no reference CSVs, with decisions off (`detection: false`).
-5. Upload the six reference CSVs once: `python3 scripts/upload_references.py data --url https://YOUR-SERVICE --service-date 2026-03-17` (`--service-date` only for the kit's sample layout). They are stored in the database, so restarts and redeploys keep them; `/ready` then reports `detection: true`.
+5. Upload the six reference CSVs once: `python3 scripts/upload_references.py data --url https://YOUR-SERVICE --service-date 2026-03-17` (`--service-date` only for the kit's sample layout). They are stored in the database, so restarts and redeploys keep them; `/ready` then reports `detection: true`. Repeat with `--check` to compare the stored fingerprint with localhost. Matching uploads do not write; changing a persisted version requires the script's `--replace` flag. See [persistent reference data](Reference-Data.md) for exact commands, the local kit fingerprint, and replay-clock setup.
 6. Verify persistence with `scripts/hosting_smoke.py seed`, a manual redeploy, then `verify`, against a disposable database before loading real operational data.
 
 ## AWS fallback
@@ -99,4 +101,4 @@ Backups use RDS automated backups and snapshots. To move providers, point the ne
 
 CI runs the backend tests against a `postgres:17` service container, then builds the image, starts it against Postgres, commits a synthetic consult, replaces the container and checks recovery from the database.
 
-Locally, the suite passes 59 tests against Postgres 17, including both source-data tests. The same image-level flow (build, seed, health probe, replace, verify) passed against a local Postgres, and the image loads the RDS CA bundle. No Render, AWS or Azure deployment was performed, and TLS against a real RDS endpoint has not been exercised.
+The latest local validation passed 335 backend tests against PostgreSQL; current cohort results are recorded in [Decision-engine gap fixes](Decision-Engine-Gap-Fixes.md). The earlier image-level flow (build, seed, health probe, replace, verify) passed against local PostgreSQL, and the image loads the RDS CA bundle. The production RDS reference load verified certificate and hostname validation over TLS 1.3, durable reconnect recovery, and unchanged operational state. No hosted application deployment was performed in this step; application-level recovery on Render remains unverified.

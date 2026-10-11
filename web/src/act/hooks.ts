@@ -2,21 +2,19 @@ import { useEffect, useState } from "react";
 import { ApiError, api } from "../api/client.ts";
 import type { Snapshot } from "../api/live.ts";
 import { serverNow } from "./time.ts";
+import { startPolling } from "./poll.ts";
 
 export type Loaded<T> = { data: T | null; error: ApiError | null };
 
 // GETs `path` again whenever `reloadKey` changes; keeps the last data while a reload fails.
-export function useApi<T>(path: string | null, reloadKey?: unknown): Loaded<T> {
+export function useApi<T>(path: string | null, reloadKey?: unknown, pollIntervalMs = 0): Loaded<T> {
   const [state, setState] = useState<Loaded<T>>({ data: null, error: null });
   useEffect(() => {
     if (!path) return;
-    let current = true;
-    api<T>(path).then(
-      (data) => current && setState({ data, error: null }),
-      (error: ApiError) => current && setState((prev) => ({ data: prev.data, error })),
-    );
-    return () => { current = false; };
-  }, [path, reloadKey]);
+    return startPolling((signal) => api<T>(path, { signal }),
+      (data) => setState({ data, error: null }),
+      (error) => setState((prev) => ({ data: prev.data, error: error as ApiError })), pollIntervalMs);
+  }, [path, reloadKey, pollIntervalMs]);
   return state;
 }
 

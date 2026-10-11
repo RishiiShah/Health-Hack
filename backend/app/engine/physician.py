@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from app.clock import utc
 from app.config import DEFAULT_COOLDOWN_S
 from app.engine.replay import PhysicianState, State
-from app.references import Refs
+from app.references import Refs, Shift
 
 
 @dataclass(frozen=True)
@@ -23,10 +23,17 @@ class PhysicianView:
     minutes_to_shift_end: int | None
     credentialed_hospitals: frozenset[str]
     last_answered_at: datetime | None
+    shift: Shift | None = None
+    routing_hospitals: frozenset[str] | None = None
+
+    @property
+    def allowed_hospitals(self) -> frozenset[str]:
+        return self.credentialed_hospitals if self.routing_hospitals is None else self.credentialed_hospitals & self.routing_hospitals
 
 
 def physician_view(state: State, refs: Refs, physician_id: str, as_of: datetime,
-                   cooldown_s: int = DEFAULT_COOLDOWN_S) -> PhysicianView:
+                   cooldown_s: int = DEFAULT_COOLDOWN_S, *, shift: Shift | None = None,
+                   routing_hospitals: frozenset[str] | None = None) -> PhysicianView:
     as_of = utc(as_of)
     if cooldown_s < 0: raise ValueError("cooldown must be nonnegative")
     reference = refs.physicians[physician_id]
@@ -45,7 +52,7 @@ def physician_view(state: State, refs: Refs, physician_id: str, as_of: datetime,
     elif p.camera_active and p.status == "In Meeting": derived, busy = "Available (meeting)", False
     elif any(c.stage == "Documentation" for c in owned): derived, busy = "Documentation", False
     else: derived, busy = "Available", False
-    shift = next((s for s in reference.shifts if s.start <= as_of < s.end), None)
+    shift = shift or next((s for s in reference.shifts if s.start <= as_of < s.end), None)
     reasons = []
     if shift is None: reasons.append("off_shift")
     if busy: reasons.append("unavailable" if derived == "Temporarily Unavailable" else "busy")
@@ -57,11 +64,11 @@ def physician_view(state: State, refs: Refs, physician_id: str, as_of: datetime,
                          "Online" if p.agent_online is True else "Offline" if p.agent_online is False else "Unknown",
                          not reasons, tuple(reasons), tuple(sorted(flags)), len(assigned), calls,
                          len(owned), int((shift.end - as_of).total_seconds() // 60) if shift else None,
-                         refs.credentials[physician_id], p.last_answered_at)
+                         refs.credentials[physician_id], p.last_answered_at, shift, routing_hospitals)
 
 
 def eligible_for_hospital(view: PhysicianView, hospital_id: str) -> bool:
-    return view.routable and hospital_id in view.credentialed_hospitals
+    return view.routable and hospital_id in view.allowed_hospitals
 
 
 def fixture_state_label(p: PhysicianState, view: PhysicianView) -> str:

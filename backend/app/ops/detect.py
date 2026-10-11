@@ -1,11 +1,14 @@
-"""G9-G11, G14: consult and physician findings from published state. Pure; `now` is injected."""
+"""G8b-G11, G14: consult and physician findings from published state. Pure; `now` is injected."""
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from statistics import median
 from app.clock import utc
 from app.engine.physician import PhysicianView, physician_view
 from app.engine.replay import State
-from app.references import Refs
+from app.ops.coverage import arrival
+from app.ops.refs import OpsRefs
+from app.ops.overload import overloads
+from app.references import Refs, Shift
 
 SEVERITY = ("Critical", "Warning", "Info")
 # Stage -> consult type -> (warning, critical) minutes [B p3]. "All" applies to both types.
@@ -56,8 +59,21 @@ def consult_sla(c, now: datetime) -> tuple[str | None, timedelta]:
     return (_level(elapsed, limit) or "none") if limit else None, elapsed
 
 
-def views_at(state: State, refs: Refs, now: datetime) -> dict[str, PhysicianView]:
-    return {pid: physician_view(state, refs, pid, now) for pid in sorted(refs.physicians)}
+def views_at(state: State, refs: Refs, now: datetime, *, ops: OpsRefs | None = None, accepted=()) -> dict[str, PhysicianView]:
+    """Accepted shifts become operational only after observed arrival, within their half-open window.
+    Forecasts may count expected arrivals earlier; live routing never treats that estimate as a login."""
+    now = utc(now)
+    active = {}
+    if accepted and ops is None:
+        raise ValueError("accepted shift views require operational references")
+    for s in sorted(accepted, key=lambda s: (s.start, s.end, s.physician_id)):
+        a = arrival(s, state, ops, now)
+        if a.online and a.ready <= now < s.end:
+            active[s.physician_id] = s
+    return {pid: physician_view(state, refs, pid, now,
+                               shift=Shift(active[pid].start, active[pid].end) if pid in active else None,
+                               routing_hospitals=active[pid].hospitals if pid in active else None)
+            for pid in sorted(refs.physicians)}
 
 
 def _level(age: timedelta, limits) -> str | None:
@@ -116,7 +132,7 @@ def detect(state: State, refs: Refs, views: dict[str, PhysicianView], now: datet
         if view.minutes_to_shift_end is None:
             continue
         owned = by_owner.get(pid, [])
-        if view.minutes_to_shift_end <= SHIFT_END_WINDOW.total_seconds() // 60 and owned:
+        if view.shift and timedelta(0) < view.shift.end - now <= SHIFT_END_WINDOW and owned:
             notes = [c.consult_id for c in owned if c.stage in NOTE_STAGES]
             work = [c.consult_id for c in owned if c.stage not in NOTE_STAGES]
             if notes:
@@ -138,6 +154,11 @@ def detect(state: State, refs: Refs, views: dict[str, PhysicianView], now: datet
             found.append(Finding("agent_offline", "Warning" if view.routable or "ringing" in view.exclusion_reasons else "Info",
                                  "Desktop agent offline: routing assumes available, but camera state is unknown", physician_id=pid,
                                  why={"self_reported": view.self_reported_status, "derived": view.derived_state}))
+
+    for pid, evidence in overloads(state, views, now).items():
+        if evidence["level"]:
+            found.append(Finding("overload", evidence["level"], "; ".join(evidence["reasons"]),
+                                 physician_id=pid, why=evidence))
 
     on_shift = [v for v in views.values() if "off_shift" not in v.exclusion_reasons]
     if len(on_shift) >= 3:

@@ -1,0 +1,1491 @@
+{
+  "accepted": {
+    "approved_at": "2026-04-07T22:10:00+00:00",
+    "approved_by": "Dr. Lead",
+    "audio_url": null,
+    "checked_count": 1,
+    "clock_mode": "fixed",
+    "end": "2026-04-08T00:30:00+00:00",
+    "expires_at": "2026-04-07T22:20:00+00:00",
+    "gap_id": "now_gap:G",
+    "hospital_ids": [
+      "G"
+    ],
+    "hospital_names": [
+      "G"
+    ],
+    "message": "Sevaro split-shift offer. G. 6:30 PM to 8:30 PM Eastern (2 h). Requested because of a coverage gap at a hospital you are credentialed for. Expires at 6:20 PM.",
+    "offer_id": "OFR-00001",
+    "phone_url": null,
+    "physician_id": "J",
+    "physician_name": "Joiner",
+    "proposed_at": "2026-04-07T22:10:00+00:00",
+    "proposed_by": "Coordinator",
+    "reason": null,
+    "reject_reason": null,
+    "replaces": null,
+    "responded_at": "2026-04-07T22:10:00+00:00",
+    "sent_at": "2026-04-07T22:10:00+00:00",
+    "server_now": "2026-04-07T22:10:00+00:00",
+    "start": "2026-04-07T22:30:00+00:00",
+    "state": "Accepted"
+  },
+  "audit": {
+    "items": [
+      {
+        "action": "Proposed offer",
+        "actor": "Coordinator",
+        "at": "2026-04-07T22:10:00+00:00",
+        "command": "propose",
+        "detail": "J \u00b7 G \u00b7 18:30 to 20:30 ET",
+        "evidence": {
+          "decision": {
+            "candidates": [
+              {
+                "covered_minutes": 70,
+                "eligible": true,
+                "hospitals": [
+                  "G"
+                ],
+                "low_value": false,
+                "physician_id": "J",
+                "proposal": {
+                  "end": "2026-04-08 00:30:00+00:00",
+                  "hospitals": [
+                    "G"
+                  ],
+                  "start": "2026-04-07 22:30:00+00:00"
+                },
+                "rank": 1,
+                "ready_at": "2026-04-07 22:30:00+00:00",
+                "rules": [
+                  {
+                    "key": "off_shift_now",
+                    "label": "Off shift now",
+                    "passed": true,
+                    "value": "off shift"
+                  },
+                  {
+                    "key": "opted_in",
+                    "label": "R1 opted in",
+                    "passed": true,
+                    "value": "yes"
+                  },
+                  {
+                    "key": "credentialed_at_gap",
+                    "label": "R2 credentialed at a gap hospital",
+                    "passed": true,
+                    "value": "G"
+                  },
+                  {
+                    "key": "rest_at_start_at_least_10h",
+                    "label": "R3 10 h rest at start",
+                    "passed": true,
+                    "value": "12.0 h"
+                  },
+                  {
+                    "key": "trailing7d_plus_offer_at_most_60h",
+                    "label": "R4 7-day hours + offer <= 60",
+                    "passed": true,
+                    "value": "20 + 0 + 2 = 22 h"
+                  },
+                  {
+                    "key": "no_schedule_overlap",
+                    "label": "R5 no overlap with a scheduled shift",
+                    "passed": true,
+                    "value": "none"
+                  },
+                  {
+                    "key": "nominal_duration_at_least_2h",
+                    "label": "R6 offer at least 2 h",
+                    "passed": true,
+                    "value": "2 h"
+                  },
+                  {
+                    "key": "useful_duration_at_least_2h",
+                    "label": "R6 at least 2 h after coming online",
+                    "passed": true,
+                    "value": "2 h (10 min to online)"
+                  },
+                  {
+                    "key": "no_open_offer",
+                    "label": "R7 no other open offer",
+                    "passed": true,
+                    "value": "none"
+                  },
+                  {
+                    "key": "weekly_offer_count_below_3",
+                    "label": "R8 under 3 offers this week",
+                    "passed": true,
+                    "value": "0 sent"
+                  },
+                  {
+                    "key": "start_not_in_past",
+                    "label": "Start not in the past",
+                    "passed": true,
+                    "value": "04-07 18:30"
+                  }
+                ]
+              }
+            ],
+            "chosen_physician_id": "J",
+            "coverage": {
+              "as_of": "2026-04-07 22:10:00+00:00",
+              "current": [
+                {
+                  "available": [],
+                  "base_requirement": 1,
+                  "hospital_id": "G",
+                  "p90": 100,
+                  "required": 1,
+                  "routable": [],
+                  "surge": false,
+                  "trailing_60m": 1
+                }
+              ],
+              "gaps": [
+                {
+                  "causes": [],
+                  "confirmed": 0,
+                  "end": "2026-04-07 23:40:00+00:00",
+                  "hospital_id": "G",
+                  "in_horizon": true,
+                  "kind": "hard",
+                  "required": 1,
+                  "scheduled": 0,
+                  "start": "2026-04-07 22:10:00+00:00",
+                  "surge": false
+                }
+              ],
+              "need": {
+                "G": 1
+              },
+              "revision": 2
+            },
+            "gap_id": "now_gap:G",
+            "window": {
+              "end": "2026-04-08 00:30:00+00:00",
+              "hospitals": [
+                "G"
+              ],
+              "start": "2026-04-07 22:30:00+00:00"
+            }
+          },
+          "end": "2026-04-08 00:30:00+00:00",
+          "final_coverage": {
+            "as_of": "2026-04-07 22:10:00+00:00",
+            "current": [
+              {
+                "available": [],
+                "base_requirement": 1,
+                "hospital_id": "G",
+                "p90": 100,
+                "required": 1,
+                "routable": [],
+                "surge": false,
+                "trailing_60m": 1
+              }
+            ],
+            "gaps": [
+              {
+                "causes": [],
+                "confirmed": 0,
+                "end": "2026-04-07 23:40:00+00:00",
+                "hospital_id": "G",
+                "in_horizon": true,
+                "kind": "hard",
+                "required": 1,
+                "scheduled": 0,
+                "start": "2026-04-07 22:10:00+00:00",
+                "surge": false
+              }
+            ],
+            "need": {
+              "G": 1
+            },
+            "revision": 2
+          },
+          "hospitals": [
+            "G"
+          ],
+          "physician_id": "J",
+          "replaces": null,
+          "start": "2026-04-07 22:30:00+00:00"
+        },
+        "from_state": null,
+        "gap_id": "now_gap:G",
+        "offer_id": "OFR-00001",
+        "revision": 2,
+        "to_state": "PROPOSED"
+      },
+      {
+        "action": "Approved offer",
+        "actor": "Dr. Lead",
+        "at": "2026-04-07T22:10:00+00:00",
+        "command": "approve",
+        "detail": "approver: Dr. Lead",
+        "evidence": {
+          "approver": "Dr. Lead",
+          "decision": {
+            "candidates": [
+              {
+                "covered_minutes": 70,
+                "eligible": true,
+                "hospitals": [
+                  "G"
+                ],
+                "low_value": false,
+                "physician_id": "J",
+                "proposal": {
+                  "end": "2026-04-08 00:30:00+00:00",
+                  "hospitals": [
+                    "G"
+                  ],
+                  "start": "2026-04-07 22:30:00+00:00"
+                },
+                "rank": 1,
+                "ready_at": "2026-04-07 22:30:00+00:00",
+                "rules": [
+                  {
+                    "key": "off_shift_now",
+                    "label": "Off shift now",
+                    "passed": true,
+                    "value": "off shift"
+                  },
+                  {
+                    "key": "opted_in",
+                    "label": "R1 opted in",
+                    "passed": true,
+                    "value": "yes"
+                  },
+                  {
+                    "key": "credentialed_at_gap",
+                    "label": "R2 credentialed at a gap hospital",
+                    "passed": true,
+                    "value": "G"
+                  },
+                  {
+                    "key": "rest_at_start_at_least_10h",
+                    "label": "R3 10 h rest at start",
+                    "passed": true,
+                    "value": "12.0 h"
+                  },
+                  {
+                    "key": "trailing7d_plus_offer_at_most_60h",
+                    "label": "R4 7-day hours + offer <= 60",
+                    "passed": true,
+                    "value": "20 + 0 + 2 = 22 h"
+                  },
+                  {
+                    "key": "no_schedule_overlap",
+                    "label": "R5 no overlap with a scheduled shift",
+                    "passed": true,
+                    "value": "none"
+                  },
+                  {
+                    "key": "nominal_duration_at_least_2h",
+                    "label": "R6 offer at least 2 h",
+                    "passed": true,
+                    "value": "2 h"
+                  },
+                  {
+                    "key": "useful_duration_at_least_2h",
+                    "label": "R6 at least 2 h after coming online",
+                    "passed": true,
+                    "value": "2 h (10 min to online)"
+                  },
+                  {
+                    "key": "no_open_offer",
+                    "label": "R7 no other open offer",
+                    "passed": true,
+                    "value": "none"
+                  },
+                  {
+                    "key": "weekly_offer_count_below_3",
+                    "label": "R8 under 3 offers this week",
+                    "passed": true,
+                    "value": "0 sent"
+                  },
+                  {
+                    "key": "start_not_in_past",
+                    "label": "Start not in the past",
+                    "passed": true,
+                    "value": "04-07 18:30"
+                  }
+                ]
+              }
+            ],
+            "chosen_physician_id": "J",
+            "coverage": {
+              "as_of": "2026-04-07 22:10:00+00:00",
+              "current": [
+                {
+                  "available": [],
+                  "base_requirement": 1,
+                  "hospital_id": "G",
+                  "p90": 100,
+                  "required": 1,
+                  "routable": [],
+                  "surge": false,
+                  "trailing_60m": 1
+                }
+              ],
+              "gaps": [
+                {
+                  "causes": [],
+                  "confirmed": 0,
+                  "end": "2026-04-07 23:40:00+00:00",
+                  "hospital_id": "G",
+                  "in_horizon": true,
+                  "kind": "hard",
+                  "required": 1,
+                  "scheduled": 0,
+                  "start": "2026-04-07 22:10:00+00:00",
+                  "surge": false
+                }
+              ],
+              "need": {
+                "G": 1
+              },
+              "revision": 2
+            },
+            "gap_id": "now_gap:G",
+            "window": {
+              "end": "2026-04-08 00:30:00+00:00",
+              "hospitals": [
+                "G"
+              ],
+              "start": "2026-04-07 22:30:00+00:00"
+            }
+          },
+          "final_coverage": {
+            "as_of": "2026-04-07 22:10:00+00:00",
+            "current": [
+              {
+                "available": [],
+                "base_requirement": 1,
+                "hospital_id": "G",
+                "p90": 100,
+                "required": 1,
+                "routable": [],
+                "surge": false,
+                "trailing_60m": 1
+              }
+            ],
+            "gaps": [
+              {
+                "causes": [],
+                "confirmed": 0,
+                "end": "2026-04-07 23:40:00+00:00",
+                "hospital_id": "G",
+                "in_horizon": true,
+                "kind": "hard",
+                "required": 1,
+                "scheduled": 0,
+                "start": "2026-04-07 22:10:00+00:00",
+                "surge": false
+              }
+            ],
+            "need": {
+              "G": 1
+            },
+            "revision": 2
+          }
+        },
+        "from_state": "PROPOSED",
+        "gap_id": "now_gap:G",
+        "offer_id": "OFR-00001",
+        "revision": 2,
+        "to_state": "APPROVED"
+      },
+      {
+        "action": "Sent offer",
+        "actor": "Dr. Lead",
+        "at": "2026-04-07T22:10:00+00:00",
+        "command": "send",
+        "detail": "expires at: 18:20; start: 18:30; start moved: False",
+        "evidence": {
+          "decision": {
+            "candidates": [
+              {
+                "covered_minutes": 70,
+                "eligible": true,
+                "hospitals": [
+                  "G"
+                ],
+                "low_value": false,
+                "physician_id": "J",
+                "proposal": {
+                  "end": "2026-04-08 00:30:00+00:00",
+                  "hospitals": [
+                    "G"
+                  ],
+                  "start": "2026-04-07 22:30:00+00:00"
+                },
+                "rank": 1,
+                "ready_at": "2026-04-07 22:30:00+00:00",
+                "rules": [
+                  {
+                    "key": "off_shift_now",
+                    "label": "Off shift now",
+                    "passed": true,
+                    "value": "off shift"
+                  },
+                  {
+                    "key": "opted_in",
+                    "label": "R1 opted in",
+                    "passed": true,
+                    "value": "yes"
+                  },
+                  {
+                    "key": "credentialed_at_gap",
+                    "label": "R2 credentialed at a gap hospital",
+                    "passed": true,
+                    "value": "G"
+                  },
+                  {
+                    "key": "rest_at_start_at_least_10h",
+                    "label": "R3 10 h rest at start",
+                    "passed": true,
+                    "value": "12.0 h"
+                  },
+                  {
+                    "key": "trailing7d_plus_offer_at_most_60h",
+                    "label": "R4 7-day hours + offer <= 60",
+                    "passed": true,
+                    "value": "20 + 0 + 2 = 22 h"
+                  },
+                  {
+                    "key": "no_schedule_overlap",
+                    "label": "R5 no overlap with a scheduled shift",
+                    "passed": true,
+                    "value": "none"
+                  },
+                  {
+                    "key": "nominal_duration_at_least_2h",
+                    "label": "R6 offer at least 2 h",
+                    "passed": true,
+                    "value": "2 h"
+                  },
+                  {
+                    "key": "useful_duration_at_least_2h",
+                    "label": "R6 at least 2 h after coming online",
+                    "passed": true,
+                    "value": "2 h (10 min to online)"
+                  },
+                  {
+                    "key": "no_open_offer",
+                    "label": "R7 no other open offer",
+                    "passed": true,
+                    "value": "none"
+                  },
+                  {
+                    "key": "weekly_offer_count_below_3",
+                    "label": "R8 under 3 offers this week",
+                    "passed": true,
+                    "value": "0 sent"
+                  },
+                  {
+                    "key": "start_not_in_past",
+                    "label": "Start not in the past",
+                    "passed": true,
+                    "value": "04-07 18:30"
+                  }
+                ]
+              }
+            ],
+            "chosen_physician_id": "J",
+            "coverage": {
+              "as_of": "2026-04-07 22:10:00+00:00",
+              "current": [
+                {
+                  "available": [],
+                  "base_requirement": 1,
+                  "hospital_id": "G",
+                  "p90": 100,
+                  "required": 1,
+                  "routable": [],
+                  "surge": false,
+                  "trailing_60m": 1
+                }
+              ],
+              "gaps": [
+                {
+                  "causes": [],
+                  "confirmed": 0,
+                  "end": "2026-04-07 23:40:00+00:00",
+                  "hospital_id": "G",
+                  "in_horizon": true,
+                  "kind": "hard",
+                  "required": 1,
+                  "scheduled": 0,
+                  "start": "2026-04-07 22:10:00+00:00",
+                  "surge": false
+                }
+              ],
+              "need": {
+                "G": 1
+              },
+              "revision": 2
+            },
+            "gap_id": "now_gap:G",
+            "window": {
+              "end": "2026-04-08 00:30:00+00:00",
+              "hospitals": [
+                "G"
+              ],
+              "start": "2026-04-07 22:30:00+00:00"
+            }
+          },
+          "expires_at": "2026-04-07 22:20:00+00:00",
+          "final_coverage": {
+            "as_of": "2026-04-07 22:10:00+00:00",
+            "current": [
+              {
+                "available": [],
+                "base_requirement": 1,
+                "hospital_id": "G",
+                "p90": 100,
+                "required": 1,
+                "routable": [],
+                "surge": false,
+                "trailing_60m": 1
+              }
+            ],
+            "gaps": [
+              {
+                "causes": [],
+                "confirmed": 0,
+                "end": "2026-04-07 23:40:00+00:00",
+                "hospital_id": "G",
+                "in_horizon": true,
+                "kind": "hard",
+                "required": 1,
+                "scheduled": 0,
+                "start": "2026-04-07 22:10:00+00:00",
+                "surge": false
+              }
+            ],
+            "need": {
+              "G": 1
+            },
+            "revision": 2
+          },
+          "start": "2026-04-07 22:30:00+00:00",
+          "start_moved": false
+        },
+        "from_state": "APPROVED",
+        "gap_id": "now_gap:G",
+        "offer_id": "OFR-00001",
+        "revision": 2,
+        "to_state": "SENT"
+      },
+      {
+        "action": "Accepted offer",
+        "actor": "physician:J",
+        "at": "2026-04-07T22:10:00+00:00",
+        "command": "accept",
+        "detail": "need before: G 1",
+        "evidence": {
+          "decision": {
+            "candidates": [
+              {
+                "covered_minutes": 70,
+                "eligible": true,
+                "hospitals": [
+                  "G"
+                ],
+                "low_value": false,
+                "physician_id": "J",
+                "proposal": {
+                  "end": "2026-04-08 00:30:00+00:00",
+                  "hospitals": [
+                    "G"
+                  ],
+                  "start": "2026-04-07 22:30:00+00:00"
+                },
+                "rank": 1,
+                "ready_at": "2026-04-07 22:30:00+00:00",
+                "rules": [
+                  {
+                    "key": "off_shift_now",
+                    "label": "Off shift now",
+                    "passed": true,
+                    "value": "off shift"
+                  },
+                  {
+                    "key": "opted_in",
+                    "label": "R1 opted in",
+                    "passed": true,
+                    "value": "yes"
+                  },
+                  {
+                    "key": "credentialed_at_gap",
+                    "label": "R2 credentialed at a gap hospital",
+                    "passed": true,
+                    "value": "G"
+                  },
+                  {
+                    "key": "rest_at_start_at_least_10h",
+                    "label": "R3 10 h rest at start",
+                    "passed": true,
+                    "value": "12.0 h"
+                  },
+                  {
+                    "key": "trailing7d_plus_offer_at_most_60h",
+                    "label": "R4 7-day hours + offer <= 60",
+                    "passed": true,
+                    "value": "20 + 0 + 2 = 22 h"
+                  },
+                  {
+                    "key": "no_schedule_overlap",
+                    "label": "R5 no overlap with a scheduled shift",
+                    "passed": true,
+                    "value": "none"
+                  },
+                  {
+                    "key": "nominal_duration_at_least_2h",
+                    "label": "R6 offer at least 2 h",
+                    "passed": true,
+                    "value": "2 h"
+                  },
+                  {
+                    "key": "useful_duration_at_least_2h",
+                    "label": "R6 at least 2 h after coming online",
+                    "passed": true,
+                    "value": "2 h (10 min to online)"
+                  },
+                  {
+                    "key": "no_open_offer",
+                    "label": "R7 no other open offer",
+                    "passed": true,
+                    "value": "none"
+                  },
+                  {
+                    "key": "weekly_offer_count_below_3",
+                    "label": "R8 under 3 offers this week",
+                    "passed": true,
+                    "value": "1 sent"
+                  },
+                  {
+                    "key": "start_not_in_past",
+                    "label": "Start not in the past",
+                    "passed": true,
+                    "value": "04-07 18:30"
+                  }
+                ]
+              }
+            ],
+            "chosen_physician_id": "J",
+            "coverage": {
+              "as_of": "2026-04-07 22:10:00+00:00",
+              "current": [
+                {
+                  "available": [],
+                  "base_requirement": 1,
+                  "hospital_id": "G",
+                  "p90": 100,
+                  "required": 1,
+                  "routable": [],
+                  "surge": false,
+                  "trailing_60m": 1
+                }
+              ],
+              "gaps": [
+                {
+                  "causes": [],
+                  "confirmed": 0,
+                  "end": "2026-04-07 23:40:00+00:00",
+                  "hospital_id": "G",
+                  "in_horizon": true,
+                  "kind": "hard",
+                  "required": 1,
+                  "scheduled": 0,
+                  "start": "2026-04-07 22:10:00+00:00",
+                  "surge": false
+                }
+              ],
+              "need": {
+                "G": 1
+              },
+              "revision": 2
+            },
+            "gap_id": "now_gap:G",
+            "window": {
+              "end": "2026-04-08 00:30:00+00:00",
+              "hospitals": [
+                "G"
+              ],
+              "start": "2026-04-07 22:30:00+00:00"
+            }
+          },
+          "final_coverage": {
+            "as_of": "2026-04-07 22:10:00+00:00",
+            "current": [
+              {
+                "available": [],
+                "base_requirement": 1,
+                "hospital_id": "G",
+                "p90": 100,
+                "required": 1,
+                "routable": [],
+                "surge": false,
+                "trailing_60m": 1
+              }
+            ],
+            "gaps": [
+              {
+                "causes": [
+                  "relies on J split shift (expected online 18:30)"
+                ],
+                "confirmed": 0,
+                "end": "2026-04-07 23:40:00+00:00",
+                "hospital_id": "G",
+                "in_horizon": true,
+                "kind": "at_risk",
+                "required": 1,
+                "scheduled": 1,
+                "start": "2026-04-07 22:30:00+00:00",
+                "surge": false
+              }
+            ],
+            "need": {
+              "G": 0
+            },
+            "revision": 2
+          },
+          "need_before": {
+            "G": 1
+          }
+        },
+        "from_state": "SENT",
+        "gap_id": "now_gap:G",
+        "offer_id": "OFR-00001",
+        "revision": 2,
+        "to_state": "ACCEPTED"
+      }
+    ],
+    "server_now": "2026-04-07T22:10:00+00:00"
+  },
+  "candidates": {
+    "candidates": [
+      {
+        "eligible": true,
+        "name": "Joiner",
+        "physician_id": "J",
+        "primary_reason": null,
+        "rank": 1,
+        "rank_reason": null,
+        "ranking": {
+          "covered_minutes": 70,
+          "declines_30d": 0,
+          "gap_hospitals": 1,
+          "hours_7d": 20,
+          "minutes_to_online": 10,
+          "offers_7d": 0
+        },
+        "results": [
+          {
+            "explanation": "off shift",
+            "rule": "Off",
+            "status": "pass"
+          },
+          {
+            "explanation": "yes",
+            "rule": "R1",
+            "status": "pass"
+          },
+          {
+            "explanation": "G",
+            "rule": "R2",
+            "status": "pass"
+          },
+          {
+            "explanation": "12.0 h",
+            "rule": "R3",
+            "status": "pass"
+          },
+          {
+            "explanation": "20 + 0 + 2 = 22 h",
+            "rule": "R4",
+            "status": "pass"
+          },
+          {
+            "explanation": "none",
+            "rule": "R5",
+            "status": "pass"
+          },
+          {
+            "explanation": "2 h",
+            "rule": "R6",
+            "status": "pass"
+          },
+          {
+            "explanation": "2 h (10 min to online)",
+            "rule": "R6b",
+            "status": "pass"
+          },
+          {
+            "explanation": "none",
+            "rule": "R7",
+            "status": "pass"
+          },
+          {
+            "explanation": "0 sent",
+            "rule": "R8",
+            "status": "pass"
+          },
+          {
+            "explanation": "04-07 18:30",
+            "rule": "Start",
+            "status": "pass"
+          }
+        ],
+        "window": {
+          "end": "2026-04-08T00:30:00+00:00",
+          "hospitals": [
+            "G"
+          ],
+          "ready_at": "2026-04-07T22:30:00+00:00",
+          "start": "2026-04-07T22:30:00+00:00"
+        }
+      }
+    ],
+    "fix": null,
+    "gap": {
+      "count": 0,
+      "end": "2026-04-08T00:30:00+00:00",
+      "gap_id": "now_gap:G",
+      "hospital_ids": [
+        "G"
+      ],
+      "hospital_names": [
+        "G"
+      ],
+      "required": 1,
+      "start": "2026-04-07T22:30:00+00:00",
+      "summary": "G coverage under review"
+    },
+    "revision": 2,
+    "rules": [
+      {
+        "id": "Off",
+        "label": "Off shift now"
+      },
+      {
+        "id": "R1",
+        "label": "R1 opted in"
+      },
+      {
+        "id": "R2",
+        "label": "R2 credentialed at a gap hospital"
+      },
+      {
+        "id": "R3",
+        "label": "R3 10 h rest at start"
+      },
+      {
+        "id": "R4",
+        "label": "R4 7-day hours + offer <= 60"
+      },
+      {
+        "id": "R5",
+        "label": "R5 no overlap with a scheduled shift"
+      },
+      {
+        "id": "R6",
+        "label": "R6 offer at least 2 h"
+      },
+      {
+        "id": "R6b",
+        "label": "R6 at least 2 h after coming online"
+      },
+      {
+        "id": "R7",
+        "label": "R7 no other open offer"
+      },
+      {
+        "id": "R8",
+        "label": "R8 under 3 offers this week"
+      },
+      {
+        "id": "Start",
+        "label": "Start not in the past"
+      }
+    ],
+    "server_now": "2026-04-07T22:10:00+00:00"
+  },
+  "interventions": {
+    "items": [],
+    "server_now": "2026-04-07T22:10:00+00:00"
+  },
+  "me_lead": {
+    "clock_mode": "fixed",
+    "display_name": "Dr. Lead",
+    "offers_received_7d": null,
+    "on_shift": null,
+    "permissions": [
+      "ops.view",
+      "approvals.decide",
+      "offers.view_all",
+      "admin.inject"
+    ],
+    "physician_id": null,
+    "role": "lead",
+    "server_now": "2026-04-07T22:10:00+00:00",
+    "shift_end": null,
+    "split_shift_opt_in": null,
+    "user_id": "lead",
+    "weekly_offer_limit": null
+  },
+  "me_physician": {
+    "clock_mode": "fixed",
+    "display_name": "J",
+    "offers_received_7d": 0,
+    "on_shift": false,
+    "permissions": [
+      "offers.view_own",
+      "offers.respond"
+    ],
+    "physician_id": "J",
+    "role": "physician",
+    "server_now": "2026-04-07T22:10:00+00:00",
+    "shift_end": null,
+    "split_shift_opt_in": true,
+    "user_id": "J",
+    "weekly_offer_limit": 3
+  },
+  "my_offers": {
+    "clock_mode": "fixed",
+    "items": [
+      {
+        "approved_at": "2026-04-07T22:10:00+00:00",
+        "approved_by": "Dr. Lead",
+        "audio_url": null,
+        "checked_count": 1,
+        "clock_mode": "fixed",
+        "end": "2026-04-08T00:30:00+00:00",
+        "expires_at": "2026-04-07T22:20:00+00:00",
+        "gap_id": "now_gap:G",
+        "hospital_ids": [
+          "G"
+        ],
+        "hospital_names": [
+          "G"
+        ],
+        "message": "Sevaro split-shift offer. G. 6:30 PM to 8:30 PM Eastern (2 h). Requested because of a coverage gap at a hospital you are credentialed for. Expires at 6:20 PM.",
+        "offer_id": "OFR-00001",
+        "phone_url": null,
+        "physician_id": "J",
+        "physician_name": "Joiner",
+        "proposed_at": "2026-04-07T22:10:00+00:00",
+        "proposed_by": "Coordinator",
+        "reason": null,
+        "reject_reason": null,
+        "replaces": null,
+        "responded_at": null,
+        "sent_at": "2026-04-07T22:10:00+00:00",
+        "server_now": "2026-04-07T22:10:00+00:00",
+        "start": "2026-04-07T22:30:00+00:00",
+        "state": "Sent"
+      }
+    ],
+    "now": "2026-04-07T22:10:00+00:00",
+    "server_now": "2026-04-07T22:10:00+00:00"
+  },
+  "offers_proposed": {
+    "items": [
+      {
+        "approved_at": null,
+        "approved_by": null,
+        "audio_url": null,
+        "checked_count": 1,
+        "clock_mode": "fixed",
+        "end": "2026-04-08T00:30:00+00:00",
+        "expires_at": null,
+        "gap_id": "now_gap:G",
+        "hospital_ids": [
+          "G"
+        ],
+        "hospital_names": [
+          "G"
+        ],
+        "message": null,
+        "offer_id": "OFR-00001",
+        "phone_url": null,
+        "physician_id": "J",
+        "physician_name": "Joiner",
+        "proposed_at": "2026-04-07T22:10:00+00:00",
+        "proposed_by": "Coordinator",
+        "reason": null,
+        "reject_reason": null,
+        "replaces": null,
+        "responded_at": null,
+        "sent_at": null,
+        "server_now": "2026-04-07T22:10:00+00:00",
+        "start": "2026-04-07T22:30:00+00:00",
+        "state": "Proposed"
+      }
+    ]
+  },
+  "offers_sent": {
+    "items": [
+      {
+        "approved_at": "2026-04-07T22:10:00+00:00",
+        "approved_by": "Dr. Lead",
+        "audio_url": null,
+        "checked_count": 1,
+        "clock_mode": "fixed",
+        "end": "2026-04-08T00:30:00+00:00",
+        "expires_at": "2026-04-07T22:20:00+00:00",
+        "gap_id": "now_gap:G",
+        "hospital_ids": [
+          "G"
+        ],
+        "hospital_names": [
+          "G"
+        ],
+        "message": "Sevaro split-shift offer. G. 6:30 PM to 8:30 PM Eastern (2 h). Requested because of a coverage gap at a hospital you are credentialed for. Expires at 6:20 PM.",
+        "offer_id": "OFR-00001",
+        "phone_url": null,
+        "physician_id": "J",
+        "physician_name": "Joiner",
+        "proposed_at": "2026-04-07T22:10:00+00:00",
+        "proposed_by": "Coordinator",
+        "reason": null,
+        "reject_reason": null,
+        "replaces": null,
+        "responded_at": null,
+        "sent_at": "2026-04-07T22:10:00+00:00",
+        "server_now": "2026-04-07T22:10:00+00:00",
+        "start": "2026-04-07T22:30:00+00:00",
+        "state": "Sent"
+      }
+    ]
+  },
+  "proposed": {
+    "approved_at": null,
+    "approved_by": null,
+    "audio_url": null,
+    "checked_count": 1,
+    "clock_mode": "fixed",
+    "end": "2026-04-08T00:30:00+00:00",
+    "expires_at": null,
+    "gap_id": "now_gap:G",
+    "hospital_ids": [
+      "G"
+    ],
+    "hospital_names": [
+      "G"
+    ],
+    "message": null,
+    "offer_id": "OFR-00001",
+    "phone_url": null,
+    "physician_id": "J",
+    "physician_name": "Joiner",
+    "proposed_at": "2026-04-07T22:10:00+00:00",
+    "proposed_by": "Coordinator",
+    "reason": null,
+    "reject_reason": null,
+    "replaces": null,
+    "responded_at": null,
+    "sent_at": null,
+    "server_now": "2026-04-07T22:10:00+00:00",
+    "start": "2026-04-07T22:30:00+00:00",
+    "state": "Proposed"
+  },
+  "sent": {
+    "approved_at": "2026-04-07T22:10:00+00:00",
+    "approved_by": "Dr. Lead",
+    "audio_url": null,
+    "checked_count": 1,
+    "clock_mode": "fixed",
+    "end": "2026-04-08T00:30:00+00:00",
+    "expires_at": "2026-04-07T22:20:00+00:00",
+    "gap_id": "now_gap:G",
+    "hospital_ids": [
+      "G"
+    ],
+    "hospital_names": [
+      "G"
+    ],
+    "message": "Sevaro split-shift offer. G. 6:30 PM to 8:30 PM Eastern (2 h). Requested because of a coverage gap at a hospital you are credentialed for. Expires at 6:20 PM.",
+    "offer_id": "OFR-00001",
+    "phone_url": null,
+    "physician_id": "J",
+    "physician_name": "Joiner",
+    "proposed_at": "2026-04-07T22:10:00+00:00",
+    "proposed_by": "Coordinator",
+    "reason": null,
+    "reject_reason": null,
+    "replaces": null,
+    "responded_at": null,
+    "sent_at": "2026-04-07T22:10:00+00:00",
+    "server_now": "2026-04-07T22:10:00+00:00",
+    "start": "2026-04-07T22:30:00+00:00",
+    "state": "Sent"
+  },
+  "shift_off": {
+    "calls_this_shift": 0,
+    "clock_mode": "fixed",
+    "consults": [],
+    "consults_this_shift": 0,
+    "hospitals": [],
+    "minutes_to_shift_end": null,
+    "name": "Joiner",
+    "on_shift": false,
+    "server_now": "2026-04-07T22:10:00+00:00",
+    "shift_end": null,
+    "shift_start": null
+  },
+  "shift_on": {
+    "calls_this_shift": 0,
+    "clock_mode": "fixed",
+    "consults": [
+      {
+        "consult_id": "OLD",
+        "consult_type": "Stroke",
+        "hospital_name": "G",
+        "level": "Critical",
+        "minutes_in_stage": 45,
+        "stage": "Note Pending"
+      },
+      {
+        "consult_id": "OWNED",
+        "consult_type": "Stroke",
+        "hospital_name": "G",
+        "level": "Critical",
+        "minutes_in_stage": 9,
+        "stage": "Assigned"
+      }
+    ],
+    "consults_this_shift": 1,
+    "hospitals": [
+      "G"
+    ],
+    "minutes_to_shift_end": 110,
+    "name": "Joiner",
+    "on_shift": true,
+    "server_now": "2026-04-07T22:40:00+00:00",
+    "shift_end": "2026-04-08T00:30:00+00:00",
+    "shift_start": "2026-04-07T22:30:00+00:00"
+  },
+  "snapshot_coverage": {
+    "clock": {
+      "mode": "fixed",
+      "now": "2026-04-07T22:10:00+00:00",
+      "paused": true
+    },
+    "coverage": {
+      "assumption": "Now counts physicians free by signals; later steps count everyone scheduled (busy and temporarily unavailable included) and starters from their start, with a surge's +1 until 60 minutes after its consults arrived",
+      "horizon_end": "2026-04-07T23:40:00+00:00",
+      "hospitals": [
+        {
+          "cells": [
+            {
+              "at": "2026-04-07T22:10:00+00:00",
+              "count": 0,
+              "gap_id": null,
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 1,
+              "schedule_incomplete": false,
+              "status": "gap",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T22:25:00+00:00",
+              "count": 0,
+              "gap_id": "gap:G:2026-04-07T22:10:00+00:00",
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 1,
+              "schedule_incomplete": false,
+              "status": "gap",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T22:40:00+00:00",
+              "count": 0,
+              "gap_id": "gap:G:2026-04-07T22:10:00+00:00",
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 1,
+              "schedule_incomplete": false,
+              "status": "gap",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T22:55:00+00:00",
+              "count": 0,
+              "gap_id": "gap:G:2026-04-07T22:10:00+00:00",
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 1,
+              "schedule_incomplete": false,
+              "status": "gap",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T23:10:00+00:00",
+              "count": 0,
+              "gap_id": "gap:G:2026-04-07T22:10:00+00:00",
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 1,
+              "schedule_incomplete": false,
+              "status": "gap",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T23:25:00+00:00",
+              "count": 0,
+              "gap_id": "gap:G:2026-04-07T22:10:00+00:00",
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 1,
+              "schedule_incomplete": false,
+              "status": "gap",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T23:40:00+00:00",
+              "count": 0,
+              "gap_id": null,
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 1,
+              "schedule_incomplete": false,
+              "status": "gap",
+              "unverified": false
+            }
+          ],
+          "hospital_id": "G",
+          "hospital_name": "G",
+          "nobody_reachable_now": true
+        },
+        {
+          "cells": [
+            {
+              "at": "2026-04-07T22:10:00+00:00",
+              "count": 0,
+              "gap_id": null,
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 0,
+              "schedule_incomplete": false,
+              "status": "at_minimum",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T22:25:00+00:00",
+              "count": 0,
+              "gap_id": null,
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 0,
+              "schedule_incomplete": false,
+              "status": "at_minimum",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T22:40:00+00:00",
+              "count": 0,
+              "gap_id": null,
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 0,
+              "schedule_incomplete": false,
+              "status": "at_minimum",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T22:55:00+00:00",
+              "count": 0,
+              "gap_id": null,
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 0,
+              "schedule_incomplete": false,
+              "status": "at_minimum",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T23:10:00+00:00",
+              "count": 0,
+              "gap_id": null,
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 0,
+              "schedule_incomplete": false,
+              "status": "at_minimum",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T23:25:00+00:00",
+              "count": 0,
+              "gap_id": null,
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 0,
+              "schedule_incomplete": false,
+              "status": "at_minimum",
+              "unverified": false
+            },
+            {
+              "at": "2026-04-07T23:40:00+00:00",
+              "count": 0,
+              "gap_id": null,
+              "incomplete_physician_ids": [],
+              "physician_ids": [],
+              "required": 0,
+              "schedule_incomplete": false,
+              "status": "at_minimum",
+              "unverified": false
+            }
+          ],
+          "hospital_id": "H",
+          "hospital_name": "H",
+          "nobody_reachable_now": true
+        }
+      ],
+      "steps": [
+        "2026-04-07T22:10:00+00:00",
+        "2026-04-07T22:25:00+00:00",
+        "2026-04-07T22:40:00+00:00",
+        "2026-04-07T22:55:00+00:00",
+        "2026-04-07T23:10:00+00:00",
+        "2026-04-07T23:25:00+00:00",
+        "2026-04-07T23:40:00+00:00"
+      ],
+      "supported": true
+    }
+  },
+  "trap": {
+    "assumption": "Router rules 1-5 replayed with a usual day's demand; every scenario must pass. Service time is today's median busy minutes per consult",
+    "busiest_peer_load": 0,
+    "gap_id": "now_gap:G",
+    "joiner_load": 1,
+    "limited_to": [
+      {
+        "hospital_id": "G",
+        "hospital_name": "G"
+      }
+    ],
+    "other_gaps_worsened": false,
+    "passed": true,
+    "physician_id": "J",
+    "reasons": [
+      "limited to G and seeded at 7: joiner 1 consults, busiest peer 0; waits at the gap hospitals 80 -> 0 patient-min",
+      "unguarded, the joiner would take 1 consult(s) at hospitals the offer never named"
+    ],
+    "scenarios": {
+      "baseline": {
+        "guarded": {
+          "failed_attempts": 16,
+          "gap_delayed": 0,
+          "gap_wait_minutes": 0.0,
+          "joiner_sites": [
+            "G"
+          ],
+          "loads": {
+            "J": 1
+          },
+          "unrouted": 1
+        },
+        "no_joiner": {
+          "failed_attempts": 32,
+          "gap_delayed": 1,
+          "gap_wait_minutes": 80.0,
+          "joiner_sites": [],
+          "loads": {},
+          "unrouted": 2
+        },
+        "trap": {
+          "failed_attempts": 2,
+          "gap_delayed": 0,
+          "gap_wait_minutes": 0.0,
+          "joiner_sites": [
+            "G",
+            "H"
+          ],
+          "loads": {
+            "J": 2
+          },
+          "unrouted": 0
+        }
+      }
+    },
+    "seed_consults": 7,
+    "server_now": "2026-04-07T22:10:00+00:00",
+    "steps": [
+      "2026-04-07T22:10:00+00:00",
+      "2026-04-07T22:25:00+00:00",
+      "2026-04-07T22:40:00+00:00",
+      "2026-04-07T22:55:00+00:00",
+      "2026-04-07T23:10:00+00:00",
+      "2026-04-07T23:25:00+00:00",
+      "2026-04-07T23:40:00+00:00"
+    ],
+    "with": [
+      {
+        "count": 0,
+        "required": 1
+      },
+      {
+        "count": 0,
+        "required": 1
+      },
+      {
+        "count": 1,
+        "required": 1
+      },
+      {
+        "count": 1,
+        "required": 1
+      },
+      {
+        "count": 1,
+        "required": 1
+      },
+      {
+        "count": 1,
+        "required": 1
+      },
+      {
+        "count": 1,
+        "required": 1
+      }
+    ],
+    "without": [
+      {
+        "count": 0,
+        "required": 1
+      },
+      {
+        "count": 0,
+        "required": 1
+      },
+      {
+        "count": 0,
+        "required": 1
+      },
+      {
+        "count": 0,
+        "required": 1
+      },
+      {
+        "count": 0,
+        "required": 1
+      },
+      {
+        "count": 0,
+        "required": 1
+      },
+      {
+        "count": 0,
+        "required": 1
+      }
+    ]
+  }
+}

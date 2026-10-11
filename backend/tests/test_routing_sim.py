@@ -37,6 +37,27 @@ def test_busy_and_cooldown_exclude_and_failures_retry_every_5_minutes():
     assert lost.failures == {"G": 4} and lost.unrouted == {"G": 1} and lost.waits["G"] == (20.0,)
 
 
+def test_simulator_carries_existing_call_cooldown_and_ringing():
+    from app.decide.routing_sim import _doctors
+    from app.ops.detect import views_at
+    refs = Refs({"G": Hospital("G", "America/New_York")},
+                {"P": Physician("P", (Shift(et(17), et(23)),))}, {"P": frozenset({"G"})})
+    ops = OpsRefs({}, {}, {})
+    receipt = ev("receive", "consult_received", -2, pid=None, hospital_id="G", consult_type="Stroke")
+    for kind, events, available_at, wait in (
+        ("cooldown", (receipt, ev("call", "incoming_call_started", -1),
+                      ev("end", "incoming_call_ended", -0.5, value="phone_complete")), et(18, 1) + timedelta(seconds=30), 5.0),
+        ("ringing", (receipt, ev("ring", "incoming_call_ringing", -0.5)), et(18, 7), 10.0),
+    ):
+        state = replay(events)
+        views = views_at(state, refs, et(18))
+        assert not views["P"].routable and kind in views["P"].exclusion_reasons
+        docs = _doctors(state, refs, ops, views, et(18), et(19), (), 7, timedelta(minutes=5))
+        assert docs["P"].free_at == available_at
+        run = simulate(kind, docs, [(et(18), "G", 5.0)], et(19))
+        assert run.waits["G"] == (wait,) and run.load("P") == 1
+
+
 def test_shift_bounds_are_half_open():
     run = simulate("x", {"P": doc("P", end=et(18))}, [(et(18), "G", 1)], et(18, 3))
     assert run.load("P") == 0 and run.unrouted == {"G": 1}

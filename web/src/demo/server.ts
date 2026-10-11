@@ -1,5 +1,5 @@
-// In-memory stand-in for the backend, used only when VITE_DEMO_DATA=1. Its data was captured from the real
-// backend at 18:20 on the training day (see data/), so screens show what the server really sends.
+// In-memory presentation stand-in, used only when VITE_DEMO_DATA=1. Fixtures are hand-authored synthetic
+// examples, not source data or evidence that the decision algorithm passes the official kit.
 import type { AuditEntry, IngestReport, Offer } from "../act/types.ts";
 import auditData from "./data/audit.json" with { type: "json" };
 import candidatesData from "./data/candidates.json" with { type: "json" };

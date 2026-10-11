@@ -1,0 +1,43 @@
+{
+  "gap_id": "now_gap:SYN-005",
+  "physician_id": "PHY-009",
+  "passed": true,
+  "reasons": [
+    "Synthetic presentation example; not a measured trap verdict"
+  ],
+  "seed_consults": 7,
+  "limited_to": [
+    {
+      "hospital_id": "SYN-005",
+      "hospital_name": "Suncrest Medical Pavilion"
+    }
+  ],
+  "steps": [
+    "2026-03-17T22:20:00+00:00",
+    "2026-03-18T00:20:00+00:00"
+  ],
+  "without": [
+    {
+      "count": 1,
+      "required": 2
+    },
+    {
+      "count": 1,
+      "required": 2
+    }
+  ],
+  "with": [
+    {
+      "count": 2,
+      "required": 2
+    },
+    {
+      "count": 2,
+      "required": 2
+    }
+  ],
+  "joiner_load": 1,
+  "busiest_peer_load": 1,
+  "other_gaps_worsened": false,
+  "assumption": "Hand-authored synthetic fixture"
+}

@@ -15,13 +15,14 @@ from starlette.concurrency import run_in_threadpool
 from app.act.interventions import InterventionLog
 from app.act.offers import OfferDesk, OfferError, message
 from app.auth import Accounts, Auth, Principal
-from app.clock import AnchoredClock, FixedClock, ServerReceiptClock, make_clock, utc
+from app.clock import AnchoredClock, FixedClock, ServerReceiptClock, make_clock, restore_clock, utc
 from app.config import settings
 from app.coordinator import MutationCoordinator
 from app.db import EventDatabase
+from app.decide.eligibility import MAX_WEEKLY_OFFERS
 from app.ingest.adapters import FIXTURE_VERSION
 from app.models import EventInput
-from app.service import Engine, base_history, jsonable, load_references, references_from_files
+from app.service import Engine, base_history, jsonable, load_references, reference_manifest, references_from_files
 from app.tts import Speech
 
 log = logging.getLogger(__name__)
@@ -116,7 +117,9 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         task, conns = None, [db.conn]
         try:
             events = db.events()
-            clock = test_clock or make_clock(settings.clock_mode, settings.fixed_datetime(), max((e.event_time for e in events), default=None))
+            override = db.metadata("clock")
+            clock = test_clock or (restore_clock(override, WALL.now()) if override else
+                                   make_clock(settings.clock_mode, settings.fixed_datetime(), max((e.event_time for e in events), default=None)))
             refs, ops, dataset = (*references, dataset_of(None)) if references else startup_references(db)
             coordinator = MutationCoordinator(db, clock, settings.late_lag_s, refs=refs, orphan_hold_s=settings.orphan_hold_s)
             engine = Engine(coordinator, ops, None, InterventionLog(url), dataset)
@@ -145,7 +148,8 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         return {"name": name, "description": f"reference files from {folder.name}", "reference_files": len(list(folder.glob("*.csv")))}
 
     def uploaded_dataset(source):
-        return {"name": source["name"], "description": "uploaded reference files", "reference_files": len(source["files"])}
+        return {"name": source["name"], "description": "uploaded reference files", "reference_files": len(source["files"]),
+                "fingerprint": reference_manifest(source)["fingerprint"]}
 
     def startup_references(db):
         """Uploaded references (POST /admin/references, kept in the database) win: they are the latest admin action
@@ -224,8 +228,17 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         return {"user": who.public()}
 
     @api.get("/me")
-    def me(who: Principal = need("ops.view", "offers.view_own", "admin.inject")):
-        return who.payload()
+    def me(request: Request, who: Principal = need("ops.view", "offers.view_own", "admin.inject")):
+        engine = request.app.state.engine
+        p, ops = engine._current()
+        shift = engine.my_shift(who.physician_id) if who.physician_id else None
+        roster = ops.roster.get(who.physician_id) if ops else None
+        return {**who.payload(), "user_id": who.email or who.physician_id or who.role,
+                "server_now": p.as_of.isoformat(), "clock_mode": engine.coordinator.clock.mode,
+                "split_shift_opt_in": roster.opt_in if roster else None,
+                "offers_received_7d": engine.desk.history(p.as_of).sent_7d.get(who.physician_id, 0) if roster else None,
+                "weekly_offer_limit": MAX_WEEKLY_OFFERS if roster else None,
+                "on_shift": shift["on_shift"] if shift else None, "shift_end": shift["shift_end"] if shift else None}
 
     # ---- events (admin) ----------------------------------------------------------------------------------
     @api.post("/events")
@@ -326,8 +339,11 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
     @api.get("/interventions")
     def interventions(request: Request, state: str | None = None, who: Principal = need("ops.view")):
         rows = engine_of(request).interventions.pending() if state == "pending" else list(engine_of(request).interventions.latest().values())
-        return {"items": [{"intervention_id": r["id"], "kind": r["kind"], "item_id": r["item_id"], "reason": r["reason"] or "",
-                           "created_at": r["created_at"].isoformat(), "state": r["state"]} for r in rows]}
+        return {"server_now": engine_of(request).context().now.isoformat(),
+                "items": [{"intervention_id": r["id"], "kind": r["kind"], "item_id": r["item_id"], "reason": r["reason"] or "",
+                           "created_at": r["created_at"].isoformat(), "state": r["state"],
+                           "authorized_by": r["authorized_by"],
+                           "authorized_at": r["authorized_at"].isoformat() if r["authorized_at"] else None} for r in rows]}
 
     @api.post("/interventions/{intervention_id}/authorize")
     def authorize(intervention_id: str, request: Request, who: Principal = need("approvals.decide")):
@@ -387,13 +403,21 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
     def my_offers(request: Request, who: Principal = need("offers.view_own")):
         """The physician screen: their own offers once a lead has sent them (never proposals or rejections)."""
         engine = engine_of(request)
-        return {"now": engine.context().now.isoformat(),
+        return {"now": engine.context().now.isoformat(), "server_now": engine.context().now.isoformat(),
+                "clock_mode": engine.coordinator.clock.mode,
                 "items": [engine.offer_view(o) for o in engine.desk.offers(who.physician_id) if o.sent_at is not None]}
 
     @api.get("/me/shift")
     def my_shift(request: Request, who: Principal = need("offers.view_own")):
         """The physician's home screen: their current shift, its hospitals and the consults they own."""
         return engine_of(request).my_shift(who.physician_id)
+
+    @api.get("/schedule")
+    def schedule(request: Request, who: Principal = need("ops.view")):
+        engine = engine_of(request)
+        if not engine.ready:
+            raise HTTPException(503, "schedule unavailable until references are loaded")
+        return engine.schedule_view()
 
     @api.post("/me/offers/{offer_id}/{choice}")
     def my_reply(offer_id: str, choice: Literal["accept", "decline"], request: Request, who: Principal = need("offers.respond"),
@@ -430,6 +454,21 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         return engine_of(request).audit_view(gap_id)
 
     # ---- admin -------------------------------------------------------------------------------------------
+    @api.get("/admin/references")
+    def reference_status(request: Request, who: Principal = need("admin.inject")):
+        """Hashes and counts only; never returns the source CSVs."""
+        app = request.app
+        with app.state.engine.swap:
+            app.state.coordinator.current_publication()
+            with app.state.coordinator.lock:
+                p = app.state.coordinator.published
+                source = (app.state.db.metadata("references") or {}).get("source")
+            return {"persisted": source is not None, "dataset": app.state.engine.dataset,
+                    "reference_revision": p.reference_revision, "revision": p.revision,
+                    "event_count": p.event_count, "hospitals": len(p.refs.hospitals) if p.refs else 0,
+                    "physicians": len(p.refs.physicians) if p.refs else 0,
+                    "manifest": reference_manifest(source) if source else None}
+
     @api.post("/admin/references")
     def upload_references(body: ReferencesRequest, request: Request, who: Principal = need("admin.inject")):
         """Load or replace the reference CSVs without a redeploy (a host has no CC_DATA_DIR). Checked by the same loaders,
@@ -444,7 +483,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         source = {"name": body.name, "service_date": body.service_date.isoformat() if body.service_date else None, "files": body.files}
         report = request.app.state.engine.use_references(refs, ops, source, uploaded_dataset(source))
         return {"activated": True, "dataset": request.app.state.engine.dataset, "revision": report["revision"],
-                "hospitals": len(refs.hospitals), "physicians": len(refs.physicians)}
+                "hospitals": len(refs.hospitals), "physicians": len(refs.physicians), "manifest": reference_manifest(source)}
 
     @api.post("/admin/reset")
     def reset(request: Request, who: Principal = need("admin.inject")):

@@ -286,10 +286,11 @@ function PhysicianApp({ session }: { session: Session }) {
 }
 
 function MyShift() {
-  const { data, error } = useApi<Shift>("/me/shift");
+  const { data, error } = useApi<Shift>("/me/shift", undefined, 2000);
   if (!data) return <div className="page"><Title eyebrow="Physician workspace" title="My shift" />{error ? <p className="unavailable">{unavailableText(error, "GET /me/shift")}</p> : <p className="muted">Loading…</p>}</div>;
   const left = data.minutes_to_shift_end;
   return <div className="page physician-page"><Title eyebrow="Physician workspace" title="My shift" note={data.name} />
+    {error && <p className="unavailable">Update failed: {error.message}. Retrying; showing the last received shift.</p>}
     <div className="physician-top">
       <section className="panel shift-clock"><span className="eyebrow">Shift remaining</span><strong>{left === null ? "–" : `${Math.floor(left / 60)} h ${left % 60} min`}</strong><p>{data.shift_end ? `until ${clockTime(data.shift_end)} ET` : "No current shift"}</p></section>
       <section className="panel"><span className="eyebrow">Hospitals covered</span><h2>{data.hospitals.join(" · ") || "–"}</h2><p className="muted">{data.consults.length} active consults</p></section>

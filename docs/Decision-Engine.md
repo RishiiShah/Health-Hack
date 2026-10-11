@@ -86,6 +86,25 @@ For each on-shift physician with `minutes_to_shift_end <= 60`: open notes = owne
 ### 3.4 Signals [B p3]
 Camera active, no session (BUSY_EXTERNAL) and agent offline (unverified) come from P2 `flags`. Self-reported Available while busy is **not** flagged [B p5].
 
+### 3.5 Overload (G8b, PRD T28)
+
+`config.OverloadPolicy` defaults: Warning at 3 open consults, Critical at 4;
+Warning also when distinct assignments in `(now - 120 min, now]` strictly exceed
+1.5 times the other fully observed on-shift peers' median. At least three peers
+are required. Full observation requires a complete effective shift covering the
+window and an observed `shift_started` in that shift at or before the lower
+boundary. A short/unobserved window, insufficient peers or zero median makes the
+rate comparison unavailable. Open-work thresholds still apply. Comparable-role
+filtering awaits complete role data and operations policy validation.
+
+A Warning plus open-note shift-end risk within exactly 60 minutes becomes
+Critical. The same evidence drives detection, merged physician queue items,
+workload badges and the overloaded-physician headline. Overload does not exclude
+a physician from routing. At the official 18:20 snapshot, PHY-002 is Warning and
+PHY-003/PHY-006 are Critical, as T28 specifies. Boundary, zero-median,
+insufficient-peer, observation-window and distinct-assignment cases are tested
+with synthetic records.
+
 ## 4. Coverage projection and gaps
 
 ### 4.1 Capacity sources per hospital h at time t
@@ -95,7 +114,7 @@ Camera active, no session (BUSY_EXTERNAL) and agent offline (unverified) come fr
 | On-shift physician, credentialed at h, not Temporarily Unavailable | now | shift end (exclusive) [A9] | confirmed |
 | On-shift but Temporarily Unavailable | — | — | not counted; assumed to stay TU through the horizon [A37] |
 | Roster physician with `next_shift_start` in the horizon | `next_shift_start` | horizon end (end unknown) | scheduled (confirmed once `shift_started` arrives) |
-| Accepted split shift | offer start | offer end | confirmed, **only at the offer's hospitals** (trap guard) |
+| Accepted split shift | ready time, bounded below by offer start [A50] | offer end | scheduled until observed online, then confirmed; **only at the offer's hospitals** (trap guard) |
 
 Busy (call, video, ringing) does **not** remove coverage; it is transient and handled at consult level by 3.3. Agent offline and BUSY_EXTERNAL still count but mark the hospital "coverage relies on unverified physician" [A24b].
 
@@ -109,9 +128,20 @@ Why observed-only for the future: baseline mean is ≤ p90 by construction, so a
 ### 4.3 Timeline and gap classes
 Change points = now, every shift start/end, block boundary, each `received_at + 60 min` at a surging hospital, each scheduled start, each accepted offer start/end, now + 90 min. Between change points every count is constant, so gaps are **exact intervals**, not samples.
 
+The displayed horizon, `Gap.in_horizon` and headline share `forecast_steps`:
+at least 90 minutes, extended through the last shift boundary within the
+configured `DEFAULT_FORECAST_CLIFF_LOOKAHEAD_MIN` (120 minutes). At 18:20 this
+reaches 20:00. Include the regular 15-minute steps, exact shift boundaries and
+the endpoint. A gap starting at the final displayed cliff is in horizon; when
+needed the internal projection extends 15 minutes beyond it to represent the
+post-cliff capacity. Adjacent gap intervals merge only when requirement, supply
+counts, surge and kind agree, preventing later capacity from contaminating an
+earlier offer-window need calculation. The router simulation remains 90 minutes.
+
 - **Hard gap:** confirmed + scheduled < required.
 - **At-risk:** confirmed < required ≤ confirmed + scheduled (closes only if the scheduled starter comes online). If no `shift_started` by start + 5 min [A38], it becomes hard.
 - **Accepted split shifts** count from when the doctor can be online, not from the shift start: the first `shift_started` after they accepted (observed), otherwise acceptance + their roster minutes to come online (estimated). Until seen they are scheduled, not confirmed (the gap is at risk); if not seen 5 min after the expected time they stop counting, the gap reopens and a `joiner_late:<physician>` item tells the coordinator to call them [A50].
+- **Operational accepted shifts:** routing waits for an observed `shift_started` after acceptance and the offer's start. Until the offer's exclusive end, that window drives physician counters, remaining shift time, handoffs, current coverage and workload. Routing uses the intersection of credentials and offered hospitals. The snapshot preserves physical `credentialed_hospitals` and additionally exposes effective `routing_hospitals`; manual interventions enforce the same restriction. Counters reflect actual assignments/calls, without inserting the simulator's load seed. Current-gap and remaining-need checks count an arrived physician once through current coverage, not again as a pending joiner. The canonical roster is unchanged.
 - **Horizon:** now to now + 90 min is the required window [B p8 #4]. Outlook continues to the last known shift boundary; outlook items rank below in-horizon items with the same severity.
 - Every gap carries its **cause**: which shift ends, which surge, which physician is TU.
 
@@ -221,7 +251,7 @@ Sample at 18:20: CON-2110 and CON-2105 escalate first; CON-2102 hands off to PHY
 `decide/routing_sim.py` models the router [B p3]; it never replaces it.
 - **Service time is measured, not invented:** median busy minutes per consult (incoming calls + video) from today's events (`observed_service`). Dev pack: 6.5 min; sample: 18.3 min. With no observations the trap check is not run and the offer says so.
 - **Demand:** waiting unassigned consults at `now`, then baseline means placed where the expected count crosses each half-integer (deterministic). Second scenario: surging hospitals keep their trailing-60 rate. Missing baseline → that hospital's demand is reported unknown.
-- **Physicians:** the forecast's supply (on shift + scheduled starters); Temporarily Unavailable stay out [A37]; a session in progress ends after one median service time [A48]; 2-minute cooldown after each call; no ring time.
+- **Physicians:** the forecast's supply (on shift + scheduled starters); Temporarily Unavailable stay out [A37]; a session in progress ends after one median service time [A48]; 2-minute cooldown after each simulated call. Initialization preserves a real call's remaining cooldown. An unresolved ring reserves one median service time plus cooldown from `now` [A53]; additional ring duration is not modeled.
 - **Runs per scenario:** (a) no joiner, (b) joiner unrestricted and unseeded (the trap), (c) joiner restricted to the offer hospitals and seeded [A26, peers that are Temporarily Unavailable excluded from the seed].
 - **Pass for (c):** joiner only at offer hospitals; patient wait minutes at the offer hospitals not worse than (a); joiner load ≤ busiest peer + 1; no peer +2 or more vs (a) [A41].
 - Every split-shift item carries `why.trap_guard` (restriction, seed, verdict, wait minutes removed, unguarded spill) and the reason names the router setting. A failed check is shown to the lead, never hidden; the offer still needs approval.
@@ -235,15 +265,17 @@ Sample at 18:20: CON-2110 and CON-2105 escalate first; CON-2102 hands off to PHY
 
 | Metric | 01 development | 02 validation (no candidate) | 03 two candidates (blind) | 04 changed winner (blind) |
 |---|---|---|---|---|
-| Field agreement with expected/ (4 checkpoints, forecast, candidate rules) | 11,661/11,661 (100%) | 11,661/11,661 (100%) | 11,607/11,607 (100%) | 11,637/11,637 (100%) |
+| Field agreement with expected/ (4 checkpoints, forecast, candidate rules) | 11,667/11,667 (100%) | 11,637/11,637 (100%) | 11,607/11,607 (100%) | 11,637/11,637 (100%) |
 | Example offer | PHY-809 offered (answer key: the only eligible) | Escalated with every off-shift physician's failing rule (answer key: 0 eligible) | PHY-916 offered, PHY-435 shown as runner-up (answer key: both eligible, unranked); after PHY-916 accepts, PHY-435 is offered because the hospital still needs 2 | PHY-620 offered (answer key: the only eligible) |
 | Scenario recall (HB01-HB06; HB05 negative control not flagged) | 6/6 | 6/6 | 6/6 | 6/6 |
 | Safety/feasibility violations, 49 passes 18:20-22:20 | 0 | 0 | 0 | 0 |
-| Critical items without an action | 0/579 | 0/597 | 0/587 | 0/591 |
+| Critical items without an action | 0/585 | 0/606 | 0/593 | 0/597 |
 | Offers passing the trap guard | 18/18 | no offers (nobody eligible) | 19/19 | 19/19 |
-| Fix churn / flip-flops (before A52: 15/692 / 6, 22/711 / 8, 25/694 / 10, 24/699 / 9) | 9/698 / 1 | 14/719 / 1 | 15/704 / 1 | 15/708 / 1 |
+| Fix churn / flip-flops (before A52: 15/692 / 6, 22/711 / 8, 25/694 / 10, 24/699 / 9) | 9/699 / 1 | 14/720 / 1 | 15/705 / 1 | 15/709 / 1 |
 | Order invariance at checkpoints | 4/4 | 4/4 | 4/4 | 4/4 |
-| Latency per pass (replay + decide) | median 5 ms, p95 28 ms | median 5 ms, p95 6 ms | median 5 ms, p95 30 ms | median 5 ms, p95 28 ms |
+| Historical latency per pass (replay + decide) | median 5 ms, p95 28 ms | median 5 ms, p95 6 ms | median 5 ms, p95 30 ms | median 5 ms, p95 28 ms |
+
+**Routing and integration verification (2026-10-10):** synthetic domain and authenticated API regressions cover acceptance, arrival, site restrictions, actual workload, call cooldown, unresolved rings, handoffs, no double-counted capacity, shift end, overload, the displayed cliff, complete audit evidence and live schedule. Restart tests cover clock overrides, CSV advancement, downtime, failed commits, reference recovery and identical recommendation-pass deduplication. A shared synthetic API bundle verifies the mobile presentation adapter without challenge data. The full backend suite passes 335 tests. The latest five-minute sweep retains 100% scored agreement, 6/6 recall, zero safety violations, passing traps and 4/4 ordering checks. Critical and persisting-item denominators above changed with the added findings/horizon; the number of changed fixes and flip-flops did not. Measured median latency is 13/14/14/14 ms, p95 41/18/41/44 ms; these measure replay plus pure decisions, excluding API serialization and audit persistence. They are local measurements, not a comparable performance benchmark or an improvement claim.
 
 Not measured: whether following the advice improves outcomes over a whole evening. That needs a closed loop where our accepted actions feed back as events (the replay is open loop: nobody acts on our advice, so the same consults are re-decided every pass).
 
@@ -281,6 +313,16 @@ Typed template fields only: hospital names, start, end, hours, expiry, and a rea
 
 ### 6.5 Audit (append-only)
 One row per transition and per decision pass that produced a recommendation: gap snapshot, every candidate with every rule result and value, chosen window, proposer, approver (display name from the lead's token), send time, reply and timestamp, late/duplicate/conflicting replies, final coverage after the transition, revision and `as_of`.
+
+As built: offer transitions retain the full proposed-window candidate table and
+pre-transition coverage under `detail.decision`, with post-transition need,
+current coverage and projected gaps under `detail.final_coverage`. These commit
+with the transition/outbox/idempotency record. Normal recommendation passes store
+queue order, fix, candidates and gap snapshots; a SHA-256 pass marker deduplicates
+identical evidence, including after restart, in the same transaction as its audit
+rows. The API exposes structured `evidence`, `gap_id` and `revision` alongside a
+short display detail. Reads return stored historical evidence. Earlier audit rows
+remain unchanged and do not acquire fabricated historical checks.
 
 ### 6.6 As built (step 8, `app/act/offers.py`, `tests/test_offers.py`)
 - **One command = one transaction:** global advisory lock (`OFFER_LOCK`, serializes instances) → offer row `FOR UPDATE` → re-check from current state → transition + audit row + outbox row + idempotency record → commit. A failure anywhere rolls all of it back (`test_a_failure_mid_command_leaves_nothing_behind`).
@@ -377,6 +419,7 @@ Steps 1-7 are pure functions and can be tested without the database. Step 8 need
 | A49 | A physician in a call, video or the 2-minute cooldown is free soon: queue the consult for them; escalate only when nobody credentialed is free or free soon | Escalating every short session flip-flopped the advice every pass |
 | A50 | An accepted split shift counts from the doctor's observed online time (first `shift_started` after accepting), else acceptance + roster minutes to online; not seen 5 min after that, it stops counting | Counting from the shift start showed gaps as covered before anyone could take a call; same lateness rule as A38 |
 | A52 | An assign/reassign suggestion names the first in routing order among physicians free now or only briefly busy (call, video, cooldown); if that physician is busy, the action says "when their session ends" and names a physician free now as the fallback | Short sessions made the suggested name swap every pass (6-10 flip-flops per evening). Cost measured: 7-9 Critical suggestions per evening point at a briefly busy physician, so the free fallback is always named; the remaining flip is a higher-ranked consult taking the physician [A47] |
+| A53 | An unresolved real ring blocks the simulator physician until `now + median service time + 2 minutes`; a known real call end blocks until its remaining 2-minute cooldown elapses | Ring completion is unknown. Assuming it connects immediately then consumes a full median session reserves capacity explicitly; this is an approximation, not an observed ring duration. Live routing remains blocked by the actual ring signal |
 | A51 | The simulator adds a scenario at today's observed demand pace (last 2 h vs baseline, 5-consult prior) and an offer must pass every scenario | The packs run at about 0.4 x baseline; a usual-day-only check overstates load, but replacing it would relax the guard |
 
 

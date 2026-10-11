@@ -86,6 +86,7 @@ export function detectFromSnapshot(snapshot: Row): DetectSnapshot | null {
       freePhysicians: doctors.filter((d) => d.canTakeCalls).length, totalPhysicians: doctors.length,
       signalDisagreements: onShift.filter((p) => list(p.flags).length > 0).length,
       shortIn90: Number(headline.hospitals_short_in_horizon ?? headline.hard_gaps_in_horizon ?? 0), waitingOnPerson: Number(snapshot.pending_approvals ?? 0),
+      overloadedPhysicians: Number(headline.overloaded_physicians ?? 0), forecastHorizonMinutes: Number(headline.forecast_horizon_minutes ?? 90),
     },
   };
 }

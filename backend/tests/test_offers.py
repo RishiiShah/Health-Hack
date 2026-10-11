@@ -88,6 +88,19 @@ def test_accepted_shift_feeds_back_into_decisions(desk, world):
     assert not [i for i in bare.items if i.fix.kind == "split_shift" and i.fix.physician_id == "R1"]
 
 
+def test_accepted_arrived_physician_is_operational_and_does_not_fill_two_slots(desk, world):
+    o = propose(desk)
+    desk.approve(o["id"], "lead")
+    desk.accept(o["id"], "R1")
+    world.now = et(18, 30)
+    world.state = replay((started("R1", world.now),))
+    world.ops = replace(world.ops, coverage={**world.ops.coverage, "G": ((0, 0, 2),)})
+    d = decide(world.state, world.refs, world.ops, world.now, desk.history(world.now), desk.accepted())
+    assert d.views["R1"].routable
+    # One arrived physician supplies one slot; the other must remain available for a new offer.
+    assert propose(desk, "R2")["state"] == "PROPOSED"
+
+
 def test_double_accept_first_wins_second_is_told_no_longer_needed(desk, world):
     a, b = propose(desk, "R1"), propose(desk, "R2")
     desk.approve(a["id"], "lead"), desk.approve(b["id"], "lead")
@@ -283,3 +296,42 @@ def test_a_joiner_who_never_comes_online_stops_counting_and_the_coordinator_is_t
     late = next(i for i in d.items if i.id == "joiner_late:R1")
     assert late.fix.kind == "contact_physician" and "18:35" in late.what
     assert any(i.id.startswith("gap:G:") and i.severity == "Critical" for i in d.items)  # the gap is open again
+
+
+def test_audit_preserves_all_candidates_original_checks_and_post_acceptance_coverage(desk, world):
+    o = propose(desk)
+    row = desk.audit('gap:G')[0]['detail']
+    decision = row['decision']
+    assert decision['gap_id'] == 'gap:G' and decision['chosen_physician_id'] == 'R1'
+    assert decision['coverage']['need'] == {'G':1}
+    assert {c['physician_id'] for c in decision['candidates']} == {'R1','R2','R3'}
+    r3 = next(c for c in decision['candidates'] if c['physician_id']=='R3')
+    assert any(r['key']=='opted_in' and not r['passed'] and r['value']=='no' for r in r3['rules'])
+    desk.approve(o['id'],'Dr. Lead')
+    desk.accept(o['id'],'R1')
+    accepted = desk.audit('gap:G')[-1]['detail']
+    assert accepted['decision']['coverage']['need'] == {'G':1}
+    assert accepted['final_coverage']['need'] == {'G':0}
+    chosen = next(c for c in accepted['decision']['candidates'] if c['physician_id']=='R1')
+    assert chosen['eligible'] and all(r['passed'] for r in chosen['rules'])
+    world.ops = replace(world.ops, roster={p:replace(r,opt_in=False) for p,r in world.ops.roster.items()})
+    assert desk.audit('gap:G')[0]['detail'] == row  # persisted evidence, no historical recomputation
+
+
+def test_recommendation_pass_and_dedup_marker_commit_together(desk,world,monkeypatch):
+    original=desk._audit
+    calls=[]
+    def fail_second(*args,**kwargs):
+        calls.append(1)
+        if len(calls)==2:
+            raise RuntimeError('failed durable audit')
+        return original(*args,**kwargs)
+    recommendations=[{'id':'one','fix':{'action':'Review'}},{'id':'two','fix':{'action':'Escalate'}}]
+    monkeypatch.setattr(desk,'_audit',fail_second)
+    with pytest.raises(RuntimeError,match='failed durable audit'):
+        desk.record_decisions(world.context(),recommendations)
+    assert desk.audit()==[]
+    monkeypatch.setattr(desk,'_audit',original)
+    desk.record_decisions(world.context(),recommendations)
+    desk.record_decisions(world.context(),recommendations)
+    assert [r['gap_id'] for r in desk.audit()]==['one','two']

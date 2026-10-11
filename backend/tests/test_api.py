@@ -123,8 +123,11 @@ def test_roles_permissions_and_physician_isolation(db_url):
         pid = next(iter(pack.ops.roster))
         token = client.post("/admin/physician-tokens", json={"physician_id": pid}, headers=ADMIN).json()["token"]
         doc = {"Authorization": f"Bearer {token}"}
-        assert client.get("/me", headers=doc).json() == {"role": "physician", "display_name": pid, "physician_id": pid,
-                                                        "permissions": ["offers.view_own", "offers.respond"]}
+        identity = client.get("/me", headers=doc).json()
+        assert {k: identity[k] for k in ("role", "display_name", "physician_id", "permissions")} == {
+            "role": "physician", "display_name": pid, "physician_id": pid, "permissions": ["offers.view_own", "offers.respond"]}
+        assert identity["user_id"] == pid and identity["clock_mode"] == "fixed"
+        assert identity["weekly_offer_limit"] == 3 and identity["offers_received_7d"] == 0
         assert client.get("/snapshot", headers=doc).status_code == 403
         assert client.post("/events/csv", content=b"", headers=doc).status_code == 403
         assert client.post("/admin/reset", headers=doc).status_code == 403
@@ -150,7 +153,7 @@ def test_offer_loop_over_http(db_url):
         assert best["eligible"] and best["rank"] == 1 and all(r["status"] == "pass" for r in best["results"])
         trap = client.get(f"/gaps/{item['id']}/trap-check", headers=LEAD).json()
         assert trap["passed"] and trap["seed_consults"] > 0 and [h["hospital_id"] for h in trap["limited_to"]] == best["window"]["hospitals"]
-        assert len(trap["steps"]) == len(trap["with"]) == 7 and set(trap["scenarios"]["baseline"]) == {"no_joiner", "trap", "guarded"}
+        assert len(trap["steps"]) == len(trap["with"]) >= 7 and set(trap["scenarios"]["baseline"]) == {"no_joiner", "trap", "guarded"}
 
         body = {"gap_id": item["id"], "physician_id": best["physician_id"], "start": best["window"]["start"], "end": best["window"]["end"]}
         offer = client.post("/offers", json=body, headers={**COORD, "Idempotency-Key": "p1"}).json()
@@ -185,6 +188,8 @@ def test_offer_loop_over_http(db_url):
         after = client.get("/snapshot", headers=COORD).json()
         assert not [i for i in after["queue"]["items"] if i["fix"]["kind"] == "split_shift" and i["fix"]["physician_id"] == best["physician_id"]]
         trail = client.get("/audit", params={"gap_id": item["id"]}, headers=LEAD).json()["items"]
+        assert any(a["command"] == "recommendation" and a["evidence"]["candidates"] for a in trail)
+        trail = [a for a in trail if a["command"] != "recommendation"]
         assert [a["command"] for a in trail] == ["propose", "approve", "send", "accept", "decline:refused"]
         assert trail[1]["actor"] == "Dr. Lead" and trail[0]["action"] == "Proposed offer"
 

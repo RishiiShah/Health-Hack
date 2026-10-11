@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from app.clock import utc
+from app.config import DEFAULT_FORECAST_CLIFF_LOOKAHEAD_MIN
 from app.engine.physician import PhysicianView
 from app.engine.replay import State
 from app.ops.refs import ET, OpsRefs
@@ -133,7 +134,7 @@ def current_coverage(state: State, refs: Refs, ops: OpsRefs, views: dict[str, Ph
         received = _received(state, hid, now)
         surge = surge_at(ops, hid, received, now)
         base = ops.requirement(hid, now)
-        here = [v for pid, v in sorted(views.items()) if hid in v.credentialed_hospitals and "off_shift" not in v.exclusion_reasons]
+        here = [v for pid, v in sorted(views.items()) if hid in v.allowed_hospitals and "off_shift" not in v.exclusion_reasons]
         out.append(CurrentCoverage(hid, trailing_count(received, now), ops.p90(hid, now), surge, base,
                                    None if base is None or surge is None else base + surge,
                                    tuple(v.physician_id for v in here if v.derived_state not in SIGNAL_BUSY),
@@ -181,6 +182,24 @@ def outlook_end(refs: Refs, now: datetime) -> datetime:
     return max([now + HORIZON, *ends])
 
 
+def shift_boundaries(refs, ops, accepted=()):
+    return ({t for p in refs.physicians.values() for s in p.shifts for t in (s.start, s.end)}
+            | {t for r in ops.roster.values() for t in (r.next_shift_start, r.next_shift_end) if t}
+            | {t for s in accepted for t in (s.start, s.end)})
+
+
+def forecast_steps(refs, ops, now, accepted=(), cliff_lookahead_min=DEFAULT_FORECAST_CLIFF_LOOKAHEAD_MIN):
+    """At least 90 minutes, through the last shift boundary within the configured 120-minute cap.
+    Include boundaries exactly, even when they fall between the regular 15-minute observations."""
+    if cliff_lookahead_min < HORIZON.total_seconds() / 60:
+        raise ValueError("forecast cliff lookahead must be at least 90 minutes")
+    cap = now + timedelta(minutes=cliff_lookahead_min)
+    boundaries = {t for t in shift_boundaries(refs, ops, accepted) if now < t <= cap}
+    end = max({now + HORIZON, *boundaries})
+    step = timedelta(minutes=15)
+    return sorted({*(now + n * step for n in range(int((end-now)/step)+1)), *boundaries, end})
+
+
 def _change_points(state, refs, ops, items, now, end):
     points = {now, now + HORIZON, end}
     for s in items:
@@ -197,7 +216,10 @@ def _change_points(state, refs, ops, items, now, end):
 
 def project(state: State, refs: Refs, ops: OpsRefs, views: dict[str, PhysicianView], now: datetime, accepted=()) -> list[Gap]:
     now = utc(now)
-    end = outlook_end(refs, now)
+    horizon_end = forecast_steps(refs, ops, now, accepted)[-1]
+    end = max(outlook_end(refs, now), horizon_end)
+    if end == horizon_end and horizon_end in shift_boundaries(refs, ops, accepted):
+        end += timedelta(minutes=15)  # represent the capacity immediately after the displayed final cliff
     items = supply(state, refs, ops, views, now, accepted)
     points = _change_points(state, refs, ops, items, now, end)
     gaps = []
@@ -220,10 +242,11 @@ def project(state: State, refs: Refs, ops: OpsRefs, views: dict[str, PhysicianVi
         for seg in segments:
             a, b, kind, required, confirmed, scheduled, surge, here = seg
             last = gaps[-1] if gaps else None
-            if last and last.hospital_id == hid and last.kind == kind and last.end == a and last.required == required:
+            if (last and last.hospital_id == hid and last.kind == kind and last.end == a and last.required == required
+                    and last.confirmed == confirmed and last.scheduled == scheduled and last.surge == surge):
                 gaps[-1] = Gap(hid, last.start, b, kind, required, min(last.confirmed, confirmed), min(last.scheduled, scheduled), last.surge or surge, last.in_horizon, last.causes)
                 continue
-            gaps.append(Gap(hid, a, b, kind, required, confirmed, scheduled, surge, a < now + HORIZON, _causes(refs, ops, views, hid, a, surge, received, here, now)))
+            gaps.append(Gap(hid, a, b, kind, required, confirmed, scheduled, surge, a <= horizon_end, _causes(refs, ops, views, hid, a, surge, received, here, now)))
     return gaps
 
 
@@ -231,7 +254,7 @@ def _causes(refs, ops, views, hid, at, surge, received, here, now):
     causes = [f"{pid} shift ends {s.end.astimezone(ET):%H:%M}" for pid, p in sorted(refs.physicians.items()) for s in p.shifts
               if hid in refs.credentials[pid] and now < s.end <= at]
     causes += [f"{pid} temporarily unavailable" for pid, v in sorted(views.items())
-               if v.derived_state == "Temporarily Unavailable" and hid in v.credentialed_hospitals and "off_shift" not in v.exclusion_reasons]
+               if v.derived_state == "Temporarily Unavailable" and hid in v.allowed_hospitals and "off_shift" not in v.exclusion_reasons]
     if surge:
         causes.append(f"surge: {trailing_count(received, at)} consults in 60 min vs p90 {ops.p90(hid, at):g} (+1 required)")
     causes += [f"relies on {s.label}" for s in here if not s.confirmed]
@@ -241,9 +264,11 @@ def _causes(refs, ops, views, hid, at, surge, received, here, now):
 UNASSIGNED = {"Received", "Triaged"}
 
 
-def joiners_now(state: State, ops: OpsRefs, accepted, hospital_id: str, now: datetime) -> int:
-    """Accepted split shifts at this hospital coming online within the horizon (and not late): the fix for a current gap."""
+def joiners_now(state: State, ops: OpsRefs, accepted, hospital_id: str, now: datetime, views=None) -> int:
+    """Pending accepted arrivals within the horizon, excluding physicians already in operational views.
+    Arrived physicians contribute through current coverage and must not also count as pending capacity."""
     return sum(1 for s in accepted if hospital_id in s.hospitals and now < s.end
+               and not (views and s.physician_id in views and "off_shift" not in views[s.physician_id].exclusion_reasons)
                and not (a := arrival(s, state, ops, now)).late and a.ready < now + HORIZON)
 
 
@@ -261,6 +286,6 @@ def remaining_need(state: State, refs: Refs, ops: OpsRefs, views: dict[str, Phys
                      if g.hospital_id == h and g.kind == "hard" and g.start < end and start < g.end), default=0)
         c = current.get(h)
         if c is not None and c.gap and h in waiting and start < now + HORIZON:
-            short = max(short, c.required - len(c.available) - joiners_now(state, ops, accepted, h, now))
+            short = max(short, c.required - len(c.available) - joiners_now(state, ops, accepted, h, now, views))
         out[h] = max(0, short)
     return out
