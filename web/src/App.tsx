@@ -18,13 +18,29 @@ export default function App() {
   const [role, setRole] = useState<Role | null>(readRole);
   const [hash, setHash] = useState(location.hash.slice(1) || "landing");
   const [currentView, setCurrentView] = useState<"landing" | "signin" | "app">(() => readRole() ? "app" : location.hash === "signin" ? "signin" : "landing");
-  useEffect(() => { const onHash = () => { const nextHash = location.hash.slice(1) || "landing"; setHash(nextHash); if (!role && (nextHash === "landing" || nextHash === "signin")) setCurrentView(nextHash); }; addEventListener("hashchange", onHash); return () => removeEventListener("hashchange", onHash); }, [role]);
+  useEffect(() => { 
+    const onHash = () => { 
+      const nextHash = location.hash.slice(1) || "landing"; 
+      setHash(nextHash); 
+      if (nextHash === "landing") {
+        setCurrentView("landing");
+      } else if (nextHash === "signin") {
+        setCurrentView("signin");
+      } else if (role) {
+        setCurrentView("app");
+      } else {
+        setCurrentView("landing");
+      }
+    }; 
+    addEventListener("hashchange", onHash); 
+    return () => removeEventListener("hashchange", onHash); 
+  }, [role]);
   const signIn = (nextRole: Role) => { sessionStorage.setItem("cc_demo_role", nextRole); setRole(nextRole); setCurrentView("app"); location.hash = nextRole === "lead" ? "approvals" : nextRole === "physician" ? "shift" : "command"; };
   const signOut = () => { sessionStorage.removeItem("cc_demo_role"); setRole(null); setCurrentView("landing"); location.hash = "landing"; };
   const [targetRole, setTargetRole] = useState<Role>("coordinator");
   if (currentView === "landing") return <LandingPage onEnter={signIn} onGoToSignIn={(r?: Role) => { if (r) setTargetRole(r); setCurrentView("signin"); location.hash = "signin"; }} />;
   if (currentView === "signin") return <SignIn initialRole={targetRole} onSignIn={signIn} onBackToLanding={() => { setCurrentView("landing"); location.hash = "landing"; }} />;
-  if (!role) return <LandingPage onEnter={signIn} onGoToSignIn={() => setCurrentView("signin")} />;
+  if (!role) return <LandingPage onEnter={signIn} onGoToSignIn={(r?: Role) => { if (r) setTargetRole(r); setCurrentView("signin"); location.hash = "signin"; }} />;
   return <Shell role={role} page={hash as Page} signOut={signOut} />;
 }
 
@@ -42,7 +58,7 @@ function LegacySignIn({ onSignIn }: { onSignIn: (role: Role) => void }) { return
 function Shell({ role, page, signOut }: { role: Role; page: Page; signOut: () => void }) {
   const nav = role === "coordinator" ? [["command", "Command"], ["consults", "Consults"], ["doctors", "Doctors"], ["schedule", "Schedule"], ["audit", "Audit"], ["data", "Data"]] : role === "lead" ? [["approvals", "Approvals (1)"], ["audit", "Audit"], ["consults", "Consults"], ["data", "Data"]] : [["shift", "My shift"], ["offers", "Offers (1)"], ["settings", "Settings"]];
   const active = nav.some(([key]) => key === page) ? page : nav[0][0];
-  return <div className="min-h-screen bg-[#FBF9F5] text-slate-900"><header className="fixed left-1/2 top-4 z-50 flex w-[calc(100%-32px)] max-w-6xl -translate-x-1/2 items-center justify-between rounded-full border border-slate-200/90 bg-white/90 px-5 py-2.5 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]"><div className="flex items-center gap-3"><a href="#landing" className="flex items-center gap-2"><span className="relative block h-5 w-6"><i className="absolute left-0 top-0 h-3 w-3 -skew-x-12 rounded-sm bg-teal-600" /><i className="absolute left-2.5 top-1.5 h-3 w-3 -skew-x-12 rounded-sm bg-[#161E2E]" /></span><strong className="text-sm font-bold tracking-tight text-slate-900">overlap</strong></a>{role === "coordinator" && <span className="hidden items-center gap-1.5 pl-2 text-[11px] font-mono text-slate-500 sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-teal-600 animate-pulse" />Tue 17 Mar · 18:20 ET · last event 18:19:58</span>}</div><nav className="flex items-center gap-1">{nav.map(([key, label]) => <a key={key} href={`#${key}`} className={`rounded-full px-3 py-1 text-xs font-semibold transition ${active === key ? "bg-[#161E2E] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"}`}>{label}</a>)}</nav><div className="flex items-center gap-2"><span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">{roleLabel[role]}</span><button onClick={signOut} className="rounded-full px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900">Sign out ↗</button></div></header><main className="mx-auto max-w-7xl px-4 pb-12 pt-24 sm:px-6">{role === "coordinator" ? <Coordinator page={active as Page} /> : role === "lead" ? <Lead page={active as Page} /> : <Physician page={active as Page} />}</main></div>;
+  return <div className="min-h-screen bg-[#F7F4EB] text-slate-900"><header className="fixed left-1/2 top-4 z-50 flex w-[calc(100%-32px)] max-w-6xl -translate-x-1/2 items-center justify-between rounded-full border border-[#E5E0D5] bg-white/90 px-5 py-2.5 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]"><div className="flex items-center gap-3"><a href="#landing" className="flex items-center gap-2 text-slate-900 hover:text-slate-700 transition"><span className="relative block h-5 w-6"><i className="absolute left-0 top-0 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-teal-600" /><i className="absolute left-2.5 top-1.5 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#161E2E]" /></span><strong className="text-base font-bold tracking-tight text-slate-900">overlap</strong></a>{role === "coordinator" && <span className="hidden items-center gap-1.5 pl-2 text-[11px] font-mono text-slate-500 sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-teal-600 animate-pulse" />Tue 17 Mar · 18:20 ET · last event 18:19:58</span>}</div><nav className="flex items-center gap-1">{nav.map(([key, label]) => <a key={key} href={`#${key}`} className={`rounded-full px-3 py-1 text-xs font-semibold transition ${active === key ? "bg-[#161E2E] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"}`}>{label}</a>)}</nav><div className="flex items-center gap-2"><span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">{roleLabel[role]}</span><button onClick={signOut} className="rounded-full px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900">Sign out ↗</button></div></header><main className="mx-auto max-w-7xl px-4 pb-12 pt-24 sm:px-6">{role === "coordinator" ? <Coordinator page={active as Page} /> : role === "lead" ? <Lead page={active as Page} /> : <Physician page={active as Page} />}</main></div>;
 }
 function Title({ eyebrow, title, note }: { eyebrow: string; title: string; note: string }) { return <div className="workspace-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div><span className="mono muted">{note}</span></div>; }
 

@@ -43,21 +43,24 @@ export const SignIn: React.FC<SignInProps> = ({ initialRole = "coordinator", onS
   const roleTitle = selectedRole === "coordinator" ? "Coordinator" : selectedRole === "lead" ? "Clinical Lead" : "Physician";
 
   return (
-    <div className="min-h-screen bg-[#FBF9F5] text-slate-900 flex flex-col justify-between p-6">
+    <div className="min-h-screen bg-[#F7F4EB] text-slate-900 flex flex-col p-6">
+      {/* Top Header */}
       <div className="max-w-4xl mx-auto w-full flex items-center justify-between pb-6">
-        <button onClick={onBackToLanding} className="flex items-center space-x-2 text-slate-700 hover:text-black transition">
-          <div className="flex items-center space-x-1">
-            <span className="w-3 h-5 bg-teal-600 rounded-sm transform -skew-x-12" />
-            <span className="w-3 h-5 bg-[#161E2E] rounded-sm transform -skew-x-12 -ml-1" />
-          </div>
-          <span className="font-bold tracking-tight text-sm">overlap</span>
+        <button onClick={onBackToLanding} className="flex items-center gap-2 text-slate-900 hover:text-slate-700 transition">
+          <span className="relative block h-5 w-6">
+            <i className="absolute left-0 top-0 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-teal-600" />
+            <i className="absolute left-2.5 top-1.5 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#161E2E]" />
+          </span>
+          <strong className="text-base font-bold tracking-tight text-slate-900">overlap</strong>
         </button>
-        <button onClick={onBackToLanding} className="text-xs text-slate-500 hover:text-slate-800">
+        <button onClick={onBackToLanding} className="text-xs font-medium text-slate-500 hover:text-slate-800 transition">
           ← Back to Overview
         </button>
       </div>
 
-      <div className="max-w-md mx-auto w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-6">
+      {/* Comfortably Centered Sign-In Box */}
+      <div className="flex-1 flex items-center justify-center -mt-8 py-6">
+        <div className="max-w-md w-full bg-white/95 rounded-3xl p-8 border border-[#E5E0D5] shadow-xl space-y-6">
         <div>
           <h1 className="text-2xl font-bold font-heading text-slate-900">Sign in</h1>
           <p className="text-xs text-slate-500 mt-1">Select your operating role to access your dashboard</p>
@@ -138,10 +141,7 @@ export const SignIn: React.FC<SignInProps> = ({ initialRole = "coordinator", onS
           </div>
         </div>
       </div>
-
-      <div className="text-center text-[11px] text-slate-400">
-        © 2026 Overlap Systems · Sevaro Tele-Stroke Challenge
-      </div>
     </div>
+  </div>
   );
 };

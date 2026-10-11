@@ -7,14 +7,94 @@ interface LandingPageProps {
   onGoToSignIn: (role?: Role) => void;
 }
 
+const TABS = [
+  { id: "overview" as const, label: "Overview" },
+  { id: "network" as const, label: "Network" },
+  { id: "roles" as const, label: "Workspaces" },
+  { id: "safety" as const, label: "Clinical Proof" },
+];
+
 export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
-  const scrollTo = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  const [activeTab, setActiveTab] = React.useState<"overview" | "network" | "roles" | "safety">("overview");
+  const tabRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
+  const [pillStyle, setPillStyle] = React.useState<{ left: number; width: number }>({ left: 4, width: 76 });
+  const isClickScrolling = React.useRef(false);
+
+  // Smooth sliding pill positioning
+  const updatePill = React.useCallback(() => {
+    const currentTabEl = tabRefs.current[activeTab];
+    if (currentTabEl) {
+      setPillStyle({
+        left: currentTabEl.offsetLeft,
+        width: currentTabEl.offsetWidth,
+      });
+    }
+  }, [activeTab]);
+
+  React.useLayoutEffect(() => {
+    updatePill();
+  }, [updatePill]);
+
+  React.useEffect(() => {
+    window.addEventListener("resize", updatePill);
+    return () => window.removeEventListener("resize", updatePill);
+  }, [updatePill]);
+
+  // Smooth scroll spy (60fps rAF with click-scroll lock to prevent lag/stutter)
+  React.useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (isClickScrolling.current) return;
+
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrollY = window.scrollY;
+          const networkEl = document.getElementById("network");
+          const rolesEl = document.getElementById("roles");
+          const safetyEl = document.getElementById("safety");
+
+          const safetyTop = safetyEl ? safetyEl.offsetTop - 260 : Infinity;
+          const rolesTop = rolesEl ? rolesEl.offsetTop - 260 : Infinity;
+          const networkTop = networkEl ? networkEl.offsetTop - 260 : Infinity;
+
+          if (scrollY >= safetyTop) {
+            setActiveTab("safety");
+          } else if (scrollY >= rolesTop) {
+            setActiveTab("roles");
+          } else if (scrollY >= networkTop) {
+            setActiveTab("network");
+          } else {
+            setActiveTab("overview");
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollTo = (id: "overview" | "network" | "roles" | "safety") => {
+    setActiveTab(id);
+    isClickScrolling.current = true;
+    if (id === "overview") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+    setTimeout(() => {
+      isClickScrolling.current = false;
+    }, 750);
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F6F0] text-slate-900 overflow-x-hidden selection:bg-teal-100 selection:text-teal-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#F7F4EB] text-slate-900 overflow-x-hidden selection:bg-teal-100 selection:text-teal-900 flex flex-col justify-between">
       <style>{`
         /* Floating Glass Cards */
         @keyframes floatCard1 {
@@ -40,14 +120,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
       `}</style>
 
       {/* ================= 1. FLOATING NAVBAR ================= */}
-      <nav className="fixed top-5 inset-x-0 mx-auto z-50 flex w-[calc(100%-48px)] max-w-5xl items-center justify-between rounded-full border border-slate-200/90 bg-white/90 px-6 py-3 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
-        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2">
+      <nav className="fixed top-5 inset-x-0 mx-auto z-50 flex w-[calc(100%-48px)] max-w-5xl items-center justify-between rounded-full border border-[#E5E0D5] bg-white/90 px-6 py-2.5 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
+        <button onClick={() => scrollTo("overview")} className="flex items-center gap-2">
           <span className="relative block h-5 w-6">
             <i className="absolute left-0 top-0 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-teal-600" />
             <i className="absolute left-2.5 top-1.5 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#161E2E]" />
           </span>
           <strong className="text-base font-bold tracking-tight text-slate-900">overlap</strong>
         </button>
+
+        {/* Dynamic Center Navigation Tabs with Smooth Sliding Pill */}
+        <div className="relative hidden md:flex items-center bg-slate-100/90 p-1 rounded-full border border-slate-200/60 text-xs font-medium text-slate-600">
+          {/* Animated Sliding Background Capsule */}
+          <span
+            className="absolute top-1 bottom-1 bg-white rounded-full shadow-sm transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none"
+            style={{
+              left: `${pillStyle.left}px`,
+              width: `${pillStyle.width}px`,
+              opacity: pillStyle.width > 0 ? 1 : 0,
+            }}
+          />
+
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              ref={(el) => { tabRefs.current[tab.id] = el; }}
+              onClick={() => scrollTo(tab.id)}
+              className={`relative z-10 px-4 py-1.5 rounded-full transition-colors duration-200 cursor-pointer ${
+                activeTab === tab.id
+                  ? "text-slate-900 font-semibold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
         <button
           onClick={() => onGoToSignIn("coordinator")}
@@ -87,10 +195,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         </section>
 
         {/* ================= THE LIVING TOPOGRAPHIC US NETWORK MAP (ALWAYS IN MOTION) ================= */}
-        <div id="network" className="relative w-full max-w-5xl aspect-[16/9] min-h-[460px] md:min-h-[580px] flex items-center justify-center my-4">
+        <div id="network" className="relative w-full max-w-5xl aspect-[16/9] min-h-[460px] md:min-h-[580px] flex items-center justify-center my-4 scroll-mt-28">
           
           {/* FLOATING GLASS CARD 1 (SEVARO REAL STAT: <45s) */}
-          <div className="anim-float-1 absolute top-4 left-2 md:top-8 md:left-6 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 px-5 py-4 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
+          <div className="anim-float-1 absolute top-4 left-2 md:top-8 md:left-6 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-[#E5E0D5] px-5 py-4 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
             <div className="text-[11px] font-mono text-slate-500 font-medium">Synapse AI Response</div>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading whitespace-nowrap">&lt;&nbsp;45s</span>
@@ -99,19 +207,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           </div>
 
           {/* FLOATING GLASS CARD 2 (SEVARO REAL STAT: 100+) */}
-          <div className="anim-float-2 absolute bottom-6 right-2 md:bottom-12 md:right-8 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 p-4 md:p-5 flex items-center gap-3.5 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
+          <div className="anim-float-2 absolute bottom-6 right-2 md:bottom-12 md:right-8 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-[#E5E0D5] p-4 md:p-5 flex items-center gap-3.5 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
             <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading">100+</span>
             <div className="text-xs font-semibold text-slate-700 leading-snug">
               Hospitals Served<br />Across the Nation
             </div>
           </div>
 
-          {/* BASE HIGH-RESOLUTION TOPOGRAPHIC TERRAIN RELIEF MAP */}
+          {/* BASE HIGH-RESOLUTION TOPOGRAPHIC TERRAIN RELIEF MAP WITH SEAMLESS BLEND */}
           <div className="relative w-full h-full flex items-center justify-center">
             <img 
               src="/us_network_map.jpg" 
               alt="United States Tele-Stroke Coordination Topology" 
-              className="w-full h-full object-contain pointer-events-none select-none"
+              className="w-full h-full object-contain pointer-events-none select-none [mask-image:radial-gradient(ellipse_94%_90%_at_50%_50%,black_75%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_94%_90%_at_50%_50%,black_75%,transparent_100%)]"
             />
 
             {/* LIVING MOTION SVG OVERLAY: CONTINUOUSLY STREAMING COMETS & PULSES */}
@@ -235,7 +343,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         </div>
 
         {/* ================= 3. TWO WORKSPACES (PREVIEW SHOWCASE) ================= */}
-        <section id="roles" className="mt-20 w-full scroll-mt-28 border-t border-slate-200/80 pt-16">
+        <section id="roles" className="mt-20 w-full scroll-mt-28 border-t border-[#E5E0D5] pt-16">
           
           <div className="text-center max-w-xl mx-auto mb-12">
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -249,14 +357,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
             
             {/* Coordinator Workspace Card */}
-            <div className="hover-lift bg-white rounded-3xl border border-[#E2DFD8] p-8 md:p-10 flex flex-col justify-between shadow-sm">
+            <div className="hover-lift bg-white/95 rounded-3xl border border-[#E5E0D5] p-8 md:p-10 flex flex-col justify-between shadow-sm">
               <div>
                 <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Command Center</h3>
                 <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
                   Real-time national grid oversight. Triage queue monitoring, predictive shortfall detection, and automated physician dispatch across 100+ partner hospitals.
                 </p>
 
-                <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200/70 p-4 space-y-2.5">
+                <div className="mt-6 rounded-2xl bg-[#F7F4EB]/60 border border-[#E5E0D5] p-4 space-y-2.5">
                   <div className="flex items-center justify-between text-xs font-medium">
                     <span className="text-slate-500 font-mono">Surge Mitigation Target</span>
                     <span className="text-teal-700 font-bold font-mono">&lt; 45s Response SLA</span>
@@ -274,7 +382,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
               <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-start">
                 <button
                   onClick={() => onGoToSignIn("coordinator")}
-                  className="rounded-xl bg-[#161E2E] hover:bg-slate-900 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group"
+                  className="rounded-xl bg-[#161E2E] hover:bg-slate-900 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group cursor-pointer"
                 >
                   <span>Sign In to Command Center</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
@@ -283,7 +391,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
             </div>
 
             {/* Physician Experience Card */}
-            <div className="hover-lift bg-white rounded-3xl border border-[#E2DFD8] p-8 md:p-10 flex flex-col justify-between shadow-sm">
+            <div className="hover-lift bg-white/95 rounded-3xl border border-[#E5E0D5] p-8 md:p-10 flex flex-col justify-between shadow-sm">
               <div>
                 <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Mobile & Web Handoff</h3>
                 <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
@@ -309,7 +417,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
               <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-start">
                 <button
                   onClick={() => onGoToSignIn("physician")}
-                  className="rounded-xl bg-teal-700 hover:bg-teal-800 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group"
+                  className="rounded-xl bg-teal-700 hover:bg-teal-800 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group cursor-pointer"
                 >
                   <span>Sign In as Physician</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
@@ -321,7 +429,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         </section>
 
         {/* ================= 4. REAL SEVARO CLINICAL PROOF (100% AUTHENTIC METRICS) ================= */}
-        <section id="safety" className="mt-20 w-full border-t border-slate-200/80 pt-16">
+        <section id="safety" className="mt-20 w-full border-t border-[#E5E0D5] pt-16">
           <div className="text-center max-w-xl mx-auto mb-10">
             <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Clinical Performance Proof</h2>
             <p className="text-sm text-slate-600 mt-2">Published real-world outcomes delivered by Sevaro's tele-stroke network.</p>
@@ -329,28 +437,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
             {/* Stat 1: < 45s */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
+            <div className="bg-white/95 rounded-2xl border border-[#E5E0D5] p-5 text-center shadow-sm">
               <div className="text-2xl font-extrabold font-heading text-slate-900">&lt; 45s</div>
               <div className="text-xs font-semibold text-slate-800 mt-1">Response Time SLA</div>
               <div className="text-[11px] text-slate-500 mt-0.5">Powered by Synapse AI</div>
             </div>
 
             {/* Stat 2: 100+ Hospitals */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
+            <div className="bg-white/95 rounded-2xl border border-[#E5E0D5] p-5 text-center shadow-sm">
               <div className="text-2xl font-extrabold font-heading text-teal-700">100+</div>
               <div className="text-xs font-semibold text-slate-800 mt-1">Hospitals Served</div>
               <div className="text-[11px] text-slate-500 mt-0.5">Across Emergency Depts</div>
             </div>
 
             {/* Stat 3: 30% Transfer Reduction */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
+            <div className="bg-white/95 rounded-2xl border border-[#E5E0D5] p-5 text-center shadow-sm">
               <div className="text-2xl font-extrabold font-heading text-slate-900">30%</div>
               <div className="text-xs font-semibold text-slate-800 mt-1">Transfer Reduction</div>
               <div className="text-[11px] text-slate-500 mt-0.5">Avoiding Unnecessary Moves</div>
             </div>
 
             {/* Stat 4: 20% Reduced Length of Stay */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
+            <div className="bg-white/95 rounded-2xl border border-[#E5E0D5] p-5 text-center shadow-sm">
               <div className="text-2xl font-extrabold font-heading text-emerald-600">20%</div>
               <div className="text-xs font-semibold text-slate-800 mt-1">Reduced Length of Stay</div>
               <div className="text-[11px] text-slate-500 mt-0.5">Rapid Acute Intervention</div>
