@@ -4,6 +4,7 @@ import { api, DEMO, post } from "./api/client.ts";
 import { useSnapshot, type Snapshot } from "./api/live.ts";
 import { ApprovalsPage } from "./act/ApprovalsPage.tsx";
 import { DataPage } from "./act/DataPage.tsx";
+import { EventStream } from "./act/EventStream.tsx";
 import { GapPanel } from "./act/GapPanel.tsx";
 import { unavailableText, useApi, useServerNow } from "./act/hooks.ts";
 import { isOpen, stateBadge } from "./act/offerSteps.ts";
@@ -170,7 +171,7 @@ function OperationsApp({ session }: { session: Session }) {
       {page === "schedule" && <SchedulePage reloadKey={live.receivedAt} />}
       {page === "audit" && <AuditPage workspace={workspace} reloadKey={live.receivedAt} />}
       {page === "approvals" && <ApprovalsPage offers={offers.data?.items ?? []} offersError={offers.error && !offers.data ? unavailableText(offers.error, "GET /offers") : null} now={now} reloadKey={live.receivedAt} onChanged={live.refresh} />}
-      {page === "data" && <DataPage snapshot={s} now={now} onChanged={live.refresh} />}
+      {page === "data" && <DataPage snapshot={s} />}
     </Main>
   </div>;
 }
@@ -199,7 +200,7 @@ function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
   return <div className="command-page">
     <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Operations command center</h1><p className="command-subtitle">Work top to bottom: resolve priority items, check coverage across the forecast horizon, then follow each offer to its outcome.</p></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
     {detect && <HeadlineNumbers headline={detect.headline} />}
-    <nav className="command-section-nav" aria-label="Dashboard sections"><span>On this page</span><a href="#command-attention">1. Priority actions</a><a href="#command-forecast">2. Coverage forecast</a><a href="#command-actions">3. Coverage offers</a></nav>
+    <nav className="command-section-nav" aria-label="Dashboard sections"><span>On this page</span><a href="#command-attention">1. Priority actions</a><a href="#command-forecast">2. Coverage forecast</a><a href="#command-actions">3. Coverage offers</a><a href="#command-events">4. Event stream</a></nav>
     <section id="command-attention" tabIndex={-1} className="command-section" aria-labelledby="attention-heading">
       <div className="command-section-head"><div><span className="section-index">01 · Detect & decide</span><h2 id="attention-heading">What needs action now</h2></div><p>Ranked by the server. Select an item to see the recommended intervention.</p></div>
       <div className="command-top">
@@ -238,6 +239,10 @@ function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
           {closedOffers.length ? <div className="outcome-list">{closedOffers.map((offer) => <div className="outcome-row" key={offer.offer_id}><div><strong>{offer.physician_name}</strong><p>{offer.hospital_names.join(", ")} · {clockTime(offer.start)}–{clockTime(offer.end)} ET</p>{offer.reject_reason && <small>{offer.reject_reason}</small>}</div><span className={`badge ${stateBadge(offer.state).tone}`}>{stateBadge(offer.state).text}</span></div>)}</div> : <p className="empty-state">No completed offers yet.</p>}
         </section>
       </div>
+    </section>
+    <section id="command-events" className="command-section" aria-labelledby="events-heading">
+      <div className="command-section-head"><div><span className="section-index">04 · Event stream</span><h2 id="events-heading">Add events</h2></div><p>Upload an events CSV; the queue, forecast and offers above update from the server.</p></div>
+      <EventStream snapshot={snapshot} now={now} onChanged={refresh} />
     </section>
   </div>;
 }

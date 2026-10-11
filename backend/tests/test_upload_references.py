@@ -36,16 +36,18 @@ def test_check_does_not_activate_missing_version(tmp_path,monkeypatch):
     with pytest.raises(SystemExit,match='Reference check failed'): upload.main()
 
 
-def test_different_persisted_version_cannot_be_replaced(tmp_path,monkeypatch):
+def test_a_different_version_is_stored_beside_the_active_one(tmp_path,monkeypatch,capsys):
     status=setup(tmp_path,monkeypatch)
-    status['manifest']['fingerprint']='different'
+    mine=status['manifest']['fingerprint']
+    active={**status,'manifest':{**status['manifest'],'fingerprint':'different'},'kits':[]}
     calls=[]
-    def get(url,payload=None,token=None):
+    def request(url,payload=None,token=None):
         calls.append(payload)
-        return status
-    monkeypatch.setattr(upload,'request',get)
-    with pytest.raises(SystemExit,match='Reference data is fixed'): upload.main()
-    assert calls==[None]
+        if payload: return {**status,'stored':True}
+        return active if len(calls)==1 else {**active,'kits':[{'fingerprint':mine,'name':'Synthetic'}]}
+    monkeypatch.setattr(upload,'request',request)
+    upload.main()
+    assert len(calls)==3 and 'Stored' in capsys.readouterr().out
 
 
 def test_new_database_upload_is_verified_against_persisted_hash(tmp_path,monkeypatch,capsys):

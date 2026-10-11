@@ -6,11 +6,11 @@ Events, holds, quarantine and metrics live in **Amazon RDS for PostgreSQL** (see
 
 | Preference | Deployment | Durable storage | Process count |
 | --- | --- | --- | --- |
-| 1 | Render Docker web service, root `render.yaml`, Virginia region | RDS PostgreSQL in us-east-1 | 1 service instance, 1 worker |
-| 2 | AWS EC2 Linux VM in us-east-1 running `deploy/compose.yaml` | Same RDS instance | 1 container, 1 worker |
+| 1 | Render Docker web service, root `render.yaml`, Oregon region | RDS PostgreSQL in us-west-2, database `commandcenter_v2` | 1 service instance, 1 worker |
+| 2 | AWS EC2 Linux VM in us-west-2 running `deploy/compose.yaml` | Same RDS instance | 1 container, 1 worker |
 | 3 | Azure Linux VM running the same Compose file | Same RDS instance (cross-cloud latency; measure first) | 1 container, 1 worker |
 
-These are executable application deployment configurations, not verified hosted application deployments. The configured production RDS database **commandcenter** is provisioned in **us-west-2** and now contains the complete reference kit plus its existing 1,163 events; see [Reference data](Reference-Data.md). The table and `render.yaml` still describe the original us-east-1 plan, so align the application region with the existing database before hosting. Use private access or a TLS and rate-limited gateway for hosted demos; session revocation, refresh, password recovery and login rate limiting are not implemented in the app.
+These are executable application deployment configurations, not verified hosted application deployments. The RDS instance is in **us-west-2**, and `render.yaml` targets the matching Oregon region. This code uses the database **commandcenter_v2** on that instance: the official Sevaro kit, its 1,163 events with the replay clock paused at 18:20 ET, and the four `test_data` packs stored as switchable kits (see [Reference data](Reference-Data.md)). The older **commandcenter** database on the same instance was written by a different, unpushed backend version with its own tables and reference format; this code cannot read that format, so it is left untouched. Use private access or a TLS and rate-limited gateway for hosted demos; session revocation, refresh, password recovery and login rate limiting are not implemented in the app.
 
 For local development, `make backend` uses the separate `deploy/local.compose.yaml`, creates a local sign-in configuration on first use, and starts Python 3.14.7 plus PostgreSQL with no RDS or host virtual environment requirement. It binds the API to loopback and does not publish a database port. See [local startup](../backend/README.md#simple-local-startup).
 
@@ -51,16 +51,16 @@ python3 scripts/stress.py --url https://YOUR-SERVICE --seed 2000 --readers 16 --
 
 ## Render
 
-1. Use the existing RDS **commandcenter** database in **us-west-2**, whose complete reference source and 1,163 events are already persisted. Provision a separate database only when intentionally starting another environment.
+1. Use the RDS database **commandcenter_v2** in **us-west-2**, whose official reference kit and 1,163 events are already persisted. Its URL is the existing RDS URL with the database name changed; keep `sslmode=verify-full` and the RDS CA bundle (`sslrootcert`).
 2. Align the region in the repository's root `render.yaml` with that database before creating a Render Blueprint. The current template still names Virginia. It runs the Dockerfile with one instance and `/ready` as the health check.
 3. Set `CC_DATABASE_URL` in the Render dashboard (it is marked `sync: false`, so it never lives in Git). Keep `PORT` managed by Render. Do not run more than one worker or instance.
 4. Confirm `/ready` responds. A new database starts with an empty event log and, since the image has no reference CSVs, with decisions off (`detection: false`).
-5. Upload the six reference CSVs once: `python3 scripts/upload_references.py data --url https://YOUR-SERVICE --service-date 2026-03-17` (`--service-date` only for the kit's sample layout). They are stored in the database, so restarts and redeploys keep them; `/ready` then reports `detection: true`. Repeat with `--check` to compare the stored fingerprint with localhost. Matching uploads do not write. The official Sevaro fingerprint is pinned; changing persisted references is refused and there is no replacement flag. See [persistent reference data](Reference-Data.md) for exact commands, the local kit fingerprint, and replay-clock setup.
+5. Upload the six reference CSVs once: `python3 scripts/upload_references.py data --url https://YOUR-SERVICE --service-date 2026-03-17` (`--service-date` only for the kit's sample layout). They are stored in the database, so restarts and redeploys keep them; `/ready` then reports `detection: true`. Repeat with `--check` to compare the stored fingerprint with localhost. Matching uploads do not write. The first kit must be the official Sevaro kit; later kits are stored beside it and never replace it. See [persistent reference data](Reference-Data.md) for exact commands, the local kit fingerprint, and replay-clock setup.
 6. Verify persistence with `scripts/hosting_smoke.py seed`, a manual redeploy, then `verify`, against a disposable database before loading real operational data.
 
 ## AWS fallback
 
-Use an EC2 Linux VM in us-east-1 with Docker Engine and Compose installed. From the repository root:
+Use an EC2 Linux VM in us-west-2 with Docker Engine and Compose installed. From the repository root:
 
 ```sh
 export CC_DATABASE_URL='postgresql://...?sslmode=verify-full&sslrootcert=/etc/ssl/certs/rds-global-bundle.pem'

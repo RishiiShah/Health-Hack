@@ -5,7 +5,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: starter
-    region: virginia  # same AWS region as the RDS instance (us-east-1)
+    region: oregon  # same AWS region as the RDS instance (us-west-2)
     numInstances: 1
     healthCheckPath: /ready
     envVars:

@@ -158,7 +158,7 @@ Every event passes gates in order. Each gate answers one question, applies one r
 | G1 Well formed | Can we read it? | Required fields per type present; both timestamps have a UTC offset; type is one of 20 | Quarantine with reason | Rejected count, latest reason |
 | G2 Duplicate | Seen this `event_id`? | Check accepted and held IDs; same semantic payload is duplicate even if `ingested_at` differs. Changed semantic payload is a conflict | Do not apply twice; retain conflict reason | 1 duplicate: EVT-00529; separate conflict count |
 | G3 Late | Earlier than prior accepted event-time watermark? | Normalize UTC, sort by `(event_time, ingested_at, event_id)`; every backward insertion is reordered, watermark lag >60 s is late | Insert and replay batch once | 23 reordered, 1 late; max reorder lag 5:55, max delivery lag 6:45 |
-| G4 Known | Physician, hospital, consult exist? | IDs in reference files; non-received consult events need a receipt at or before their event time. Resolve held dependencies after ingest/reference changes | Hold 5 min from first server receipt, then quarantine; repeated deliveries never extend deadline | Pending and expired counts separately; base pending 0 |
+| G4 Known | Physician, hospital, consult exist? | IDs in reference files; non-received consult events need a receipt at or before their event time. An events CSV sharing no ID with the active kit switches to the one stored kit holding all its IDs (fresh stream), or is refused whole; see [Reference data](Reference-Data.md). Resolve held dependencies after ingest/reference changes | Hold 5 min from first server receipt, then quarantine; repeated deliveries never extend deadline | Pending and expired counts separately; base pending 0 |
 
 ### Stage B: State
 

@@ -1,5 +1,8 @@
 """Upload a folder's six reference CSVs to a running backend (POST /admin/references).
 
+The first kit uploaded becomes active (the server requires the official Sevaro kit); later kits are stored beside it.
+Uploading an events CSV whose IDs belong to a stored kit switches the server to that kit with a fresh event stream.
+
 Usage: python scripts/upload_references.py data --url https://<host> --service-date 2026-03-17
        python scripts/upload_references.py data --url http://127.0.0.1:8000 --service-date 2026-03-17 --check
 --service-date is needed only for the kit's sample layout (shift times without a date).
@@ -52,20 +55,20 @@ def main():
     content = {"files": payload["files"], "service_date": args.service_date}
     fingerprint = hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
     status = request(f"{url}/admin/references", token=token)
-    matching = status["persisted"] and status["manifest"]["fingerprint"] == fingerprint
+    kits = {kit["fingerprint"]: kit for kit in status.get("kits", [])}
+    matching = status["persisted"] and (status["manifest"]["fingerprint"] == fingerprint or fingerprint in kits)
     if args.check or matching:
         if not matching:
             raise SystemExit("Reference check failed: the database does not contain this reference version.")
-        print(f"Verified {status['dataset']['name']}: {status['hospitals']} hospitals, {status['physicians']} physicians. "
-              f"SHA-256 {fingerprint}. No changes made.")
+        print(f"Verified {kits[fingerprint]['name'] if fingerprint in kits else status['dataset']['name']}"
+              f"{'' if status['manifest']['fingerprint'] == fingerprint else ' (stored, not active)'}. SHA-256 {fingerprint}. No changes made.")
         return
-    if status["persisted"]:
-        raise SystemExit("A different reference version is persisted. Reference data is fixed; replacement is not permitted.")
+    # The first kit becomes active; any later kit is stored beside it. An event upload using its IDs switches to it.
     result = request(f"{url}/admin/references", payload, token)
     stored = request(f"{url}/admin/references", token=token)
-    if not stored["persisted"] or stored["manifest"]["fingerprint"] != fingerprint:
+    if not stored["persisted"] or fingerprint not in {stored["manifest"]["fingerprint"], *(k["fingerprint"] for k in stored.get("kits", []))}:
         raise SystemExit("Upload finished, but the stored reference fingerprint did not match.")
-    print(f"Loaded {result['dataset']['name']}: {result['hospitals']} hospitals, {result['physicians']} physicians. "
+    print(f"{'Stored' if result.get('stored') else 'Loaded'} {name}: {result['hospitals']} hospitals, {result['physicians']} physicians. "
           f"SHA-256 {fingerprint}. Stored in PostgreSQL; existing events and offers retained.")
 
 

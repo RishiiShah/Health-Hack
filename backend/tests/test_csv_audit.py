@@ -37,10 +37,12 @@ def test_rejected_held_and_duplicate_future_rows_do_not_move_clock(db_url, monke
         seed(client)
         before = client.get('/snapshot', headers=COORD).json()['clock']['now']
         future = (START + timedelta(days=100)).isoformat()
-        for row in ({'event_type': 'unsupported_event'}, {'hospital_id': 'UNKNOWN'}):
-            report = upload(client, csv_body({'event_time': future, 'ingested_at': future, **row})).json()
-            assert report['accepted'] == 0
-            assert client.get('/snapshot', headers=COORD).json()['clock']['now'] == before
+        report = upload(client, csv_body({'event_time': future, 'ingested_at': future, 'event_type': 'unsupported_event'})).json()
+        assert report['accepted'] == 0
+        assert client.get('/snapshot', headers=COORD).json()['clock']['now'] == before
+        # A file whose only IDs match no stored kit is refused whole.
+        assert upload(client, csv_body({'event_time': future, 'ingested_at': future, 'hospital_id': 'UNKNOWN'})).status_code == 422
+        assert client.get('/snapshot', headers=COORD).json()['clock']['now'] == before
 
 
 def test_clock_moves_only_to_accepted_rows_and_commits_with_events(db_url, monkeypatch):

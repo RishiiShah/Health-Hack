@@ -23,6 +23,14 @@ Its reference SHA-256 is:
 
 ## Production RDS load
 
+> **Superseded on 2026-10-11.** A different, unpushed backend version later rewrote
+> **commandcenter** in its own format (`reference_bundle`, `runtime_sessions` and
+> other tables) and switched it to a synthetic pack. This code now uses the separate
+> database **commandcenter_v2** on the same instance, bootstrapped with the official
+> kit (same SHA-256 below), its 1,163 events and the replay clock paused at 18:20 ET.
+> **commandcenter** has since been dropped. Store the `test_data` packs again (below)
+> before uploading their event streams. The history below describes the original load.
+
 The configured production AWS RDS database, **commandcenter** in **us-west-2**,
 now stores the same six CSVs and normalized references: **Sevaro official
 reference kit**, service date **2026-03-17**, **12 hospitals**, **14 physicians**,
@@ -68,13 +76,44 @@ in the shell. The account needs `admin.inject`. Source CSVs remain local; the
 authenticated HTTPS upload stores them in the hosted database. They are not
 included in the Docker image or committed to Git.
 
-A matching upload is a read-only verification. `--check` never writes. Runtime
-pins the official Sevaro fingerprint, rejects replacement with HTTP 409, and
-checks the fingerprint again at startup. There is no replacement flag. A first
+A matching upload is a read-only verification. `--check` never writes. The first
+kit on a server must be the official Sevaro kit (HTTP 409 otherwise). A first
 bootstrap is followed by a readback comparison. The production RDS load above
 prepares future Render hosting; no Render service has been deployed. Synthetic
 test fixtures explicitly override the fingerprint only in disposable test
-processes; their initialized kit is also immutable through the API.
+processes.
+
+## Stored kits and the events-only upload
+
+Judges upload only an events CSV, so every other kit (for example our
+`test_data` packs, which use their own hospital and physician IDs) is stored on
+the server ahead of time with the same script:
+
+```sh
+python3 scripts/upload_references.py test_data/01_development/inputs --url http://127.0.0.1:8000 --service-date 2026-03-17
+```
+
+A reference upload never replaces the active kit. A different kit is stored
+beside it, keyed by its SHA-256, so a stored kit (the official one included)
+never changes. `GET /admin/references` lists them under `kits`, and the Data
+page shows them.
+
+When an events CSV arrives on `POST /events/csv` (the Command page's upload):
+
+- **Any hospital or physician ID is in the active kit:** the rows append as
+  before. The judges' file uses the official kit's IDs and takes this path.
+  Unknown IDs mixed into such a file take the usual G4 hold.
+- **No ID is in the active kit, and all of them are in exactly one stored
+  kit:** the server switches to that kit. The kit, a new dataset generation and
+  the events commit in one transaction. The clock moves to the file's latest
+  event; offers and interventions start empty. Earlier generations stay in the
+  database. The report names the kit in `dataset_switched_to`.
+- **No stored kit matches:** HTTP 422 naming the unknown hospitals and
+  physicians. Nothing is added or held.
+
+Uploading the official stream again switches back the same way. At startup the
+active kit must be the official one or a stored kit; anything else was changed
+outside the API and is refused.
 
 ## Compare environments
 

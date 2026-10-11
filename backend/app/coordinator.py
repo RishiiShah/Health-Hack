@@ -88,8 +88,9 @@ class MutationCoordinator:
         with self.lock:
             return self._mutate(rows)
 
-    def ingest_raw(self, rows: list[dict], adapter: str = "canonical-v1", *, advance_clock=False, upload=None) -> dict:
-        """Normalize each row independently; G1 rejects share the durable transaction."""
+    def ingest_raw(self, rows: list[dict], adapter: str = "canonical-v1", *, advance_clock=False, upload=None, refs=None, source=None) -> dict:
+        """Normalize each row independently; G1 rejects share the durable transaction. With `refs`, the rows start a
+        fresh dataset generation on that reference kit instead of appending: the switch and the events commit together."""
         if adapter not in {"canonical-v1", "sample-csv-v1"}:
             raise ValueError(f"unsupported adapter: {adapter}")
         with self.lock:
@@ -102,7 +103,7 @@ class MutationCoordinator:
                 except ValueError as exc:
                     result.update(status="quarantined", reason=str(exc))
                     rejected.append((str(exc), json.dumps(raw, sort_keys=True)))
-            return self._mutate(normalized, rejected=rejected, records=records, advance_clock=advance_clock, upload=upload)
+            return self._mutate(normalized, refs, rejected, source, records=records, advance_clock=advance_clock, upload=upload, fresh=refs is not None)
 
     def activate_references(self, refs: Refs, source: dict | None = None) -> dict:
         """P1 activation hook: validated reference snapshot and releases commit together. `source` (the uploaded
@@ -110,19 +111,19 @@ class MutationCoordinator:
         with self.lock:
             return self._mutate([], refs, source=source)
 
-    def _mutate(self, rows, refs=None, rejected=(), source=None, *, records=(), advance_clock=False, upload=None):
+    def _mutate(self, rows, refs=None, rejected=(), source=None, *, records=(), advance_clock=False, upload=None, fresh=False):
         try:
-            return self._mutate_once(rows, refs, rejected, source, records=records, advance_clock=advance_clock, upload=upload)
+            return self._mutate_once(rows, refs, rejected, source, records=records, advance_clock=advance_clock, upload=upload, fresh=fresh)
         except StaleRevision:
             # Another instance wrote (e.g. a deploy overlap): reload the durable log, then retry once.
             stored_clock = self.db.metadata("clock")
             if stored_clock:
                 self.clock = restore_clock(stored_clock, self.receipt_clock.now())
             self._load()
-            return self._mutate_once(rows, refs, rejected, source, records=records, advance_clock=advance_clock, upload=upload)
+            return self._mutate_once(rows, refs, rejected, source, records=records, advance_clock=advance_clock, upload=upload, fresh=fresh)
 
-    def _mutate_once(self, rows, refs=None, rejected=(), source=None, *, records=(), advance_clock=False, upload=None):
-        if refs is not None and self.references_locked and self.refs is not None:
+    def _mutate_once(self, rows, refs=None, rejected=(), source=None, *, records=(), advance_clock=False, upload=None, fresh=False):
+        if refs is not None and self.references_locked and self.refs is not None and not fresh:
             previous = (self.db.metadata("references") or {}).get("source")
             if refs.payload() != self.refs.payload() or (previous and (not source or
                     (previous["files"], previous.get("service_date")) != (source["files"], source.get("service_date")))):
@@ -132,11 +133,12 @@ class MutationCoordinator:
         results = [dict(r) for r in records]
         normalized_results = [r for r in results if r["status"] == "pending"] if records else [{} for _ in rows]
         active_refs = refs if refs is not None else self.refs
-        holds, stats = dict(self._holds), dict(self._stats)
+        stored = () if fresh else self._events  # a kit switch starts an empty stream
+        holds, stats = ({}, dict(EMPTY_STATS)) if fresh else (dict(self._holds), dict(self._stats))
         prior_hold_ids = set(holds)
         quarantined, new_events = list(rejected), []
         duplicate = conflicts = expired_count = 0
-        seen = {e.event_id: e for e in self._events}
+        seen = {e.event_id: e for e in stored}
         seen.update({eid: e for eid, (e, _, _) in holds.items()})
         for row, result in zip(rows, normalized_results):
             try:
@@ -170,7 +172,7 @@ class MutationCoordinator:
         released_candidates = sorted((e for e, _, expired in holds.values() if not expired), key=lambda e: (e.received_at, e.event_time, e.event_id))
         candidates = new_events + released_candidates
         receipts = {}
-        for e in (*self._events, *candidates):
+        for e in (*stored, *candidates):
             if e.event_type == "consult_received" and self._known(e, active_refs):
                 receipts[e.consult_id] = min(receipts.get(e.consult_id, e.event_time), e.event_time)
         accepted, causal = [], 0
@@ -200,7 +202,11 @@ class MutationCoordinator:
                     pending_results[e.event_id].update(status="accepted")
         latest = max((e.event_time for e in accepted), default=None)
         next_clock, clock_payload, clock_warning = self.clock, None, None
-        if advance_clock and latest and latest > as_of:
+        if fresh and latest:  # a new dataset's clock starts at its latest event, in either direction
+            next_clock = FixedClock(latest) if self.clock.mode == "fixed" else AnchoredClock(latest)
+            as_of = next_clock.now()
+            clock_payload = saved_clock(next_clock, received_at)
+        elif advance_clock and latest and latest > as_of:
             if latest - as_of > timedelta(hours=24):
                 clock_warning = "Accepted events are more than 24 hours ahead. Check their dates before explicitly advancing the test clock; these events remain pending."
             else:
@@ -208,7 +214,7 @@ class MutationCoordinator:
                 as_of = next_clock.now()
                 clock_payload = saved_clock(next_clock, received_at)
         reordered = late = 0
-        watermark = self.watermark
+        watermark = None if fresh else self.watermark
         for event in accepted:
             lag = max(0.0, (watermark - event.event_time).total_seconds()) if watermark else 0.0
             if lag:
@@ -220,9 +226,9 @@ class MutationCoordinator:
         for key, count in (("accepted", len(accepted)), ("duplicates", duplicate), ("conflicts", conflicts), ("reordered", reordered), ("late", late), ("rejected", len(quarantined)), ("expired_orphans", expired_count)):
             stats[key] += count
         stats["rows_received"] += len(rows) + len(rejected)
-        candidate = tuple(sorted((*self._events, *accepted), key=lambda e: (e.event_time, e.ingested_at, e.event_id)))
+        candidate = tuple(sorted((*stored, *accepted), key=lambda e: (e.event_time, e.ingested_at, e.event_id)))
         visible_count = bisect_right(candidate, as_of, key=lambda e: e.event_time)
-        state = replay(candidate[:visible_count]) if accepted or visible_count != self._visible_count else self.published.state
+        state = replay(candidate[:visible_count]) if accepted or fresh or visible_count != self._visible_count else self.published.state
         unresolved_history = self._unknown_history(candidate, active_refs) if refs is not None else self._unresolved_history
         ref_revision = self.reference_revision + int(refs is not None and (self.refs is None or refs.payload() != self.refs.payload()))
         saved_refs = {"revision": ref_revision, "payload": active_refs.payload(), **({"source": source} if source else {})} if refs is not None else None
@@ -242,7 +248,7 @@ class MutationCoordinator:
             upload = {**upload, "received_at": received_at.isoformat(), "clock_before": clock_before.isoformat(),
                       "clock_after": as_of.isoformat(), "consult_ids": sorted({r.consult_id for r in rows if r.consult_id}), "report": report}
         revision = self.db.commit_batch(accepted, quarantined, received_at, holds=holds, stats=stats, references=saved_refs, clock=clock_payload,
-                                        upload=upload, expected_revision=self.published.revision)
+                                        upload=upload, expected_revision=self.published.revision, new_generation=fresh)
         self._events, self._holds, self._stats = candidate, holds, stats
         self._visible_count, self.watermark = visible_count, watermark
         self.refs, self.reference_revision = active_refs, ref_revision

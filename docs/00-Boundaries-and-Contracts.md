@@ -53,10 +53,10 @@ event CSV / JSON ──► backend (1 process, in-memory replay) ──► RDS P
 | `GET /audit?gap_id=` | coordinator, lead | Joy, Hitanshu |
 | `GET /schedule` | coordinator, lead | Web schedule: roster, accepted intervals and pending offers; incomplete future ends remain unknown |
 | `GET /alerts/{item_id}/audio` | coordinator, lead | Anish, Hitanshu |
-| `POST /events` (JSON batch), `POST /events/csv` | `admin.inject`: coordinator, lead, admin | Joy |
+| `POST /events` (JSON batch), `POST /events/csv` | `admin.inject`: coordinator, lead, admin | Command page. A CSV whose IDs all belong to another stored kit switches to it with a fresh stream; one matching no kit is refused with 422 ([Reference data](Reference-Data.md)) |
 | `POST /admin/reset`, `POST /admin/clock` | `admin.inject`: coordinator, lead, admin | Joy |
-| `POST /admin/references` `{files: {name: csv text}, service_date?, name?}` (the six reference CSVs) | `admin.inject`: coordinator, lead, admin | script / Joy's Data page |
-| `GET /admin/references` | `admin.inject` | Persisted reference counts, service date and SHA-256 manifest; no CSV contents |
+| `POST /admin/references` `{files: {name: csv text}, service_date?, name?}` (the six reference CSVs) | `admin.inject`: coordinator, lead, admin | script. The first kit (the official one) becomes active; a different kit is stored beside it, never replacing it |
+| `GET /admin/references` | `admin.inject` | Persisted reference counts, service date, SHA-256 manifest and stored `kits`; no CSV contents |
 | `GET /admin/uploads` | `admin.inject` | Latest 20 durable CSV receipts across stream generations: original-byte hash, actor, filename, reference fingerprint and per-row results at upload time |
 | `POST /admin/physician-tokens` `{physician_id}` | admin | demo setup: issues a physician's sign-in link |
 

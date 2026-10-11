@@ -61,8 +61,14 @@ class EventDatabase:
         rows = self.conn.execute("SELECT dataset_generation,payload_json FROM event_uploads ORDER BY received_at DESC,batch_id DESC LIMIT %s", (limit,)).fetchall()
         return [{**json.loads(r["payload_json"]), "dataset_generation": r["dataset_generation"]} for r in rows]
 
-    def commit_batch(self, events: list[Event], quarantined: list[tuple[str, str]], received_at=None, *, holds=None, stats=None, references=None, clock=None, upload=None, expected_revision: int | None = None) -> int:
-        """Commit in a few round trips; with expected_revision, refuse to write over another writer's commits."""
+    def set_metadata(self, key, value):
+        """A value outside the event log (the stored reference kits); it does not change the publication revision."""
+        if self.conn.broken: self.conn = self._connect()
+        self.conn.execute("INSERT INTO metadata VALUES(%s,%s) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, json.dumps(value, sort_keys=True)))
+
+    def commit_batch(self, events: list[Event], quarantined: list[tuple[str, str]], received_at=None, *, holds=None, stats=None, references=None, clock=None, upload=None, expected_revision: int | None = None, new_generation=False) -> int:
+        """Commit in a few round trips; with expected_revision, refuse to write over another writer's commits.
+        `new_generation` starts the next dataset generation in the same transaction (a reference kit switch)."""
         if self.conn.broken: self.conn = self._connect()
         with self.conn.transaction(), self.conn.cursor() as cur:
             cur.execute("SELECT key, value FROM metadata WHERE key IN ('revision','dataset_generation') FOR UPDATE")
@@ -70,6 +76,9 @@ class EventDatabase:
             revision, generation = current["revision"], current["dataset_generation"]
             if expected_revision is not None and revision != expected_revision:
                 raise StaleRevision(f"database revision {revision}, expected {expected_revision}")
+            if new_generation:
+                generation += 1
+                cur.execute("UPDATE metadata SET value=%s WHERE key='dataset_generation'", (str(generation),))
             cur.executemany(f"INSERT INTO events(dataset_generation,{','.join(EVENT_COLUMNS)}) VALUES(%s{',%s' * len(EVENT_COLUMNS)})",
                             [(generation, *(json.dumps(e.raw_json, sort_keys=True) if c == "raw_json" else getattr(e, c) for c in EVENT_COLUMNS)) for e in events])
             cur.executemany("INSERT INTO quarantine(dataset_generation,received_at,reason,raw_json) VALUES(%s,%s,%s,%s)",

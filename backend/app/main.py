@@ -24,7 +24,7 @@ from app.db import EventDatabase
 from app.decide.eligibility import MAX_WEEKLY_OFFERS
 from app.ingest.adapters import FIXTURE_VERSION
 from app.models import EventInput
-from app.service import Engine, REFERENCE_FILES, base_history, jsonable, load_references, reference_manifest, references_from_files
+from app.service import Engine, REFERENCE_FILES, base_history, dataset_label, jsonable, reference_manifest, references_from_files
 from app.tts import Speech
 
 log = logging.getLogger(__name__)
@@ -127,6 +127,8 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
             coordinator = MutationCoordinator(db, clock, settings.late_lag_s, refs=refs, orphan_hold_s=settings.orphan_hold_s,
                                               reference_source=source, references_locked=True)
             engine = Engine(coordinator, ops, None, InterventionLog(url), dataset)
+            if refs is not None and source:
+                engine.store_kit(refs, source)  # databases from before stored kits hold only the active one
             conns.append(engine.interventions.conn)
             engine.desk = OfferDesk(url, engine.context, base_history(history_path or settings.offer_history, clock.now()))
             api.state.db, api.state.clock, api.state.coordinator, api.state.engine = db, clock, coordinator, engine
@@ -152,21 +154,19 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         return {"name": name, "description": f"reference files from {folder.name}",
                 "reference_files": sum((folder / filename).is_file() for filename in REFERENCE_FILES)}
 
-    def uploaded_dataset(source):
-        return {"name": source["name"], "description": "uploaded reference files", "reference_files": len(source["files"]),
-                "fingerprint": reference_manifest(source)["fingerprint"]}
-
     def startup_references(db):
-        """Recover the pinned official reference source from the database, or bootstrap the same kit from disk."""
+        """Recover the active kit from the database, or bootstrap the official kit from disk. The active kit must be
+        the official one or a kit stored beside it; anything else was changed outside the API."""
         source = (db.metadata("references") or {}).get("source")
         directory = settings.reference_dir
         if source:
-            if reference_fingerprint and reference_manifest(source)["fingerprint"] != reference_fingerprint:
-                raise ValueError("Persisted references do not match the fixed Sevaro reference fingerprint")
+            allowed = set(db.metadata("reference_kits") or {}) or {reference_fingerprint}
+            if reference_fingerprint and reference_manifest(source)["fingerprint"] not in allowed:
+                raise ValueError("Persisted references do not match the official Sevaro kit or a stored reference kit")
             if directory:
                 log.warning("using the uploaded references %r from the database; CC_DATA_DIR=%r is ignored", source["name"], directory)
             day = date.fromisoformat(source["service_date"]) if source.get("service_date") else None
-            return *references_from_files(source["files"], day), uploaded_dataset(source), source
+            return *references_from_files(source["files"], day), dataset_label(source), source
         if not directory or not (Path(directory) / "hospitals.csv").exists():
             # Loud, not fatal: /ready reports detection unavailable and decision routes answer 503.
             log.warning("no reference files at CC_DATA_DIR=%r; decisions are unavailable until they are uploaded", directory)
@@ -177,7 +177,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
                   "files": {name: (Path(directory) / name).read_text(encoding="utf-8-sig") for name in REFERENCE_FILES}}
         if reference_fingerprint and reference_manifest(source)["fingerprint"] != reference_fingerprint:
             raise ValueError("Local references do not match the fixed Sevaro reference fingerprint")
-        return *references_from_files(source["files"], day), uploaded_dataset(source), source
+        return *references_from_files(source["files"], day), dataset_label(source), source
 
     async def sweeper(api, interval):
         while True:
@@ -296,8 +296,10 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         source = (request.app.state.db.metadata("references") or {}).get("source")
         upload = {"batch_id": str(uuid4()), "filename": name, "sha256": hashlib.sha256(body).hexdigest(),
                   "actor": who.display_name, "reference_fingerprint": reference_manifest(source)["fingerprint"] if source else None}
-        report = await run_in_threadpool(request.app.state.coordinator.ingest_raw, rows, FIXTURE_VERSION,
-                                         advance_clock=advance_clock, upload=upload)
+        try:  # may switch to the stored kit the file's IDs belong to
+            report = await run_in_threadpool(request.app.state.engine.ingest_upload, rows, FIXTURE_VERSION, upload, who.display_name, advance_clock)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
         request.app.state.clock = request.app.state.coordinator.clock
         return report
 
@@ -498,11 +500,16 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
                     "event_count": p.event_count, "hospitals": len(p.refs.hospitals) if p.refs else 0,
                     "physicians": len(p.refs.physicians) if p.refs else 0,
                     "manifest": reference_manifest(source) if source else None,
+                    "kits": [{"fingerprint": fp, "name": kit["source"]["name"], "service_date": kit["source"].get("service_date"),
+                              "hospitals": len(kit["hospital_ids"]), "physicians": len(kit["physician_ids"]),
+                              "active": source is not None and fp == reference_manifest(source)["fingerprint"]}
+                             for fp, kit in sorted(app.state.engine.stored_kits().items(), key=lambda kv: kv[1]["source"]["name"])],
                     "operational_data": app.state.engine.ops.inventory({hid: h.name for hid, h in p.refs.hospitals.items()}) if app.state.engine.ops and p.refs else None}
 
     @api.post("/admin/references")
     def upload_references(body: ReferencesRequest, request: Request, who: Principal = need("admin.inject")):
-        """Bootstrap the fixed Sevaro kit; matching uploads only verify it. Replacement is forbidden."""
+        """Bootstrap the official Sevaro kit; afterwards a matching upload only verifies it and a different kit is
+        stored beside it. The active kit is never replaced here: an event upload for a stored kit switches to it."""
         if sum(map(len, body.files.values())) > MAX_REFERENCE_CHARS:
             raise HTTPException(413, "reference files exceed the size limit")
         try:
@@ -510,15 +517,15 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         except (ValueError, KeyError, csv.Error) as exc:  # KeyError includes an unknown time zone
             raise HTTPException(422, f"reference files rejected: {exc}") from None
         source = {"name": body.name, "service_date": body.service_date.isoformat() if body.service_date else None, "files": body.files}
-        if reference_fingerprint and reference_manifest(source)["fingerprint"] != reference_fingerprint:
-            raise HTTPException(409, "Only the fixed Sevaro reference kit is permitted")
-        if reference_fingerprint:
+        official = reference_fingerprint and reference_manifest(source)["fingerprint"] == reference_fingerprint
+        if reference_fingerprint and not official and request.app.state.coordinator.refs is None:
+            raise HTTPException(409, "The first reference kit must be the official Sevaro kit")
+        if official:
             source["name"] = "Sevaro official reference kit"
-        try:
-            report = request.app.state.engine.use_references(refs, ops, source, uploaded_dataset(source))
-        except ValueError as exc:
-            raise HTTPException(409, str(exc)) from None
-        return {"activated": not report.get("unchanged", False), "unchanged": report.get("unchanged", False), "dataset": request.app.state.engine.dataset, "revision": report["revision"],
+        report = request.app.state.engine.use_references(refs, ops, source)
+        kept = report.get("unchanged", False) or report.get("stored", False)
+        return {"activated": not kept, "unchanged": report.get("unchanged", False), "stored": report.get("stored", False),
+                "dataset": request.app.state.engine.dataset, "revision": report["revision"],
                 "hospitals": len(refs.hospitals), "physicians": len(refs.physicians), "manifest": reference_manifest(source)}
 
     @api.post("/admin/reset")

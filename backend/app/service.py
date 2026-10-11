@@ -39,6 +39,11 @@ def reference_manifest(source):
             "files": {name: hashlib.sha256(text.encode("utf-8")).hexdigest() for name, text in sorted(content["files"].items())}}
 
 
+def dataset_label(source):
+    return {"name": source["name"], "description": "uploaded reference files", "reference_files": len(source["files"]),
+            "fingerprint": reference_manifest(source)["fingerprint"]}
+
+
 def references_from_files(files: dict[str, str], service_date: date | None = None) -> tuple[Refs, OpsRefs]:
     """Uploaded reference CSVs (file name -> text), checked by the same loaders as a CC_DATA_DIR folder."""
     if set(files) != set(REFERENCE_FILES):
@@ -111,19 +116,68 @@ class Engine:
         self._key, self._value = None, None
         self.swap = Lock()  # held while references and their operational tables are replaced together
 
-    def use_references(self, refs: Refs, ops: OpsRefs, source: dict, dataset: dict) -> dict:
-        """Bootstrap fixed references, or verify an identical upload without writing."""
+    def use_references(self, refs: Refs, ops: OpsRefs, source: dict) -> dict:
+        """Bootstrap the first kit. Once one is active, an identical upload changes nothing and a different kit is
+        stored beside it, never replacing it: only an event upload for that kit switches to it (see `ingest_upload`)."""
         with self.swap:
             previous = (self.coordinator.db.metadata("references") or {}).get("source")
             if self.coordinator.refs is not None:
                 if refs != self.coordinator.refs or ops != self.ops or (previous and
                         reference_manifest(previous)["fingerprint"] != reference_manifest(source)["fingerprint"]):
-                    raise ValueError("Reference data is fixed; replacement is not permitted")
+                    self.store_kit(refs, source)
+                    return {"stored": True, "revision": self.coordinator.published.revision}
                 if previous:
                     return {"unchanged": True, "revision": self.coordinator.published.revision}
             report = self.coordinator.activate_references(refs, source)
-            self.ops, self.dataset = ops, dataset
+            self.store_kit(refs, source)
+            self.ops, self.dataset = ops, dataset_label(source)
         return report
+
+    def stored_kits(self) -> dict:
+        """Reference kits by fingerprint. Content-addressed, so a stored kit (the official one included) never changes."""
+        return self.coordinator.db.metadata("reference_kits") or {}
+
+    def store_kit(self, refs: Refs, source: dict):
+        kits = self.stored_kits()
+        fingerprint = reference_manifest(source)["fingerprint"]
+        if fingerprint not in kits:
+            kits[fingerprint] = {"source": source, "hospital_ids": sorted(refs.hospitals), "physician_ids": sorted(refs.physicians)}
+            self.coordinator.db.set_metadata("reference_kits", kits)
+
+    def _kit_for(self, hospital_ids: set, physician_ids: set) -> dict | None:
+        """The stored kit an events-only file belongs to, or None to append to the active kit. A file that shares any
+        ID with the active kit appends as usual (unknown IDs then take the G4 hold); one that shares none must match
+        exactly one stored kit."""
+        refs = self.coordinator.refs
+        if refs is None or not (hospital_ids or physician_ids) or hospital_ids & set(refs.hospitals) or physician_ids & set(refs.physicians):
+            return None
+        matches = [kit["source"] for _, kit in sorted(self.stored_kits().items())
+                   if hospital_ids <= set(kit["hospital_ids"]) and physician_ids <= set(kit["physician_ids"])]
+        if len(matches) == 1:
+            return matches[0]
+        listed = lambda ids: ", ".join(sorted(ids)[:5]) + (f" and {len(ids) - 5} more" if len(ids) > 5 else "")
+        found = (f"hospitals {listed(hospital_ids)}" if hospital_ids else "") + (" and " if hospital_ids and physician_ids else "") + \
+                (f"physicians {listed(physician_ids)}" if physician_ids else "")
+        if matches:
+            raise ValueError(f"This file's {found} match more than one stored reference kit ({', '.join(m['name'] for m in matches)}). Nothing was added.")
+        raise ValueError(f"This file's {found} are not in the active reference kit ({self.dataset.get('name', 'unnamed')}) or any stored kit. "
+                         "Store that dataset's six reference files first. Nothing was added.")
+
+    def ingest_upload(self, rows: list[dict], adapter: str, upload: dict, actor: str, advance_clock=False) -> dict:
+        """Append an events-only CSV, or, when its IDs belong to another stored kit, switch to that kit with a fresh
+        stream: the kit, the new generation and the events commit together; offers and interventions start empty."""
+        ids = lambda column: {(row.get(column) or "").strip() for row in rows} - {""}
+        with self.swap:
+            source = self._kit_for(ids("hospital_id"), ids("physician_id"))
+            if source is None:
+                return self.coordinator.ingest_raw(rows, adapter, advance_clock=advance_clock, upload=upload)
+            refs, ops = references_from_files(source["files"], date.fromisoformat(source["service_date"]) if source.get("service_date") else None)
+            fingerprint = reference_manifest(source)["fingerprint"]
+            report = self.coordinator.ingest_raw(rows, adapter, upload={**upload, "reference_fingerprint": fingerprint}, refs=refs, source=source)
+            self.ops, self.dataset = ops, dataset_label(source)
+            self.desk.reset(actor, self.coordinator.clock.now())
+            self.interventions.reset()
+        return {**report, "dataset_switched_to": {"name": source["name"], "fingerprint": fingerprint}}
 
     def _current(self):
         with self.swap:

@@ -1,4 +1,4 @@
-"""Runtime pins the official kit; initialized test kits are immutable too."""
+"""Runtime bootstraps the official kit; the active kit is never replaced by a reference upload, only stored beside."""
 from dataclasses import replace
 from types import SimpleNamespace
 import pytest
@@ -13,7 +13,7 @@ from test_accepted_routing import START
 
 
 @pytest.mark.parametrize('change', ['name', 'baseline', 'service_date'])
-def test_initialized_reference_kit_cannot_be_replaced(db_url, monkeypatch, change):
+def test_initialized_reference_kit_is_kept_and_a_changed_kit_is_stored(db_url, monkeypatch, change):
     with TestClient(hosted(db_url, monkeypatch)) as client:
         before = seed(client)
         changed = files()
@@ -22,8 +22,11 @@ def test_initialized_reference_kit_cannot_be_replaced(db_url, monkeypatch, chang
         if change == 'baseline': changed['baseline_hourly_volume.csv'] = changed['baseline_hourly_volume.csv'].replace('0.5,5,12', '2,8,12')
         if change == 'service_date': payload['service_date'] = '2026-04-08'
         response = client.post('/admin/references', headers=ADMIN, json=payload)
-        assert response.status_code == 409
-        assert client.get('/admin/references', headers=ADMIN).json() == before
+        assert response.status_code == 200
+        assert (response.json()['activated'], response.json()['stored']) == (False, True)
+        after = client.get('/admin/references', headers=ADMIN).json()
+        assert {k: v for k, v in after.items() if k != 'kits'} == {k: v for k, v in before.items() if k != 'kits'}
+        assert len(after['kits']) == 2 and sum(k['active'] for k in after['kits']) == 1
 
 
 def test_matching_reference_upload_is_read_only_and_keeps_label(db_url, monkeypatch):
@@ -57,5 +60,5 @@ def test_wrong_bootstrap_and_tampered_restart_are_rejected(db_url, monkeypatch):
         saved['source']['files']['baseline_hourly_volume.csv'] += '\n'
         import json
         db.conn.execute("UPDATE metadata SET value=%s WHERE key='references'", (json.dumps(saved),))
-    with pytest.raises(ValueError, match='fixed Sevaro reference fingerprint'):
+    with pytest.raises(ValueError, match='official Sevaro kit or a stored reference kit'):
         with TestClient(pinned()): pass
