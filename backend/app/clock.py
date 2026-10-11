@@ -53,6 +53,9 @@ def restore_clock(saved: dict, receipt_at: datetime) -> Clock:
     raise ValueError(f"unsupported saved clock mode: {saved['mode']}")
 
 
+AUTO_REPLAY_AFTER_S = 900  # auto mode replays data this far from wall time
+
+
 def make_clock(mode: str, fixed: datetime | None = None, newest_event_time: datetime | None = None) -> Clock:
     if mode == "fixed":
         if fixed is None: raise ValueError("fixed clock requires a timestamp")
@@ -61,6 +64,6 @@ def make_clock(mode: str, fixed: datetime | None = None, newest_event_time: date
     if mode == "wall": return WallClock()
     if mode != "auto": raise ValueError(f"unknown clock mode: {mode}")
     wall = WallClock().now()
-    if newest_event_time and abs((wall - utc(newest_event_time)).total_seconds()) > 900:
+    if newest_event_time and abs((wall - utc(newest_event_time)).total_seconds()) > AUTO_REPLAY_AFTER_S:
         return AnchoredClock(newest_event_time)
     return WallClock()

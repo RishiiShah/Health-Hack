@@ -81,3 +81,21 @@ def test_running_override_survives_restart_with_downtime(db_url, monkeypatch):
         clock = client.get("/snapshot", headers=COORD).json()["clock"]
         assert clock["mode"] == "anchored"
         assert clock["now"] == (later + timedelta(minutes=10)).isoformat()
+
+
+def test_auto_clock_on_an_empty_database_follows_the_first_upload(db_url, monkeypatch):
+    """A fresh deploy starts on wall time; loading an old kit moves it to the kit's clock without waiting for a restart."""
+    monkeypatch.setattr("app.main.settings", replace(settings, reference_fingerprint=None, clock_mode="auto", clock_fixed=None, reference_dir=None))
+    def hosted():
+        speech = SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None))
+        return create_app(db_url, auth=TEST_AUTH, speech=speech, sweep_s=0)
+    body = ("event_id,event_time,ingested_at,consult_id,event_type,physician_id,hospital_id,description\n"
+            f"R,{AT.isoformat()},{AT.isoformat()},C,consult_received,,H,Stroke consult request received\n")
+    with TestClient(hosted()) as client:
+        assert client.get("/snapshot", headers=COORD).json()["clock"]["mode"] == "wall"
+        report = client.post("/events/csv?advance_clock=true", content=body, headers=ADMIN).json()
+        assert AT <= datetime.fromisoformat(report["clock_advanced_to"]) < AT + timedelta(minutes=1)
+        clock = client.get("/snapshot", headers=COORD).json()["clock"]
+        assert clock["mode"] == "anchored" and AT <= datetime.fromisoformat(clock["now"]) < AT + timedelta(minutes=1)
+    with TestClient(hosted()) as client:
+        assert client.get("/snapshot", headers=COORD).json()["clock"]["mode"] == "anchored"

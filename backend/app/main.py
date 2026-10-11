@@ -125,7 +125,8 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
                                    make_clock(settings.clock_mode, settings.fixed_datetime(), max((e.event_time for e in events), default=None)))
             refs, ops, dataset, source = (*references, dataset_of(None), None) if references else startup_references(db)
             coordinator = MutationCoordinator(db, clock, settings.late_lag_s, refs=refs, orphan_hold_s=settings.orphan_hold_s,
-                                              reference_source=source, references_locked=True)
+                                              reference_source=source, references_locked=True,
+                                              auto_clock=not (test_clock or override) and settings.clock_mode == "auto")
             engine = Engine(coordinator, ops, None, InterventionLog(url), dataset)
             if refs is not None and source:
                 engine.store_kit(refs, source)  # databases from before stored kits hold only the active one

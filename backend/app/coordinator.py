@@ -10,7 +10,7 @@ from app.config import DEFAULT_LATE_LAG_S, DEFAULT_ORPHAN_HOLD_S
 from app.db import EventDatabase, StaleRevision
 from app.models import Event, EventInput
 from app.engine.replay import State, replay
-from app.clock import Clock, ServerReceiptClock, FixedClock, AnchoredClock, saved_clock, restore_clock
+from app.clock import AUTO_REPLAY_AFTER_S, Clock, ServerReceiptClock, FixedClock, AnchoredClock, saved_clock, restore_clock
 from app.references import Refs
 from app.ingest.pipeline import normalize_row
 
@@ -33,9 +33,10 @@ class Published:
 
 class MutationCoordinator:
     """Synchronous domain work. P1 schedules sweep() using server time."""
-    def __init__(self, db: EventDatabase, clock: Clock, late_lag_s=DEFAULT_LATE_LAG_S, receipt_clock=None, *, refs: Refs | None = None, orphan_hold_s=DEFAULT_ORPHAN_HOLD_S, reference_source=None, references_locked=False):
+    def __init__(self, db: EventDatabase, clock: Clock, late_lag_s=DEFAULT_LATE_LAG_S, receipt_clock=None, *, refs: Refs | None = None, orphan_hold_s=DEFAULT_ORPHAN_HOLD_S, reference_source=None, references_locked=False, auto_clock=False):
         if late_lag_s < 0 or orphan_hold_s <= 0: raise ValueError("invalid ingest thresholds")
         self.db, self.clock, self.late_lag_s = db, clock, late_lag_s
+        self.auto_clock = auto_clock
         self.orphan_hold_s = orphan_hold_s
         self.receipt_clock = receipt_clock or ServerReceiptClock()
         self.lock = Lock()
@@ -202,7 +203,10 @@ class MutationCoordinator:
                     pending_results[e.event_id].update(status="accepted")
         latest = max((e.event_time for e in accepted), default=None)
         next_clock, clock_payload, clock_warning = self.clock, None, None
-        if fresh and latest:  # a new dataset's clock starts at its latest event, in either direction
+        # Auto mode on an empty stream chose wall time without data; old data now picks its replay clock, as at startup.
+        auto_replay = (self.auto_clock and self.clock.mode == "wall" and not stored and latest
+                       and abs((latest - as_of).total_seconds()) > AUTO_REPLAY_AFTER_S)
+        if (fresh or auto_replay) and latest:  # a new dataset's clock starts at its latest event, in either direction
             next_clock = FixedClock(latest) if self.clock.mode == "fixed" else AnchoredClock(latest)
             as_of = next_clock.now()
             clock_payload = saved_clock(next_clock, received_at)
