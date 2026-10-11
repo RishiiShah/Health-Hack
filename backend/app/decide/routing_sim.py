@@ -131,7 +131,7 @@ def _doctors(state, refs, ops, views, now, end, accepted, seed, session: timedel
         v = views.get(s.physician_id)
         if v is not None and v.derived_state == "Temporarily Unavailable" and "off_shift" not in v.exclusion_reasons:
             continue
-        joiner = s.label.endswith("split shift")
+        joiner = " split shift" in s.label
         on_now = s.start <= now and v is not None and "off_shift" not in v.exclusion_reasons
         busy = on_now and v.derived_state in SIGNAL_BUSY
         docs[s.physician_id] = _Doc(s.physician_id, max(s.start, now), min(s.end or end, end), s.hospitals,

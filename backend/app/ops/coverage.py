@@ -41,6 +41,37 @@ class Gap:
 
 
 @dataclass(frozen=True)
+class SplitShift:
+    """An accepted split shift. `start`/`end` are the shift the rules check; coverage counts it from `arrival`."""
+    physician_id: str
+    start: datetime
+    end: datetime
+    hospitals: frozenset[str]
+    accepted_at: datetime | None = None  # when they said yes: their minutes to come online run from here
+
+
+@dataclass(frozen=True)
+class Arrival:
+    ready: datetime  # counts toward coverage from here
+    online: bool  # seen: a shift_started after accepting
+    late: bool  # not seen by LATE_START_GRACE after the expected time: no longer counted [A50]
+    expected: datetime
+
+
+def arrival(s: SplitShift, state: State, ops: OpsRefs, now: datetime) -> Arrival:
+    """Observed beats estimated [A50]: the first shift_started after accepting is when they came online; until then
+    the roster's minutes to come online, counted from acceptance (a doctor can log in before the shift starts)."""
+    asked = s.accepted_at or s.start
+    entry = ops.roster.get(s.physician_id)
+    expected = max(s.start, asked + timedelta(minutes=entry.minutes_to_online if entry else 0))
+    p = state.physicians.get(s.physician_id)
+    seen = min((t for t in (p.shift_starts if p else ()) if asked <= t <= now), default=None)
+    if seen is not None:
+        return Arrival(max(s.start, seen), True, False, expected)
+    return Arrival(expected, False, now >= expected + LATE_START_GRACE, expected)
+
+
+@dataclass(frozen=True)
 class Supply:
     physician_id: str
     start: datetime
@@ -111,7 +142,7 @@ def current_coverage(state: State, refs: Refs, ops: OpsRefs, views: dict[str, Ph
 
 
 def supply(state: State, refs: Refs, ops: OpsRefs, views: dict[str, PhysicianView], now: datetime, accepted=()) -> list[Supply]:
-    """Who can count toward coverage from when. `accepted` = [(physician_id, start, end, hospitals)] split shifts."""
+    """Who can count toward coverage from when. `accepted`: SplitShift, counted from their arrival."""
     out = []
     for pid, physician in sorted(refs.physicians.items()):
         # Schedule ceiling: status (incl. Temporarily Unavailable) is current-coverage signal, not schedule [A37].
@@ -137,8 +168,11 @@ def supply(state: State, refs: Refs, ops: OpsRefs, views: dict[str, PhysicianVie
         if not started and now >= start + LATE_START_GRACE:
             continue
         out.append(Supply(pid, start, entry.next_shift_end, started, refs.credentials[pid], f"{pid} scheduled {start.astimezone(ET):%H:%M}" + ("" if started else " (not yet online)")))
-    for pid, start, end, hospitals in accepted:
-        out.append(Supply(pid, start, end, True, frozenset(hospitals), f"{pid} split shift"))
+    for s in accepted:
+        a = arrival(s, state, ops, now)
+        if not a.late:
+            out.append(Supply(s.physician_id, a.ready, s.end, a.online, frozenset(s.hospitals),
+                              f"{s.physician_id} split shift" + ("" if a.online else f" (expected online {a.expected.astimezone(ET):%H:%M})")))
     return out
 
 
@@ -207,9 +241,10 @@ def _causes(refs, ops, views, hid, at, surge, received, here, now):
 UNASSIGNED = {"Received", "Triaged"}
 
 
-def joiners_now(accepted, hospital_id: str, now: datetime) -> int:
-    """Accepted split shifts at this hospital that start within the horizon: they are the fix for a current gap."""
-    return sum(1 for _, start, end, hospitals in accepted if hospital_id in hospitals and start < now + HORIZON and now < end)
+def joiners_now(state: State, ops: OpsRefs, accepted, hospital_id: str, now: datetime) -> int:
+    """Accepted split shifts at this hospital coming online within the horizon (and not late): the fix for a current gap."""
+    return sum(1 for s in accepted if hospital_id in s.hospitals and now < s.end
+               and not (a := arrival(s, state, ops, now)).late and a.ready < now + HORIZON)
 
 
 def remaining_need(state: State, refs: Refs, ops: OpsRefs, views: dict[str, PhysicianView], now: datetime, accepted,
@@ -226,6 +261,6 @@ def remaining_need(state: State, refs: Refs, ops: OpsRefs, views: dict[str, Phys
                      if g.hospital_id == h and g.kind == "hard" and g.start < end and start < g.end), default=0)
         c = current.get(h)
         if c is not None and c.gap and h in waiting and start < now + HORIZON:
-            short = max(short, c.required - len(c.available) - joiners_now(accepted, h, now))
+            short = max(short, c.required - len(c.available) - joiners_now(state, ops, accepted, h, now))
         out[h] = max(0, short)
     return out

@@ -16,7 +16,7 @@ from psycopg.rows import dict_row
 from app.clock import Clock, utc
 from app.decide.eligibility import MIN_OFFER, OfferHistory, Proposal, evaluate_proposal
 from app.engine.replay import State
-from app.ops.coverage import remaining_need
+from app.ops.coverage import SplitShift, remaining_need
 from app.ops.detect import views_at
 from app.ops.refs import ET, OpsRefs
 from app.references import Refs
@@ -159,8 +159,8 @@ class OfferDesk:
             return self.conn.execute("SELECT * FROM offer_outbox ORDER BY id").fetchall()
 
     def accepted(self) -> tuple:
-        """Accepted split shifts in the shape decide()/project() take: (physician_id, start, end, hospitals)."""
-        return tuple((o.physician_id, o.start, o.end, frozenset(o.hospitals)) for o in self.offers() if o.state == "ACCEPTED")
+        """Accepted split shifts, as decide()/project() take them."""
+        return self._accepted(self.offers())
 
     def history(self, now: datetime, exclude: str | None = None) -> OfferHistory:
         """R7/R8 and accepted hours from our own offers, plus the supplied history. `exclude`: the offer being re-checked."""
@@ -252,7 +252,8 @@ class OfferDesk:
 
     # ---- rule checks (from current state, inside the transaction) ----------------------------------------
     def _accepted(self, offers, without=None):
-        return tuple((o.physician_id, o.start, o.end, frozenset(o.hospitals)) for o in offers if o.state == "ACCEPTED" and o.id != without)
+        return tuple(SplitShift(o.physician_id, o.start, o.end, frozenset(o.hospitals), o.updated_at)
+                     for o in offers if o.state == "ACCEPTED" and o.id != without)
 
     def _need(self, ctx, offers, hospitals, start, end, extra=()):
         views = views_at(ctx.state, ctx.refs, ctx.now)

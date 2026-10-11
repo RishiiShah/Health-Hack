@@ -9,6 +9,7 @@ from app.act import offers as offers_module
 from app.act.offers import Context, OfferDesk, OfferError
 from app.decide.interventions import decide
 from app.engine.replay import replay
+from app.ops.coverage import SplitShift
 from app.ops.refs import OpsRefs, RosterEntry
 from app.references import Hospital, Physician, Refs, Shift
 
@@ -69,7 +70,7 @@ def test_happy_path_propose_approve_send_accept(desk, world):
     assert msg["kind"] == "offer" and "Glen" in msg["body"] and "6:30 PM to 9:00 PM" in msg["body"] and "Expires at 6:15 PM" in msg["body"]
     world.now = et(18, 9)
     assert desk.accept(o["id"], "R1")["state"] == "ACCEPTED"
-    assert desk.accepted() == (("R1", et(18, 30), et(21), frozenset({"G"})),)
+    assert desk.accepted() == (SplitShift("R1", et(18, 30), et(21), frozenset({"G"}), et(18, 9)),)  # minutes to online run from the yes
     trail = [(a["command"], a["from_state"], a["to_state"], a["revision"]) for a in desk.audit("gap:G")]
     assert trail == [("propose", None, "PROPOSED", 7), ("approve", "PROPOSED", "APPROVED", 7), ("send", "APPROVED", "SENT", 7),
                      ("accept", "SENT", "ACCEPTED", 7)]
@@ -247,3 +248,38 @@ def test_concurrent_commands_from_two_instances_serialize(db_url, world):
     # Need is 1: exactly one acceptance, whichever committed first; the other is told the gap is filled.
     assert sorted(results.values()) == ["ACCEPTED", "already_filled"]
     assert sum(x.state == "ACCEPTED" for x in desks[1].offers()) == 1
+
+
+def started(pid, at):
+    from app.models import Event, EventInput
+    row = EventInput(event_id=f"S-{pid}", event_time=at, ingested_at=at, event_type="shift_started", physician_id=pid)
+    return Event(**{**row.model_dump(), "received_at": at, "raw_json": {}})
+
+
+def g_gaps(world, accepted):
+    from app.ops.coverage import project
+    from app.ops.detect import views_at
+    return [(g.start, g.end, g.kind) for g in project(world.state, world.refs, world.ops, views_at(world.state, world.refs, world.now), world.now, accepted)
+            if g.hospital_id == "G"][:2]
+
+
+def test_a_joiner_counts_from_when_they_can_be_online_and_observed_beats_estimated(world):
+    """[A50] Yes at 18:25 with 10 min to come online: nobody takes calls until 18:35, and after that the gap is covered
+    only if they come online. A shift_started settles it with the real time."""
+    s = SplitShift("R1", et(18, 30), et(21), frozenset({"G"}), et(18, 25))
+    world.now = et(18, 26)
+    assert g_gaps(world, (s,)) == [(et(18, 26), et(18, 35), "hard"), (et(18, 35), et(19, 56), "at_risk")]  # to the 90-min outlook
+    world.state, world.now = replay((started("R1", et(18, 32)),)), et(18, 33)
+    assert g_gaps(world, (s,)) == []  # online at 18:32: covered through the outlook
+    d = decide(world.state, world.refs, world.ops, world.now, accepted=(s,))
+    assert not [i for i in d.items if i.id.startswith("joiner_late:")]
+
+
+def test_a_joiner_who_never_comes_online_stops_counting_and_the_coordinator_is_told(world):
+    s = SplitShift("R1", et(18, 30), et(21), frozenset({"G"}), et(18, 25))
+    world.now = et(18, 40)  # expected 18:35, grace 5 min, no shift_started
+    assert g_gaps(world, (s,)) == [(et(18, 40), et(20, 10), "hard")]  # their hours no longer count
+    d = decide(world.state, world.refs, world.ops, world.now, accepted=(s,))
+    late = next(i for i in d.items if i.id == "joiner_late:R1")
+    assert late.fix.kind == "contact_physician" and "18:35" in late.what
+    assert any(i.id.startswith("gap:G:") and i.severity == "Critical" for i in d.items)  # the gap is open again

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from app.decide.eligibility import Candidate, OfferHistory, Proposal, evaluate, evaluate_proposal
 from app.decide.routing_sim import routing_order, trap_check
 from app.engine.replay import State
-from app.ops.coverage import SIGNAL_BUSY, Gap, Surge, current_coverage, joiners_now, outlook_end, project, surges
+from app.ops.coverage import SIGNAL_BUSY, Gap, Surge, arrival, current_coverage, joiners_now, outlook_end, project, surges
 from app.ops.detect import SEVERITY, Finding, detect, owner_can_act, views_at
 from app.ops.refs import ET, OpsRefs
 from app.references import Refs
@@ -324,7 +324,7 @@ def _current_gap_items(state, refs, ops, views, now, hard, history, accepted=())
             waiting.setdefault(c.hospital_id, []).append(c.consult_id)
     free = [v for v in views.values() if "off_shift" not in v.exclusion_reasons and v.derived_state not in SIGNAL_BUSY]
     for cc in current_coverage(state, refs, ops, views, now):
-        if not cc.gap or len(cc.available) + joiners_now(accepted, cc.hospital_id, now) >= cc.required:
+        if not cc.gap or len(cc.available) + joiners_now(state, ops, accepted, cc.hospital_id, now) >= cc.required:
             continue  # short by signals, but an accepted split shift is already the fix
         hid = cc.hospital_id
         elsewhere = [f"{v.physician_id} is free but not credentialed here" for v in free if hid not in v.credentialed_hospitals]
@@ -369,13 +369,33 @@ def _with_trap_guard(item: Item, state, refs, ops, views, now, service, accepted
     return Item(item.id, item.severity, item.what, item.where, {**item.why, "trap_guard": guard}, fix, item.rank_key, item.candidates)
 
 
+def _late_joiner_items(state, refs, ops, now, accepted):
+    """A doctor who accepted but has not come online no longer counts [A50]; the reopened gap gets its own item,
+    and this one tells the coordinator to call them."""
+    items = []
+    for s in accepted:
+        a = arrival(s, state, ops, now)
+        if not a.late or now >= s.end:
+            continue
+        item_id = f"joiner_late:{s.physician_id}"
+        names = ", ".join(refs.hospitals[h].name for h in sorted(s.hospitals))
+        items.append(Item(item_id, "Warning", f"{s.physician_id} accepted a split shift but has not come online (expected {a.expected.astimezone(ET):%H:%M})",
+                          {"physician_id": s.physician_id, "hospital_ids": sorted(s.hospitals)},
+                          {"expected_online": a.expected, "accepted_at": s.accepted_at, "shift": f"{s.start.astimezone(ET):%H:%M}-{s.end.astimezone(ET):%H:%M}"},
+                          Fix("contact_physician", "coordinator", f"Call {s.physician_id} about the accepted split shift at {names}",
+                              "no shift_started by 5 min after the expected online time; their hours no longer count toward coverage",
+                              physician_id=s.physician_id),
+                          _rank_key("Warning", True, False, False, False, a.expected, len(s.hospitals), item_id)))
+    return items
+
+
 def decide(state: State, refs: Refs, ops: OpsRefs, now: datetime, history: OfferHistory = OfferHistory(), accepted=(),
            service=None) -> Decisions:
     """`service`: observed_service(events, state), median busy minutes per consult; enables the trap check on offers.
     `accepted` split shifts always count against R4/R5, even if `history` was built without them."""
     windows = {}
-    for pid, start, end, _ in accepted:
-        windows.setdefault(pid, set(history.accepted.get(pid, ()))).add((start, end))
+    for s in accepted:
+        windows.setdefault(s.physician_id, set(history.accepted.get(s.physician_id, ()))).add((s.start, s.end))
     if windows:
         history = replace(history, accepted={**history.accepted, **{p: tuple(sorted(w)) for p, w in windows.items()}})
     views = views_at(state, refs, now)
@@ -398,6 +418,7 @@ def decide(state: State, refs: Refs, ops: OpsRefs, now: datetime, history: Offer
     if service is not None:
         items = [_with_trap_guard(i, state, refs, ops, views, now, service, accepted) if i.fix.kind == "split_shift" else i for i in items]
     items += _at_risk_items(gaps, hard, refs, ops, now, history)
+    items += _late_joiner_items(state, refs, ops, now, accepted)
     found_surges = surges(state, refs, ops, now)
     for s in found_surges:
         items.append(Item(f"surge:{s.hospital_id}", "Warning", f"{refs.hospitals[s.hospital_id].name} demand surge: {s.count} consults in 60 min vs p90 {s.p90:g}",
