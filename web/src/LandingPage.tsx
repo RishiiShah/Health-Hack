@@ -39,7 +39,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         }
       `}</style>
 
-      {/* ================= 1. FLOATING CENTERED NAVBAR ================= */}
+      {/* ================= 1. FLOATING NAVBAR ================= */}
       <nav className="fixed top-5 inset-x-0 mx-auto z-50 flex w-[calc(100%-48px)] max-w-5xl items-center justify-between rounded-full border border-slate-200/90 bg-white/90 px-6 py-3 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
         <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2">
           <span className="relative block h-5 w-6">
@@ -49,18 +49,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           <strong className="text-base font-bold tracking-tight text-slate-900">overlap</strong>
         </button>
 
-        <div className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-full border border-slate-200/50 text-xs font-semibold text-slate-600">
-          <button onClick={() => scrollTo("overview")} className="bg-white text-slate-900 px-4 py-1.5 rounded-full shadow-sm">Overview</button>
-          <button onClick={() => scrollTo("network")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Network</button>
-          <button onClick={() => scrollTo("roles")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Workspaces</button>
-          <button onClick={() => scrollTo("safety")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Clinical Proof</button>
-        </div>
-
         <button
           onClick={() => onGoToSignIn("coordinator")}
-          className="text-xs font-semibold text-slate-900 hover:text-teal-700 transition px-3 py-1.5"
+          className="rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800"
         >
-          Sign In →
+          Sign In
         </button>
       </nav>
 
@@ -258,17 +251,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
             {/* Coordinator Workspace Card */}
             <div className="hover-lift bg-white rounded-3xl border border-[#E2DFD8] p-8 md:p-10 flex flex-col justify-between shadow-sm">
               <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
-                    Coordinator Workspace
-                  </span>
-                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    LIVE DISPATCH
-                  </span>
-                </div>
-
-                <h3 className="text-2xl font-bold text-slate-900 mt-4 tracking-tight">Command Center</h3>
+                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Command Center</h3>
                 <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
                   Real-time national grid oversight. Triage queue monitoring, predictive shortfall detection, and automated physician dispatch across 100+ partner hospitals.
                 </p>
@@ -288,7 +271,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-start">
                 <button
                   onClick={() => onGoToSignIn("coordinator")}
                   className="rounded-xl bg-[#161E2E] hover:bg-slate-900 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group"
@@ -296,23 +279,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   <span>Sign In to Command Center</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </button>
-                <span className="text-xs font-mono text-slate-400">Desktop Web Optimized</span>
               </div>
             </div>
 
             {/* Physician Experience Card */}
             <div className="hover-lift bg-white rounded-3xl border border-[#E2DFD8] p-8 md:p-10 flex flex-col justify-between shadow-sm">
               <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
-                    Physician Experience
-                  </span>
-                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-teal-700 font-semibold bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/50">
-                    1-TAP HANDOFF
-                  </span>
-                </div>
-
-                <h3 className="text-2xl font-bold text-slate-900 mt-4 tracking-tight">Mobile & Web Handoff</h3>
+                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Mobile & Web Handoff</h3>
                 <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
                   Distraction-free emergency shift acceptance. Doctor rest intervals are checked against 8 clinical fatigue rules before alerts reach their phone. Zero patient PHI.
                 </p>
@@ -333,7 +306,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-start">
                 <button
                   onClick={() => onGoToSignIn("physician")}
                   className="rounded-xl bg-teal-700 hover:bg-teal-800 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group"
@@ -341,7 +314,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   <span>Sign In as Physician</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
                 </button>
-                <span className="text-xs font-mono text-slate-400">Mobile Responsive</span>
               </div>
             </div>
 
@@ -387,11 +359,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         </section>
 
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 pt-8 pb-12 text-center text-xs text-slate-400 font-mono">
-        © 2026 Overlap Systems · Sevaro Tele-Stroke Challenge · Autonomous Clinical Coordination
-      </footer>
     </div>
   );
 };
