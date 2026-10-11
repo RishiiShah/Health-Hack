@@ -39,7 +39,7 @@
 .command-section-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 24px; padding: 0 0 18px; border-bottom: 1px solid var(--line); }
 .command-section-nav > span { color: var(--muted); font: 10px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; }
 .command-section-nav a { color: var(--ink-2); text-decoration: none; font-size: 12px; font-weight: 600; padding: 5px 0; }
-.command-section-nav a:hover { color: var(--teal); }
+.command-section-nav a:hover { color: var(--accent-text); }
 .workspace-main .command-section { scroll-margin-top: 150px; }
 .workspace-main .command-section-head { margin-bottom: 16px; }
 .workspace-main .command-section-head h2 { font-size: 22px; }
@@ -47,7 +47,7 @@
 .workspace-main .panel h3, .workspace-main .queue-card h3 { font-size: 16px; line-height: 1.35; }
 .workspace-main .panel .panel-note { margin: 5px 0 0; font-size: 11px; }
 .workspace-main .panel-head { align-items: center; margin-bottom: 18px; }
-.workspace-main .text-link { color: #0f766e; text-decoration: none; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.workspace-main .text-link { color: #101B2B; text-decoration: none; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .workspace-main .text-link:hover { text-decoration: underline; }
 .activity-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
 .activity-metrics article { display: flex; align-items: center; gap: 14px; background: #edf3f6; border: 1px solid #dbe4ea; border-radius: 10px; padding: 16px; }
@@ -63,9 +63,9 @@
 .workspace-main .num { text-align: right; font-family: var(--font-mono); }
 .activity-state { display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: normal; max-width: 24ch; line-height: 1.5; }
 .activity-state i { width: 6px; height: 6px; background: #53738a; border-radius: 50%; flex-shrink: 0; }
-.activity-state.available i { background: #0d9488; }
+.activity-state.available i { background: #B8D8EB; }
 .routing-state { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; white-space: normal; max-width: 28ch; }
-.routing-state.available { color: #0f766e; }
+.routing-state.available { color: #101B2B; }
 .site-list { max-width: 20ch; white-space: normal; }
 .site-list summary { color: #466d7a; cursor: pointer; font-size: 11px; }
 .site-list ul { margin: 8px 0 0; padding-left: 12px; font-size: 10px; }
@@ -108,7 +108,7 @@
 .workspace-main .queue-card, .workspace-main .dossier-card { padding: 22px; }
 .queue-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .queue-filters button { border: 1px solid #e3e8e5; border-radius: 6px; background: #fff; color: var(--muted); font-size: 10px; padding: 5px 8px; cursor: pointer; }
-.queue-filters button[aria-pressed="true"] { background: #eaf3f0; color: #0f766e; border-color: #a9cec2; }
+.queue-filters button[aria-pressed="true"] { background: #E2ECF3; color: #101B2B; border-color: #B8D8EB; }
 .queue-filters button span { margin-left: 4px; font-family: var(--font-mono); }
 .workspace-main .dense-queue-row { padding: 13px 5px; }
 .workspace-main .queue-label small { white-space: normal; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -141,7 +141,7 @@
 .eligibility-rules dt { font-family: var(--font-mono); font-weight: 600; }
 .eligibility-rules dd { margin: 0; color: var(--muted); }
 .eligibility-rules p { font-size: 11px; color: var(--muted); }
-.workspace-main :is(button, a, input, select, summary):focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.workspace-main :is(button, a, input, select, summary):focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
 @media (max-width: 1200px) {
   .activity-metrics article { padding: 14px 10px; gap: 10px; }
 }
@@ -234,11 +234,11 @@
 /* Headline numbers link to the section or page that explains them. */
 .headline-grid a.metric-card { color: inherit; text-decoration: none; transition: background .15s; }
 .headline-grid a.metric-card:hover { background: #f7faf9; }
-.headline-grid .metric-card small b { color: var(--teal); font-weight: 600; opacity: 0; transition: opacity .15s; }
+.headline-grid .metric-card small b { color: var(--accent-text); font-weight: 600; opacity: 0; transition: opacity .15s; }
 .headline-grid a.metric-card:hover small b, .headline-grid a.metric-card:focus-visible small b { opacity: 1; }
 .headline-grid .metric-card.risk strong { color: var(--red); }
 .headline-grid .metric-card.warn strong { color: var(--amber); }
-.headline-grid .metric-card.good strong { color: #0f766e; }
+.headline-grid .metric-card.good strong { color: #101B2B; }
 
 /* Consults and Doctors pages carry the detail that used to sit on Command. */
 .detail-page { display: flex; flex-direction: column; gap: 20px; }
@@ -246,7 +246,7 @@
 .activity-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); margin-bottom: 0; }
 .detail-page .waiting-stack { grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); }
 .detail-page .forecast-panels { margin-top: 0; }
-.detail-page tr:focus { outline: 2px solid var(--teal); outline-offset: -2px; }
+.detail-page tr:focus { outline: 2px solid var(--accent-text); outline-offset: -2px; }
 
 /* Section headings read top to bottom: step, title, then what the section is for. */
 .command-section-head { flex-direction: column; align-items: start; gap: 4px; }
@@ -270,7 +270,7 @@
 .tracker-list { display: grid; gap: 14px; }
 .workspace-main .tracker { border: 1px solid var(--line); border-left: 3px solid #c9d6d0; border-radius: 10px; padding: 18px 20px; background: #fff; }
 .workspace-main .tracker-proposed { border-left-color: var(--amber-line); }
-.workspace-main .tracker-sent { border-left-color: var(--teal); }
+.workspace-main .tracker-sent { border-left-color: var(--accent-text); }
 .workspace-main .tracker + .tracker { margin-top: 0; }
 .workspace-main .tracker-heading { margin-bottom: 14px; }
 .workspace-main .tracker-heading h4 { margin: 0; font: 700 17px/1.3 var(--font-head); letter-spacing: -.01em; }

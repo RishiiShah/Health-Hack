@@ -14,7 +14,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F6F0] text-slate-900 overflow-x-hidden selection:bg-teal-100 selection:text-teal-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#E8E6E0] text-slate-900 overflow-x-hidden selection:bg-[#E2ECF3] selection:text-[#101B2B] flex flex-col justify-between">
       <style>{`
         /* Floating Glass Cards */
         @keyframes floatCard1 {
@@ -43,8 +43,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
       <nav className="fixed top-5 inset-x-0 mx-auto z-50 flex w-[calc(100%-48px)] items-center justify-between rounded-full border border-slate-200/90 bg-white/90 px-6 py-3 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
         <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2">
           <span className="relative block h-5 w-6">
-            <i className="absolute left-0 top-0 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-teal-600" />
-            <i className="absolute left-2.5 top-1.5 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#161E2E]" />
+            <i className="absolute left-0 top-0 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#B8D8EB]" />
+            <i className="absolute left-2.5 top-1.5 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#101B2B]" />
           </span>
           <strong className="text-base font-bold tracking-tight text-slate-900">overlap</strong>
         </button>
@@ -58,7 +58,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
         <button
           onClick={() => onGoToSignIn("coordinator")}
-          className="text-xs font-semibold text-slate-900 hover:text-teal-700 transition px-3 py-1.5"
+          className="text-xs font-semibold text-slate-900 hover:text-[#101B2B] transition px-3 py-1.5"
         >
           Sign In →
         </button>
@@ -71,7 +71,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         <section className="text-center max-w-3xl mx-auto mb-8 px-4">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold font-heading text-slate-900 tracking-tight leading-[1.08]">
             Spot coverage gaps,<br />
-            <span className="font-normal italic font-serif text-teal-700">before</span> shifts change.
+            <span className="font-normal italic font-serif text-[#101B2B]">before</span> shifts change.
           </h1>
           <p className="mt-4 text-base md:text-lg text-slate-600 max-w-xl mx-auto leading-relaxed">
             Deterministic coverage planning, ranked alerts, and lead-approved physician offers using the Sevaro challenge kit.
@@ -80,7 +80,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <button
               onClick={() => onGoToSignIn("coordinator")}
-              className="rounded-full bg-teal-700 px-7 py-3.5 text-xs font-semibold text-white shadow-lg shadow-teal-900/10 transition hover:-translate-y-0.5 hover:bg-teal-800"
+              className="rounded-full bg-[#B8D8EB] px-7 py-3.5 text-xs font-semibold text-[#101B2B] shadow-lg shadow-[#101B2B]/10 transition hover:-translate-y-0.5 hover:bg-[#A6CAE0]"
             >
               Sign In to Command Center →
             </button>
@@ -127,7 +127,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                 <linearGradient id="cyanBeam" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#14B8A6" stopOpacity="0.8" />
                   <stop offset="50%" stopColor="#2DD4BF" stopOpacity="1" />
-                  <stop offset="100%" stopColor="#5EEAD4" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#B8D8EB" stopOpacity="0.9" />
                 </linearGradient>
 
                 <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
@@ -145,19 +145,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
               <path d="M 695 545 Q 890 470 1050 345" fill="none" stroke="url(#cyanBeam)" strokeWidth="2.5" opacity="0.6" />
 
               {/* GLOWING CYAN COMETS (CONTINUOUS MOTION ACROSS THE MAP) */}
-              <circle r="6" fill="#5EEAD4" filter="url(#glow)">
+              <circle r="6" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="2.8s" repeatCount="indefinite" path="M 340 195 Q 500 330 695 545" />
               </circle>
-              <circle r="5" fill="#5EEAD4" filter="url(#glow)">
+              <circle r="5" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="2.4s" repeatCount="indefinite" path="M 288 392 Q 420 340 565 395" />
               </circle>
-              <circle r="5.5" fill="#5EEAD4" filter="url(#glow)">
+              <circle r="5.5" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="2.2s" repeatCount="indefinite" path="M 695 545 Q 770 430 838 355" />
               </circle>
-              <circle r="6" fill="#5EEAD4" filter="url(#glow)">
+              <circle r="6" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="2.5s" repeatCount="indefinite" path="M 838 355 Q 950 310 1050 345" />
               </circle>
-              <circle r="5" fill="#5EEAD4" filter="url(#glow)">
+              <circle r="5" fill="#B8D8EB" filter="url(#glow)">
                 <animateMotion dur="3s" begin="1.2s" repeatCount="indefinite" path="M 695 545 Q 890 470 1050 345" />
               </circle>
 
@@ -181,8 +181,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   <animate attributeName="r" values="8;16;8" dur="3s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
-                <text x="18" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">Seattle</text>
+                <circle cx="0" cy="0" r="6" fill="#B8D8EB" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="18" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#101B2B">Seattle</text>
               </g>
 
               <g transform="translate(288, 392)">
@@ -190,8 +190,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   <animate attributeName="r" values="8;16;8" dur="3s" begin="0.5s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="0.5s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
-                <text x="18" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">San Francisco</text>
+                <circle cx="0" cy="0" r="6" fill="#B8D8EB" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="18" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#101B2B">San Francisco</text>
               </g>
 
               <g transform="translate(565, 395)">
@@ -199,8 +199,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   <animate attributeName="r" values="8;16;8" dur="3s" begin="1s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="1s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
-                <text x="0" y="24" textAnchor="middle" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">Denver</text>
+                <circle cx="0" cy="0" r="6" fill="#B8D8EB" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="0" y="24" textAnchor="middle" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#101B2B">Denver</text>
               </g>
 
               <g transform="translate(838, 355)">
@@ -208,8 +208,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   <animate attributeName="r" values="8;16;8" dur="3s" begin="1.5s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="1.5s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
-                <text x="0" y="24" textAnchor="middle" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">Chicago</text>
+                <circle cx="0" cy="0" r="6" fill="#B8D8EB" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="0" y="24" textAnchor="middle" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#101B2B">Chicago</text>
               </g>
 
               <g transform="translate(1050, 345)">
@@ -217,8 +217,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   <animate attributeName="r" values="8;18;8" dur="3s" begin="2s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="2s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="0" cy="0" r="7" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
-                <text x="20" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">New York</text>
+                <circle cx="0" cy="0" r="7" fill="#B8D8EB" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="20" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#101B2B">New York</text>
               </g>
 
               {/* DALLAS HUB & FIXED 280px CAPSULE PILL */}
@@ -227,8 +227,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                 <text x="20" y="6" fontFamily="'IBM Plex Sans'" fontSize="17" fontWeight="800" fill="#B45309">Dallas</text>
 
                 <g transform="translate(0, -42)">
-                  <rect x="-140" y="-15" width="280" height="30" rx="15" fill="#0F172A" stroke="#334155" strokeWidth="1.2" />
-                  <polygon points="-6,15 0,21 6,15" fill="#0F172A" />
+                  <rect x="-140" y="-15" width="280" height="30" rx="15" fill="#101B2B" stroke="#334155" strokeWidth="1.2" />
+                  <polygon points="-6,15 0,21 6,15" fill="#101B2B" />
                   <text x="0" y="5" textAnchor="middle" fontFamily="'IBM Plex Mono'" fontSize="11.5" fontWeight="600">
                     <tspan fill="#F59E0B">ED Stroke Surge</tspan>
                     <tspan fill="#64748B"> · </tspan>
@@ -261,7 +261,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
             <div className="hover-lift bg-white rounded-3xl border border-[#E2DFD8] p-5 sm:p-8 md:p-10 flex flex-col justify-between shadow-sm">
               <div>
                 <div className="flex flex-wrap gap-3 items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#101B2B] bg-[#E2ECF3] px-3 py-1 rounded-full border border-[#B8D8EB]/60">
                     Coordinator Workspace
                   </span>
                   <span className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
@@ -278,7 +278,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                 <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200/70 p-4 space-y-2.5">
                   <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
                     <span className="text-slate-500 font-mono">Decision policy</span>
-                    <span className="text-teal-700 font-bold font-mono">Severity first</span>
+                    <span className="text-[#101B2B] font-bold font-mono">Severity first</span>
                   </div>
                   <div className="flex flex-wrap gap-3 items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
                     <span>Deterministic replay and explanations</span>
@@ -290,7 +290,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
               <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap gap-3 items-center justify-between">
                 <button
                   onClick={() => onGoToSignIn("coordinator")}
-                  className="rounded-xl bg-[#161E2E] hover:bg-slate-900 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group"
+                  className="rounded-xl bg-[#101B2B] hover:bg-slate-900 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group"
                 >
                   <span>Sign In to Command Center</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
@@ -303,10 +303,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
             <div className="hover-lift bg-white rounded-3xl border border-[#E2DFD8] p-5 sm:p-8 md:p-10 flex flex-col justify-between shadow-sm">
               <div>
                 <div className="flex flex-wrap gap-3 items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#101B2B] bg-[#E2ECF3] px-3 py-1 rounded-full border border-[#B8D8EB]/60">
                     Physician Experience
                   </span>
-                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-teal-700 font-semibold bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/50">
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-[#101B2B] font-semibold bg-[#E2ECF3] px-2.5 py-0.5 rounded-full border border-[#B8D8EB]/50">
                     1-TAP HANDOFF
                   </span>
                 </div>
@@ -316,10 +316,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   Review and reply to approved shift offers. Eligibility checks use the supplied credentials, availability, rest, hours, and offer limits. Acceptance awaits observed arrival before routing.
                 </p>
 
-                <div className="mt-6 rounded-2xl bg-teal-900/5 border border-teal-800/15 p-4 space-y-2.5">
+                <div className="mt-6 rounded-2xl bg-[#101B2B]/5 border border-[#101B2B]/15 p-4 space-y-2.5">
                   <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
                     <span className="text-slate-700 font-medium">Shift offer workflow</span>
-                    <span className="text-teal-800 font-bold font-mono text-[11px] bg-teal-100/70 px-2 py-0.5 rounded">Lead approved</span>
+                    <span className="text-[#101B2B] font-bold font-mono text-[11px] bg-[#E2ECF3]/70 px-2 py-0.5 rounded">Lead approved</span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-slate-600 font-mono">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -335,7 +335,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
               <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap gap-3 items-center justify-between">
                 <button
                   onClick={() => onGoToSignIn("physician")}
-                  className="rounded-xl bg-teal-700 hover:bg-teal-800 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group"
+                  className="rounded-xl bg-[#B8D8EB] hover:bg-[#A6CAE0] px-6 py-3.5 text-xs font-semibold text-[#101B2B] shadow-md transition flex items-center gap-2 group"
                 >
                   <span>Sign In as Physician</span>
                   <span className="group-hover:translate-x-1 transition-transform">→</span>
@@ -364,7 +364,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
             {/* Fixed reference hospitals. */}
             <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
-              <div className="text-2xl font-extrabold font-heading text-teal-700">12</div>
+              <div className="text-2xl font-extrabold font-heading text-[#101B2B]">12</div>
               <div className="text-xs font-semibold text-slate-800 mt-1">Reference Hospitals</div>
               <div className="text-[11px] text-slate-500 mt-0.5">Official Sevaro kit</div>
             </div>

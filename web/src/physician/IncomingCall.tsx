@@ -64,8 +64,8 @@ export function IncomingCall() {
   const done = result ?? closed;
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-      <section role="alertdialog" aria-labelledby="call-title" className="w-full max-w-sm rounded-3xl bg-[#161E2E] p-7 text-center text-white shadow-2xl">
-        <span className="font-mono text-[11px] uppercase tracking-widest text-teal-300">{ringing ? "Incoming call" : answered ? "On call" : "Call ended"}</span>
+      <section role="alertdialog" aria-labelledby="call-title" className="w-full max-w-sm rounded-3xl bg-[#101B2B] p-7 text-center text-white shadow-2xl">
+        <span className="font-mono text-[11px] uppercase tracking-widest text-[#B8D8EB]">{ringing ? "Incoming call" : answered ? "On call" : "Call ended"}</span>
         <h2 id="call-title" className="mt-3 text-2xl font-bold">Sevaro Coverage</h2>
         <p className="mt-1 text-sm text-slate-300">Incoming shift offer from Sevaro Operations</p>
         <div className="mt-6 rounded-2xl bg-white/10 p-4">
@@ -83,11 +83,11 @@ export function IncomingCall() {
         ) : !answered ? (
           <div className="mt-8 flex justify-around">
             <button onClick={close} className="h-16 w-16 rounded-full bg-red-600 text-sm font-semibold shadow-lg">Decline</button>
-            <button onClick={answer} className="h-16 w-16 animate-pulse rounded-full bg-teal-500 text-sm font-semibold shadow-lg">Answer</button>
+            <button onClick={answer} className="h-16 w-16 animate-pulse rounded-full bg-[#B8D8EB] text-sm text-[#101B2B] font-semibold shadow-lg">Answer</button>
           </div>
         ) : (
           <div className="mt-6 grid gap-2">
-            <button onClick={() => reply("accept")} className="rounded-full bg-teal-500 py-3 text-sm font-semibold">Accept shift</button>
+            <button onClick={() => reply("accept")} className="rounded-full bg-[#B8D8EB] py-3 text-sm text-[#101B2B] font-semibold">Accept shift</button>
             <button onClick={() => reply("decline")} className="rounded-full bg-white/10 py-3 text-sm font-semibold">Decline shift</button>
             <button onClick={close} className="py-2 text-xs text-slate-400">Hang up · reply later from Offers</button>
           </div>
