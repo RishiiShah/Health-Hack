@@ -267,7 +267,8 @@ class Engine:
                 "with": [{"count": c["count"] + (1 if joined(c["at"]) else 0), "required": c["required"]} for c in cells],
                 "joiner_load": guarded.load(pid), "busiest_peer_load": max((guarded.load(x) for x in peers), default=0),
                 "other_gaps_worsened": guarded.wait(others) > none.wait(others),
-                "assumption": "Router rules 1-5 replayed with baseline demand; service time is today's median busy minutes per consult",
+                "assumption": "Router rules 1-5 replayed with a usual day's demand" + (f", today's observed pace ({check.pace:.2f} x usual)" if "todays_pace" in check.scenarios else "")
+                              + (" and the current surge continuing" if "surge_continues" in check.scenarios else "") + "; every scenario must pass. Service time is today's median busy minutes per consult",
                 "scenarios": runs_view(check, pid)}
 
     def offer_view(self, o):

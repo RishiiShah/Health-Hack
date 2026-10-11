@@ -18,6 +18,9 @@ NIGHT_START_HOUR = 17  # [A7] on-shift file has no day/night role
 LOW_VOLUME = {"day": 6, "night": 4}  # [B p3] rule 3
 RETRY = timedelta(minutes=5)  # [B p3] rule 5
 COOLDOWN = timedelta(minutes=2)  # [B p3] rule 2
+PACE_WINDOW = timedelta(hours=2)  # [A51] today's demand is measured over the last two hours
+PACE_PRIOR = 5  # [A51] consults of "usual day" added to both sides, so a quiet half hour cannot swing the pace
+PACE_MIN_CHANGE = 0.2  # [A51] a pace this close to 1 is the baseline scenario again
 PEER_TOLERANCE = 1  # [A41] counts are discrete: no peer gains, and the joiner exceeds the busiest peer, by more than one
 SESSION_ENDS = {"video_ended": "video", **{k: v for k, v in CALL_ENDS.items() if v == "incoming"}}
 SESSION_STARTS = {"video_started": "video", **{k: v for k, v in CALL_STARTS.items() if v == "incoming"}}
@@ -100,8 +103,31 @@ class Run:
         return sum(1 for h in hospitals for w in self.waits.get(h, ()) if w > 0)
 
 
-def _arrivals(state: State, ops: OpsRefs, refs: Refs, now: datetime, end: datetime, service, surge_rate: Mapping[str, float]):
-    """(time, hospital, minutes busy). Unassigned consults waiting now, then expected demand [A12]."""
+def _expected(ops: OpsRefs, hid: str, start: datetime, end: datetime) -> float | None:
+    """Baseline mean consults at one hospital in [start, end), hour by hour; None if a baseline hour is missing."""
+    total, t = 0.0, start
+    while t < end:
+        step_end = min(end, t.astimezone(ET).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
+        rate = ops.mean(hid, t)
+        if rate is None:
+            return None
+        total, t = total + rate * (step_end - t).total_seconds() / 3600, step_end
+    return total
+
+
+def demand_pace(state: State, refs: Refs, ops: OpsRefs, now: datetime) -> float | None:
+    """Consults received in the last two hours over the baseline mean for those hours, all hospitals together,
+    with PACE_PRIOR consults of usual day on both sides [A51]. 1 = a usual day; None = baseline unknown."""
+    start = now - PACE_WINDOW
+    expected = [_expected(ops, hid, start, now) for hid in sorted(refs.hospitals)]
+    if None in expected:
+        return None
+    observed = sum(1 for c in state.consults.values() if start < c.received_at <= now)
+    return (observed + PACE_PRIOR) / (sum(expected) + PACE_PRIOR)
+
+
+def _arrivals(state: State, ops: OpsRefs, refs: Refs, now: datetime, end: datetime, service, surge_rate: Mapping[str, float], pace: float = 1.0):
+    """(time, hospital, minutes busy). Unassigned consults waiting now, then expected demand [A12] at `pace` x baseline."""
     overall = service["*"]
     out = [(now, c.hospital_id, service.get(c.consult_type, overall)) for c in sorted(state.consults.values(), key=lambda c: c.consult_id)
            if c.stage in {"Received", "Triaged"} and c.owner == "Unassigned"]
@@ -115,7 +141,7 @@ def _arrivals(state: State, ops: OpsRefs, refs: Refs, now: datetime, end: dateti
             if rate is None:
                 unknown.append(hid)
                 break
-            rate = max(rate, surge_rate.get(hid, 0.0))
+            rate = max(rate * pace, surge_rate.get(hid, 0.0))
             gained = rate * (step_end - t).total_seconds() / 3600
             while rate > 0 and expected + gained >= next_at:
                 out.append((t + timedelta(hours=(next_at - expected) / rate), hid, overall))
@@ -185,6 +211,7 @@ class TrapCheck:
     relief: Mapping[str, float]  # scenario -> patient wait minutes at gap hospitals removed by the guarded joiner
     spill: Mapping[str, int]  # scenario -> consults the unguarded joiner takes at hospitals outside the offer
     unknown_demand: tuple[str, ...] = field(default=())
+    pace: float | None = None  # today's demand over a usual day [A51]
 
     @property
     def passed(self) -> bool:
@@ -217,10 +244,13 @@ def trap_check(state: State, refs: Refs, ops: OpsRefs, views: Mapping[str, Physi
         return {**base, physician_id: _Doc(physician_id, ready, end, frozenset(sites), count, LOW_VOLUME["day"], None, ready)}
 
     surge_rate = {s.hospital_id: float(s.count) for s in surges(state, refs, ops, now)}
-    demands = {"baseline": {}, **({"surge_continues": surge_rate} if surge_rate else {})}
+    pace = demand_pace(state, refs, ops, now)
+    # Every scenario must pass: the usual day, today's observed pace [A51] and a surge that keeps going.
+    demands = {"baseline": ({}, 1.0), **({"todays_pace": ({}, pace)} if pace is not None and abs(pace - 1) >= PACE_MIN_CHANGE else {}),
+               **({"surge_continues": (surge_rate, 1.0)} if surge_rate else {})}
     scenarios, relief, spill, criteria, trap_shown, unknown = {}, {}, {}, [], False, ()
-    for label, rates in demands.items():
-        arrivals, unknown = _arrivals(state, ops, refs, now, window_end, service, rates)
+    for label, (rates, scale) in demands.items():
+        arrivals, unknown = _arrivals(state, ops, refs, now, window_end, service, rates, scale)
         runs = (simulate("no_joiner", base, arrivals, window_end), simulate("trap", with_joiner(creds, 0), arrivals, window_end),
                 simulate("guarded", with_joiner(hospitals, seed), arrivals, window_end))
         scenarios[label] = runs
@@ -240,4 +270,4 @@ def trap_check(state: State, refs: Refs, ops: OpsRefs, views: Mapping[str, Physi
             Criterion(f"{label}:joiner_not_above_busiest_peer", c.load(physician_id) <= busiest + PEER_TOLERANCE, f"{c.load(physician_id)} vs {busiest}"),
             Criterion(f"{label}:peers_within_tolerance", not rises, ", ".join(f"{p} +{n}" for p, n in sorted(rises.items())) or f"none above +{PEER_TOLERANCE}"),
         ]
-    return TrapCheck(joiner, seed, scenarios, tuple(criteria), trap_shown, relief, spill, unknown)
+    return TrapCheck(joiner, seed, scenarios, tuple(criteria), trap_shown, relief, spill, unknown, pace)

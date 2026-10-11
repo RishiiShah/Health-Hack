@@ -111,6 +111,7 @@ Change points = now, every shift start/end, block boundary, each `received_at + 
 
 - **Hard gap:** confirmed + scheduled < required.
 - **At-risk:** confirmed < required ≤ confirmed + scheduled (closes only if the scheduled starter comes online). If no `shift_started` by start + 5 min [A38], it becomes hard.
+- **Accepted split shifts** count from when the doctor can be online, not from the shift start: the first `shift_started` after they accepted (observed), otherwise acceptance + their roster minutes to come online (estimated). Until seen they are scheduled, not confirmed (the gap is at risk); if not seen 5 min after the expected time they stop counting, the gap reopens and a `joiner_late:<physician>` item tells the coordinator to call them [A50].
 - **Horizon:** now to now + 90 min is the required window [B p8 #4]. Outlook continues to the last known shift boundary; outlook items rank below in-horizon items with the same severity.
 - Every gap carries its **cause**: which shift ends, which surge, which physician is TU.
 
@@ -172,7 +173,7 @@ On acceptance the joiner is added to routing and coverage with:
 
 ### 5.4 Routing simulator (model, not replacement)
 Deterministic discrete-event replay over the horizon:
-- Demand: per hospital, baseline mean arrivals placed where the cumulative expected count crosses each integer (deterministic, no randomness) [A12]. A second scenario continues the observed trailing-60 rate at surging hospitals.
+- Demand: per hospital, baseline mean arrivals placed where the cumulative expected count crosses each integer (deterministic, no randomness) [A12]. A second scenario runs at **today's observed pace** (consults in the last 2 h over the baseline for those hours, all hospitals, 5 consults of usual day on both sides; added when it differs from 1 by 0.2 or more) [A51]; a third continues the observed trailing-60 rate at surging hospitals. Every scenario must pass, so adapting to today adds evidence and never relaxes the guard. All four packs run at 0.41-0.44 x usual at 18:20; every offer still passes.
 - Service time: per consult type, the median busy time observed today (call + video durations from the replayed day) [A40].
 - Routing: rules 1-5 of [B p3] exactly, ties by least-recent answer then `physician_id`.
 - Runs: (a) no joiner, (b) joiner unrestricted and unseeded (the trap), (c) joiner restricted and seeded.
@@ -374,6 +375,11 @@ Steps 1-7 are pure functions and can be tested without the database. Step 8 need
 | A44 | Withdrawal/"already filled" notices are covered by the offer's approval | They respond to an approved offer |
 | A48 | In the simulator a session in progress at `now` ends after one median service time | Start times of sessions are known, durations are not |
 | A49 | A physician in a call, video or the 2-minute cooldown is free soon: queue the consult for them; escalate only when nobody credentialed is free or free soon | Escalating every short session flip-flopped the advice every pass |
+| A50 | An accepted split shift counts from the doctor's observed online time (first `shift_started` after accepting), else acceptance + roster minutes to online; not seen 5 min after that, it stops counting | Counting from the shift start showed gaps as covered before anyone could take a call; same lateness rule as A38 |
+| A51 | The simulator adds a scenario at today's observed demand pace (last 2 h vs baseline, 5-consult prior) and an offer must pass every scenario | The packs run at about 0.4 x baseline; a usual-day-only check overstates load, but replacing it would relax the guard |
+
+
+**Adaptation tried and rejected (2026-10-10).** Per-physician note pace and per-physician session length were measured on all four packs: every completed note takes exactly 3.0 min and every doctor's median session is 1.5 min, so there is nothing per physician to learn. Note pace is also biased (only finished notes are measured, while the risk is notes not yet started), so it would have said "finishes before shift end" exactly where the brief wants a Critical alert. Neither was shipped. Policy limits from the brief (stage and note SLAs, ring warning, retry, cooldown) are never adapted.
 
 ## 10. Decisions taken
 

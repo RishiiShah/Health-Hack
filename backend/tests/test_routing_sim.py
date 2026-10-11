@@ -1,7 +1,7 @@
 """Step 7: routing model [B p3] and split-shift trap check, on small synthetic days (no sample IDs)."""
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from app.decide.routing_sim import _Doc, _arrivals, observed_service, route_key, simulate, threshold, trap_check
+from app.decide.routing_sim import _Doc, _arrivals, demand_pace, observed_service, route_key, simulate, threshold, trap_check
 from app.engine.physician import PhysicianView
 from app.engine.replay import replay
 from app.models import Event, EventInput
@@ -50,6 +50,18 @@ def test_demand_is_deterministic_and_missing_baseline_is_unknown():
     assert unknown == ("U",)
     surged, _ = _arrivals(replay(()), ops, refs, et(18), et(19), {"*": 5.0}, {"G": 4.0})
     assert len(surged) == 4  # the surge scenario continues the observed trailing rate
+    quiet, _ = _arrivals(replay(()), ops, refs, et(18), et(19), {"*": 5.0}, {}, pace=0.5)
+    assert [t.astimezone(ET).strftime("%H:%M") for t, _, _ in quiet] == ["18:30"]  # today's pace halves expected demand
+
+
+def test_todays_pace_is_observed_over_usual_and_pulled_toward_a_usual_day():
+    """[A51] Last two hours: 8 consults where the baseline expects 4 per hour, with 5 consults of usual day on both sides."""
+    refs = Refs({"G": Hospital("G", "America/New_York")}, {}, {})
+    ops = OpsRefs({("G", 1, h): (4.0, 6.0) for h in range(24)}, {}, {})
+    received = lambda n: replay(tuple(ev(f"E{i}", "consult_received", -i * 10, pid=None, cid=f"C{i}", hospital_id="G", consult_type="Stroke") for i in range(n)))
+    assert demand_pace(received(8), refs, ops, et(18)) == 1.0  # (8 + 5) / (8 + 5): a usual day
+    assert demand_pace(received(2), refs, ops, et(18)) == 7 / 13  # quiet: the simulator also runs at about half
+    assert demand_pace(received(0), refs, OpsRefs({}, {}, {}), et(18)) is None  # no baseline: no pace, no extra scenario
 
 
 def ev(eid, kind, minute, pid="P", cid="C", **kw):
