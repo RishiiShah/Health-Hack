@@ -168,3 +168,8 @@ ul.footnote { padding-left: var(--s-3); }
 .consult-changes li { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-2); border: thin solid var(--line); background: var(--surface); font-size: var(--t-sm); animation: rise var(--med) var(--ease-out) backwards; }
 .consult-changes li b { font-family: var(--font-mono); }
 .consult-changes li span:last-child { color: var(--muted); }
+.kit-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
+.kit-fields label { display: grid; gap: var(--s-1); color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+.kit-fields input { width: 100%; font-family: var(--font-body); letter-spacing: 0; text-transform: none; }
+.kit-fields .hint { letter-spacing: 0; text-transform: none; font-family: var(--font-body); }
+@media (max-width: 37.5em) { .kit-fields { grid-template-columns: minmax(0, 1fr); } }

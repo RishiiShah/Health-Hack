@@ -62,3 +62,17 @@
 .pulse.is-flat .pulse-line { animation: none; stroke-dasharray: none; opacity: .8; }
 
 @media (max-width: 37.5em) { .page-head, .section-head { grid-template-columns: minmax(0, 1fr); } .page-head-aside, .section-aside { justify-content: flex-start; } }
+
+/* Modal: a framed sheet over a dimmed page. */
+.modal { width: min(92vw, 40em); max-height: 86vh; padding: 0; border: var(--frame) solid var(--ink); background: var(--surface); color: var(--text); box-shadow: var(--shadow-hard); overflow: auto; overscroll-behavior: contain; }
+.modal::backdrop { background: var(--overlay); }
+.modal[open] { animation: rise var(--med) var(--ease-out); }
+.modal-body { display: grid; gap: var(--s-3); padding: var(--s-4); }
+.modal-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--s-2); padding-bottom: var(--s-2); border-bottom: var(--frame) solid var(--ink); }
+.modal-head .kicker { margin-bottom: var(--s-1); }
+.modal-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.modal-list li { display: flex; justify-content: space-between; gap: var(--s-2); padding: var(--s-2) 0; border-bottom: thin solid var(--line); }
+.modal-list li:last-child { border-bottom: 0; }
+.modal-list small { color: var(--muted); font-family: var(--font-mono); }
+.modal-actions { display: flex; gap: var(--s-2); justify-content: flex-end; flex-wrap: wrap; }
+.link-btn { padding: 0; border: 0; background: none; color: var(--accent-text); font: 600 var(--t-sm) var(--font-body); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }

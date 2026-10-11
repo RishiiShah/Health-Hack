@@ -50,7 +50,8 @@ export type Candidate = {
   ranking: { gap_hospitals: number; minutes_to_online: number | null; declines_30d: number | null; hours_7d: number | null };
 };
 
-export type Candidates = { gap: Gap; revision: number; rules: { id: string; label: string }[]; candidates: Candidate[] };
+export type Candidates = { gap: Gap; revision: number; rules: { id: string; label: string }[]; candidates: Candidate[];
+  fix?: { kind: string; action: string; reason: string; physician_id: string | null } | null };
 
 export type TrapCheck = {
   gap_id: string;

@@ -17,6 +17,8 @@ export function GapPanel({ gapId, reloadKey, now, canPropose, onClose, onPropose
   const trap = useApi<TrapCheckData>(`/gaps/${id}/trap-check`, reloadKey);
   const [proposing, setProposing] = useState<Candidate | null>(null);
   const gap = candidates.data?.gap;
+  // Short only by busy signals with no consult waiting: the server watches rather than calls someone in, and refuses offers.
+  const watchOnly = candidates.data?.fix?.kind === "watch";
 
   return (
     <section className="panel gap-panel">
@@ -25,11 +27,12 @@ export function GapPanel({ gapId, reloadKey, now, canPropose, onClose, onPropose
         <button className="btn" onClick={onClose}>Close</button>
       </div>
       {gap && <p className="gap-summary">{gap.summary}</p>}
+      {watchOnly && <p className="notice">Watch only: {candidates.data?.fix?.reason}. Offers open once a consult is waiting here or the forecast shows a staffing gap.</p>}
 
       <section>
         <h2>Off-shift physicians</h2>
         {candidates.data ? (
-          <Candidates data={candidates.data} onPropose={canPropose ? setProposing : null} />
+          <Candidates data={candidates.data} onPropose={canPropose && !watchOnly ? setProposing : null} />
         ) : (
           candidates.error && <p className="unavailable">{unavailableText(candidates.error, "GET /gaps/{gap_id}/candidates")}</p>
         )}

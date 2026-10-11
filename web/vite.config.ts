@@ -1,7 +1,8 @@
 import { defineConfig } from "vite";
 
-// The backend has no CORS; in development Vite forwards API paths to it.
-const api = process.env.API_URL ?? "http://127.0.0.1:8000";
+// The backend has no CORS; in development Vite forwards API paths to it. API_URL can be the shared hosted backend
+// (e.g. the Render URL) so teammates do not each run a backend against the production database.
+const api = { target: process.env.API_URL ?? "http://127.0.0.1:8000", changeOrigin: true, secure: true };
 
 export default defineConfig({
   esbuild: { jsx: "automatic" },

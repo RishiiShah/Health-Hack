@@ -50,7 +50,7 @@ img, svg { max-width: 100%; }
 .icon-btn svg { width: 50%; height: 50%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Fields */
-input[type="search"], input[type="email"], input[type="password"], input[type="text"], input[type="time"], input:not([type]), select, textarea {
+input[type="search"], input[type="email"], input[type="password"], input[type="text"], input[type="time"], input[type="date"], input:not([type]), select, textarea {
   min-height: max(2.6vw, 4.4vh); padding: var(--s-1) var(--s-2); border: var(--frame) solid var(--ink); border-radius: var(--radius);
   background: var(--surface); color: var(--text); font-size: var(--t-md);
 }

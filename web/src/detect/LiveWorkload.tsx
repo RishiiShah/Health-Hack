@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Modal } from "../ui/Modal.tsx";
 import { activitySummary, elapsed } from "./activity.ts";
-import type { Consult, DetectSnapshot } from "./types.ts";
+import type { Consult, DetectSnapshot, Physician } from "./types.ts";
 import "./detect.css";
 
 const activityLabel = (state: string) => ({
@@ -33,6 +34,7 @@ export function ConsultQueues({ detect, onReview }: { detect: DetectSnapshot; on
 export function PhysicianActivity({ detect }: { detect: DetectSnapshot }) {
   const stats = activitySummary(detect.physicians, detect.consults);
   const flagged = detect.physicians.filter((p) => p.flags.length > 0);
+  const [sites, setSites] = useState<Physician | null>(null);
   return <>
     <Metrics label="Physician activity counts" items={[
       [`${detect.physicians.filter((p) => p.canTakeCalls).length} of ${detect.physicians.length}`, "Ready for calls", "physicians who can take a call"],
@@ -46,13 +48,16 @@ export function PhysicianActivity({ detect }: { detect: DetectSnapshot }) {
         <tbody>{detect.physicians.map((p) => <tr key={p.id}>
           <td><strong>{p.name}</strong><small className="table-sub mono">{p.id}</small></td>
           <td><span className={`activity-state ${p.canTakeCalls ? "available" : "busy"}`}><i />{activityLabel(p.derived)}</span><small className="table-sub">Self-report: {p.status}</small><small className={`routing-state ${p.canTakeCalls ? "available" : ""}`}>{p.canTakeCalls ? "Can take calls" : reasonLabel(p.reason)}{p.helper !== "Online" ? ` · Agent ${p.helper.toLowerCase()}` : ""}</small></td>
-          <td><details className="site-list"><summary>{p.hospitals.length} hospitals</summary><ul>{p.hospitals.map((h) => <li key={h.id}>{h.name}<small className="mono">{h.id}</small></li>)}</ul></details></td>
+          <td><button className="link-btn" onClick={() => setSites(p)}>{p.hospitals.length} hospital{p.hospitals.length === 1 ? "" : "s"}</button></td>
           <td className="num">{p.calls ?? "—"}</td><td className="num">{p.consults ?? "—"}</td><td className={`num ${p.pendingNotes > 0 && p.minutesToShiftEnd !== null && p.minutesToShiftEnd <= 60 ? "risk-number" : ""}`}>{p.pendingNotes}</td>
           <td><span className={p.minutesToShiftEnd !== null && p.minutesToShiftEnd <= 60 ? "shift-ending" : ""}>{p.minutesToShiftEnd === null ? "—" : `${p.minutesToShiftEnd} min`}</span></td>
         </tr>)}</tbody></table>
       </div>
-      <p className="data-caption">Calls and consults are shift totals. Open docs includes Note Pending and Documentation. Expand sites to see credentials.</p>
+      <p className="data-caption">Calls and consults are shift totals. Open docs includes Note Pending and Documentation. Select a site count to see credentials.</p>
     </section>
+    <Modal open={sites !== null} kicker="Sites covering" title={sites ? `${sites.name} · ${sites.hospitals.length} hospital${sites.hospitals.length === 1 ? "" : "s"}` : ""} onClose={() => setSites(null)}>
+      <ul className="modal-list">{sites?.hospitals.map((h) => <li key={h.id}><span>{h.name}</span><small>{h.id}</small></li>)}</ul>
+    </Modal>
   </>;
 }
 

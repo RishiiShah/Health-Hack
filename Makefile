@@ -6,7 +6,8 @@ PYTHON ?= backend/.venv/bin/python
 backend:
 	cd backend && ../$(PYTHON) -m app
 
-# The web app on http://localhost:5173; Vite forwards API calls to the backend above.
+# The web app on http://localhost:5173; Vite forwards API calls to the backend above, or to the shared hosted
+# backend with API_URL=https://<service>.onrender.com make web (then do not also run make backend).
 web:
 	cd web && npm run dev
 

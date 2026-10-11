@@ -32,9 +32,6 @@
 .activity-state.busy i { background: var(--warning-line); }
 .routing-state { display: block; color: var(--muted); font-size: var(--t-xs); }
 .routing-state.available { color: var(--ok); }
-.site-list summary { font-size: var(--t-sm); }
-.site-list ul { margin: var(--s-1) 0 0; padding-left: var(--s-3); font-size: var(--t-xs); }
-.site-list small { margin-left: .5em; color: var(--muted); }
 .shift-ending { color: var(--warning); font-weight: 600; }
 .verification-row { padding: var(--s-2) 0; border-top: thin solid var(--line); }
 .verification-row:first-of-type { border-top: 0; }
