@@ -54,8 +54,13 @@ SCHEMA = (
           END IF;
           RETURN NEW;
         END $$""",
-    "DROP TRIGGER IF EXISTS offer_transition_guard ON offers",
-    "CREATE TRIGGER offer_transition_guard BEFORE UPDATE OF state ON offers FOR EACH ROW EXECUTE FUNCTION offer_transition_guard()",
+    # Only when missing: dropping and recreating it needs an exclusive lock on offers, so every restart would wait for
+    # (and time out behind) any other server reading offers.
+    """DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'offer_transition_guard' AND tgrelid = 'offers'::regclass) THEN
+            CREATE TRIGGER offer_transition_guard BEFORE UPDATE OF state ON offers FOR EACH ROW EXECUTE FUNCTION offer_transition_guard();
+          END IF;
+        END $$""",
 )
 
 

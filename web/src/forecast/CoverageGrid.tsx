@@ -58,13 +58,14 @@ export function CoverageGrid({ coverage, onFindCover }: { coverage?: Coverage; o
           <p className="coverage-scroll-hint">Scroll across to see all forecast intervals →</p>
           <div className="table-wrap" tabIndex={0} role="region" aria-label={`Hospital coverage over the next ${horizon} minutes`}>
             <table>
-              <thead><tr><th className="hosp">Hospital</th>{coverage.steps.map((at, i) => <th key={at} className={i === 0 ? "current-time" : undefined}>{stepLabel(at, i)}<small>{i === 0 ? "Current" : `+${elapsedMinutes(at, coverage.steps![0])} min`}</small></th>)}</tr></thead>
+              <thead><tr><th className="hosp">Hospital</th>{coverage.steps.map((at, i) => <th key={i} className={i === 0 ? "current-time" : undefined}>{stepLabel(at, i)}<small>{i === 0 ? "Current" : `+${elapsedMinutes(at, coverage.steps![0])} min`}</small></th>)}</tr></thead>
               <tbody>
                 {visible.map(h => (
                   <tr key={h.hospital_id}>
                     <th scope="row" className="name">{h.hospital_name}{h.nobody_reachable_now && <span className="reachability-label">No one reachable now</span>}</th>
                     {h.cells.map((cell, i) => (
-                      <td key={cell.at} className="cell">
+                      // Keyed by column: the times move with a running clock, and a new key would replay the entrance animation every second.
+                      <td key={i} className="cell">
                         <button className={cellTone(cell)} aria-pressed={selectedHospital?.hospital_id === h.hospital_id && selectedCell?.at === cell.at}
                           aria-label={`${h.hospital_name}, ${stepLabel(cell.at, i)}: ${cellText(cell)}, ${statusLabel(cell)}${cell.unverified ? ", unverified" : ""}${cell.gap_id ? ", coverage action available" : ""}`}
                           onClick={() => setSelection({ hospitalId: h.hospital_id, at: cell.at })}>

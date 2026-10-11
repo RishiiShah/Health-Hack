@@ -170,3 +170,14 @@ def test_the_audit_view_returns_only_the_newest_rows(db_url, monkeypatch):
             desk.reset(actor, START)
         items = client.get('/audit', headers=COORD).json()['items']
         assert [i['actor'] for i in items] == ['b', 'c']
+
+
+def test_a_restart_does_not_wait_for_another_server_reading_offers(db_url, monkeypatch):
+    """A second server mid-transaction on offers must not block (and time out) this one's startup."""
+    import psycopg
+    with TestClient(hosted(db_url, monkeypatch)):
+        pass  # the schema exists
+    with psycopg.connect(db_url) as other:  # a transaction left open, as a stuck server leaves it
+        other.execute("SELECT * FROM offers")
+        with TestClient(hosted(db_url, monkeypatch)) as client:
+            assert client.get('/ready').status_code == 200
