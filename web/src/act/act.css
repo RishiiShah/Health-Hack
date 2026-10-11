@@ -1,4 +1,14 @@
 /* Approval banner (Command page) */
+.upload-history { margin-top: 24px; }
+.upload-history details { border-top: 1px solid var(--line); padding-block: 16px; overflow-wrap: anywhere; }
+.upload-history summary { cursor: pointer; font-size: 16px; }
+.upload-history summary span { display: block; margin-top: 6px; color: var(--ink-2); font-size: 14px; }
+.upload-history p { max-width: 72ch; }
+.upload-issues { overflow-wrap: anywhere; }
+.upload-issues ul { padding: 0; list-style: none; }
+.upload-issues li { padding-block: 10px; border-top: 1px solid var(--line); font-size: 14px; }
+.upload-issues li span { display: block; margin-top: 4px; }
+
 .approval-banner { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 24px; }
 .approval-banner p { margin: 6px 0 0; color: var(--ink-2); max-width: 640px; }
 

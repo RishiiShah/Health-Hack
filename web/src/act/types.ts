@@ -82,11 +82,30 @@ export type IngestReport = {
   revision: number;
   pending_future: number;
   clock_advanced_to?: string;
+  clock_warning?: string;
+  batch_id?: string;
+  row_results?: { row_number: number; event_id: string | null; status: string; reason: string | null; expires_at?: string }[];
+};
+
+export type UploadBatch = {
+  batch_id: string;
+  filename: string;
+  received_at: string;
+  actor: string;
+  sha256: string;
+  reference_fingerprint: string | null;
+  consult_ids: string[];
+  dataset_generation: number;
+  clock_before: string;
+  clock_after: string;
+  report: IngestReport;
 };
 
 export type DataQuality = {
   supported: boolean;
   events_read?: number;
+  counts_exact?: boolean;
+  accepted_events?: number;
   accepted?: number;
   duplicates?: number;
   duplicate_ids?: string[];

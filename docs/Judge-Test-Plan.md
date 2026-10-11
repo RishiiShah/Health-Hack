@@ -19,7 +19,7 @@ scenario retains site, wait and peer-harm constraints.
 |---|---|---|
 | Base kit loaded at 18:20 (`data/`, sample layout) | 1,163 accepted, 1 duplicate, 23 reordered, 1 late, 0 rejected | `test_judge_file_on_the_original_kit_updates_without_restart` |
 | Judge CSV dropped in (Data page or `POST /events/csv`) | Appended without restart; new wording ("Acute stroke consult requested") read by keyword; duplicate row ignored; repeat call is the same patient (first clock kept, surge count unchanged); new consult ranked Critical with a fix | same |
-| Judge events dated after the clock | Reported as `pending_future`; `?advance_clock=true` moves the clock to the file's latest event so all of it is visible at once | same |
+| Judge events dated after the clock | Reported as `pending_future`; `?advance_clock=true` advances to the latest newly accepted event within 24 hours; larger jumps remain pending with a date-review warning | same |
 | Live append, clock moving | Served queue equals a full replay at 18:20, 18:40, 19:30 and 22:20 on both allowed packs | `test_live_append_matches_a_full_replay_at_every_checkpoint` |
 | Same file uploaded twice | No decision changes | `test_ingesting_the_same_file_twice_changes_no_decision` |
 | Nobody eligible | Escalation with every off-shift physician's failing rule; no offer | validation pack tests |
@@ -29,11 +29,14 @@ scenario retains site, wait and peer-harm constraints.
 | Judge file through the web | `make backend` stack + Joy's Data page: base kit 1,163/1/23/1; pasted judge CSV accepted 3, duplicate 1, clock moved to 18:30, Suncrest surge 6 | manual run on 2026-10-10 |
 | Development pack through computer use and Playwright | File chooser loads 1,709 base events; judge CSV adds 124 and drops 1 duplicate; all 1,709 original events and 147 original consults retained; 16 new consults; unchanged six references; queue matches full replay and contains the new consults in grouped Critical escalations. Repeat upload adds 0 and drops 125 duplicates. | Local isolated browser run on 2026-10-11; production untouched |
 
+The fixed-reference audit also rehearsed the official kit through actual file uploads: 1,163 base events plus 3 accepted unseen events, an unchanged reference fingerprint, Critical CON-J01, retained original history and full replay parity. The development pack's incompatible IDs are held rather than replacing the official references. See [audit and regression instructions](CSV-Ingestion-Audit.md).
+
 ## Demo-day run sheet
 1. `make backend`: it mounts `data/` as `CC_DATA_DIR` and reads the root `.env` (from `.env.example`: service date 2026-03-17, fixed clock at 18:20, ElevenLabs key). Then `cd web && npm ci && npm run dev`.
 2. Load the base day: Data page upload of `data/event_stream.csv` (or `POST /events/csv`). Check the data-quality panel shows 1 duplicate, 23 reordered, 1 late, 0 rejected.
 3. Walk the eight demonstrations at 18:20.
-4. Judges' file: upload it on the Data page; a CSV upload moves the clock to its latest event (`/events/csv?advance_clock=true`, never backwards) and the report says where the clock moved. Never restart the server.
+4. Judges' file: upload it on the Data page; a CSV upload advances to its latest newly accepted event within 24 hours (`/events/csv?advance_clock=true`, never backwards) and the report says where the clock moved. Never restart the server.
+   Larger date jumps require review and explicit clock control. Data → Upload history retains receipts and per-row results across navigation/restarts; download a report for all rows. See [CSV audit](CSV-Ingestion-Audit.md).
    The upload appends to the existing event history and recalculates decisions on the combined state; reference names, counts and hashes remain unchanged. The Data page separates reference data from event-stream checks. Presentation demo mode disables event testing because its fixed examples do not run the decision engine; use the live backend for unseen CSVs.
 5. For an independent rehearsal, Data → Start empty stream (`POST /admin/reset`) starts a clean generation with the same references and clears current consults, offers and interventions; it does not restore the original event file. The old event generation stays in the database.
 6. Hosted: the image has no reference CSVs. Production RDS already stores the complete six-file reference kit; connect the backend to that database and verify with `python3 scripts/upload_references.py data --url https://<host> --service-date 2026-03-17 --check`. For a different database, upload first. The database keeps references across restarts; see [Reference Data](Reference-Data.md).

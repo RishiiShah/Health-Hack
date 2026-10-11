@@ -57,6 +57,7 @@ event CSV / JSON ──► backend (1 process, in-memory replay) ──► RDS P
 | `POST /admin/reset`, `POST /admin/clock` | `admin.inject`: coordinator, lead, admin | Joy |
 | `POST /admin/references` `{files: {name: csv text}, service_date?, name?}` (the six reference CSVs) | `admin.inject`: coordinator, lead, admin | script / Joy's Data page |
 | `GET /admin/references` | `admin.inject` | Persisted reference counts, service date and SHA-256 manifest; no CSV contents |
+| `GET /admin/uploads` | `admin.inject` | Latest 20 durable CSV receipts across stream generations: original-byte hash, actor, filename, reference fingerprint and per-row results at upload time |
 | `POST /admin/physician-tokens` `{physician_id}` | admin | demo setup: issues a physician's sign-in link |
 
 ## Roles, authentication and RBAC (kept simple, standard library only)

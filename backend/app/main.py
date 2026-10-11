@@ -157,8 +157,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
                 "fingerprint": reference_manifest(source)["fingerprint"]}
 
     def startup_references(db):
-        """Uploaded references (POST /admin/references, kept in the database) win: they are the latest admin action
-        and the only source on a host without the CSVs. Otherwise CC_DATA_DIR; otherwise none."""
+        """Recover the pinned official reference source from the database, or bootstrap the same kit from disk."""
         source = (db.metadata("references") or {}).get("source")
         directory = settings.reference_dir
         if source:
