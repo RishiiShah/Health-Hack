@@ -19,12 +19,14 @@ class ServiceSession extends StatefulWidget {
     this.onEnded,
     this.onOpenWebDashboard,
     this.actions = const [],
+    this.accountBuilder,
   });
   final AppServices services;
   final Me me;
   final VoidCallback? onEnded;
   final VoidCallback? onOpenWebDashboard;
   final List<Widget> actions;
+  final WidgetBuilder? accountBuilder;
   @override
   State<ServiceSession> createState() => _ServiceSessionState();
 }
@@ -53,6 +55,10 @@ class _ServiceSessionState extends State<ServiceSession> {
       s.physicianFeed.start();
       _mePoller!.start();
     } else if (widget.me.role == Role.clinicalLead) {
+      _mePoller = Poller(const Duration(seconds: 60), () async {
+        await s.auth.refreshMe();
+      });
+      _mePoller!.start();
       _subscriptions.add(s.leadFeed.answers.listen(_answer));
       s.leadFeed.start();
     }
@@ -199,7 +205,8 @@ class _ServiceSessionState extends State<ServiceSession> {
                   ),
                   (_) => PhysicianSchedulePage(services: s),
                   (_) => OffersPage(services: s, me: me, openOffer: _openOffer),
-                  (_) => AccountPage(services: s, me: me),
+                  widget.accountBuilder ??
+                      (_) => AccountPage(services: s, me: me),
                 ],
                 leadPages: [
                   (_) => ApprovalsPage(
@@ -212,7 +219,8 @@ class _ServiceSessionState extends State<ServiceSession> {
                     openProposal: _openProposal,
                   ),
                   (_) => CoveragePage(services: s),
-                  (_) => AccountPage(services: s, me: me),
+                  widget.accountBuilder ??
+                      (_) => AccountPage(services: s, me: me),
                 ],
               );
             },

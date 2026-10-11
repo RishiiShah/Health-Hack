@@ -12,14 +12,18 @@ class SignInScreen extends StatefulWidget {
     super.key,
     this.onSignIn,
     this.showDemoAccounts = true,
+    this.showRoleSelection = true,
     this.onPreview,
     this.onDemo,
+    this.notice,
   });
 
   final SignInCallback? onSignIn;
   final bool showDemoAccounts;
+  final bool showRoleSelection;
   final VoidCallback? onPreview;
   final VoidCallback? onDemo;
+  final String? notice;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -73,6 +77,7 @@ class _SignInScreenState extends State<SignInScreen> {
     body: ScreenBody(
       children: [
         const SizedBox(height: 24),
+        if (widget.notice != null) Notice(widget.notice!),
         if (widget.onDemo != null) ...[
           FilledButton.icon(
             onPressed: widget.onDemo,
@@ -97,34 +102,38 @@ class _SignInScreenState extends State<SignInScreen> {
         Text('Welcome back', style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 8),
         Text(
-          _physician
+          !widget.showRoleSelection
+              ? 'Sign in with your work account.'
+              : _physician
               ? 'Your shifts and coverage requests, in one place.'
               : 'Keep your team connected and coverage on track.',
         ),
         const SizedBox(height: 24),
-        const Text('I work as'),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            ChoiceChip(
-              label: const Text('Operations'),
-              selected: !_physician,
-              onSelected: _busy
-                  ? null
-                  : (_) => setState(() => _physician = false),
-            ),
-            ChoiceChip(
-              label: const Text('Physician'),
-              selected: _physician,
-              onSelected: _busy
-                  ? null
-                  : (_) => setState(() => _physician = true),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
+        if (widget.showRoleSelection) ...[
+          const Text('I work as'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Operations'),
+                selected: !_physician,
+                onSelected: _busy
+                    ? null
+                    : (_) => setState(() => _physician = false),
+              ),
+              ChoiceChip(
+                label: const Text('Physician'),
+                selected: _physician,
+                onSelected: _busy
+                    ? null
+                    : (_) => setState(() => _physician = true),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
         Form(
           key: _form,
           child: AutofillGroup(
@@ -199,6 +208,10 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         ),
         const SizedBox(height: 12),
+        if (!widget.showRoleSelection) ...[
+          const Text("Access is based on your account's role."),
+          const SizedBox(height: 12),
+        ],
         OutlinedButton(
           onPressed: _busy ? null : _unavailable,
           child: const Text('Use Sevaro single sign-on'),

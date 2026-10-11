@@ -6,6 +6,8 @@ import 'screens/preview/preview_menu.dart';
 import 'screens/demo_workspace.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/theme.dart';
+import 'data/config.dart';
+import 'screens/backend_auth_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,15 +46,15 @@ class _SevaroAppState extends State<SevaroApp> {
     home:
         widget.home ??
         Builder(
-          builder: (context) => SignInScreen(
-            onDemo: kDebugMode
+          builder: (context) {
+            final onDemo = kDebugMode
                 ? () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const DemoWorkspace(),
                     ),
                   )
-                : null,
-            onPreview:
+                : null;
+            final onPreview =
                 kDebugMode &&
                     const bool.fromEnvironment(
                       'SCREEN_PREVIEW',
@@ -63,8 +65,12 @@ class _SevaroAppState extends State<SevaroApp> {
                       builder: (_) => const PreviewMenu(),
                     ),
                   )
-                : null,
-          ),
+                : null;
+            if (AppConfig.apiMode == 'live') {
+              return const BackendAuthGate();
+            }
+            return SignInScreen(onDemo: onDemo, onPreview: onPreview);
+          },
         ),
   );
 }

@@ -48,7 +48,9 @@ class OffersPage extends StatelessWidget {
       return ScreenBody(
         children: [
           Text(
-            '${me.displayName} · ${me.onShift == true ? 'on shift' : 'off shift'}',
+            me.onShift == null
+                ? me.displayName
+                : '${me.displayName} · ${me.onShift == true ? 'on shift' : 'off shift'}',
           ),
           if (me.offersReceived7d != null && me.weeklyOfferLimit != null)
             SectionTitle(

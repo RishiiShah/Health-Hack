@@ -70,7 +70,7 @@ class _RoleHomeState extends State<RoleHome> {
   Widget build(BuildContext context) {
     if (widget.role == 'coordinator' || widget.role == 'admin') {
       return Scaffold(
-        appBar: AppBar(title: const Text('Sevaro')),
+        appBar: AppBar(title: const Text('Sevaro'), actions: widget.actions),
         body: ScreenBody(
           children: [
             Text(

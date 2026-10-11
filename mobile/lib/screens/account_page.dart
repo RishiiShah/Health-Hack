@@ -5,9 +5,15 @@ import 'data_widgets.dart';
 import 'shared.dart';
 
 class AccountPage extends StatefulWidget {
-  const AccountPage({super.key, required this.services, required this.me});
+  const AccountPage({
+    super.key,
+    required this.services,
+    required this.me,
+    this.extraChildren = const [],
+  });
   final AppServices services;
   final Me me;
+  final List<Widget> extraChildren;
   @override
   State<AccountPage> createState() => _AccountPageState();
 }
@@ -86,7 +92,8 @@ class _AccountPageState extends State<AccountPage> {
       SectionTitle(widget.me.displayName),
       Text(widget.me.role == Role.physician ? 'Physician' : 'Clinical lead'),
       const SizedBox(height: 20),
-      if (widget.me.role == Role.physician)
+      ...widget.extraChildren,
+      if (widget.me.role == Role.physician && widget.me.splitShiftOptIn != null)
         SwitchListTile.adaptive(
           title: const Text('Available for extra shifts'),
           value: widget.me.splitShiftOptIn == true,
@@ -119,7 +126,7 @@ class _AccountPageState extends State<AccountPage> {
         child: const Text('Sign out'),
       ),
       const SizedBox(height: 24),
-      const Text('Synthetic data only'),
+      if (widget.services.isFake) const Text('Synthetic data only'),
     ],
   );
 }

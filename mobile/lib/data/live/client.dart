@@ -104,7 +104,7 @@ class ApiClient {
     final message = _errorMessage(decoded);
     switch (code) {
       case 401:
-        if (signOutOn401) {
+        if (signOutOn401 && tokens.read() == token) {
           tokens.clear();
           onUnauthorized();
         }
@@ -134,6 +134,10 @@ class ApiClient {
     try {
       return ApiErrorBody.parse(decoded).message;
     } on ParseError {
+      // The implemented FastAPI auth API uses {"detail": "…"}.
+      if (decoded is Map<String, dynamic> && decoded['detail'] is String) {
+        return decoded['detail'] as String;
+      }
       return null;
     }
   }
