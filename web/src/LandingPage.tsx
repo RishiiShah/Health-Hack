@@ -94,7 +94,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F4EB] text-slate-900 overflow-x-hidden selection:bg-teal-100 selection:text-teal-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#FAF6EB] text-slate-900 overflow-x-hidden selection:bg-teal-100 selection:text-teal-900 flex flex-col justify-between">
       <style>{`
         /* Floating Glass Cards */
         @keyframes floatCard1 {
@@ -117,7 +117,72 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           box-shadow: 0 20px 35px -8px rgba(15, 23, 42, 0.08), 0 8px 16px -4px rgba(15, 23, 42, 0.03);
           border-color: rgba(13, 148, 136, 0.35);
         }
+        /* Sage + Sand Background Drift Animations */
+        @keyframes driftSage {
+          0% {
+            transform: translate(0%, 0%) scale(1);
+          }
+          50% {
+            transform: translate(4%, 3%) scale(1.08);
+          }
+          100% {
+            transform: translate(-3%, 2%) scale(0.96);
+          }
+        }
+        @keyframes driftSand {
+          0% {
+            transform: translate(0%, 0%) scale(1);
+          }
+          50% {
+            transform: translate(-4%, -3%) scale(1.08);
+          }
+          100% {
+            transform: translate(3%, -2%) scale(0.96);
+          }
+        }
+        .anim-drift-sage {
+          animation: driftSage 16s ease-in-out infinite alternate;
+        }
+        .anim-drift-sand {
+          animation: driftSand 20s ease-in-out infinite alternate;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .anim-drift-sage,
+          .anim-drift-sand {
+            animation: none !important;
+          }
+        }
       `}</style>
+
+      {/* ================= SUBTLE SAGE + SAND ANIMATED BACKGROUND ================= */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#FAF6EB]">
+        {/* Broad, softly blended Sage gradient on the left (#B9CDB0 & #D5DFC6) */}
+        <div
+          className="absolute -inset-[20%] anim-drift-sage"
+          style={{
+            background:
+              "radial-gradient(ellipse 65% 85% at 0% 45%, rgba(185, 205, 176, 0.72) 0%, rgba(213, 223, 198, 0.42) 42%, transparent 75%), linear-gradient(to right, rgba(185, 205, 176, 0.55) 0%, rgba(213, 223, 198, 0.28) 25%, transparent 55%)",
+          }}
+        />
+
+        {/* Warm Sand / Peach gradient on the right (#EDC69E & #F5DCC0) */}
+        <div
+          className="absolute -inset-[20%] anim-drift-sand"
+          style={{
+            background:
+              "radial-gradient(ellipse 65% 85% at 100% 50%, rgba(237, 198, 158, 0.72) 0%, rgba(245, 220, 192, 0.42) 42%, transparent 75%), linear-gradient(to left, rgba(237, 198, 158, 0.55) 0%, rgba(245, 220, 192, 0.28) 25%, transparent 55%)",
+          }}
+        />
+
+        {/* Center Ivory veil - focused behind headline to protect readability without creating a pale block */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 45% at 50% 22%, rgba(252, 249, 239, 0.75) 0%, transparent 80%)",
+          }}
+        />
+      </div>
 
       {/* ================= 1. FLOATING NAVBAR ================= */}
       <nav className="fixed top-5 inset-x-0 mx-auto z-50 flex w-[calc(100%-48px)] max-w-5xl items-center justify-between rounded-full border border-[#E5E0D5] bg-white/90 px-6 py-2.5 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
@@ -219,7 +284,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
             <img 
               src="/us_network_map.jpg" 
               alt="United States Tele-Stroke Coordination Topology" 
-              className="w-full h-full object-contain pointer-events-none select-none [mask-image:radial-gradient(ellipse_94%_90%_at_50%_50%,black_75%,transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_94%_90%_at_50%_50%,black_75%,transparent_100%)]"
+              className="w-full h-full object-contain pointer-events-none select-none mix-blend-multiply [filter:contrast(1.18)_brightness(1.08)]"
             />
 
             {/* LIVING MOTION SVG OVERLAY: CONTINUOUSLY STREAMING COMETS & PULSES */}

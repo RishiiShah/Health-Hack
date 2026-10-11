@@ -43,7 +43,7 @@ export const SignIn: React.FC<SignInProps> = ({ initialRole = "coordinator", onS
   const roleTitle = selectedRole === "coordinator" ? "Coordinator" : selectedRole === "lead" ? "Clinical Lead" : "Physician";
 
   return (
-    <div className="min-h-screen bg-[#F7F4EB] text-slate-900 flex flex-col p-6">
+    <div className="min-h-screen bg-[#FAF6EB] text-slate-900 flex flex-col p-6">
       {/* Top Header */}
       <div className="max-w-4xl mx-auto w-full flex items-center justify-between pb-6">
         <button onClick={onBackToLanding} className="flex items-center gap-2 text-slate-900 hover:text-slate-700 transition">
