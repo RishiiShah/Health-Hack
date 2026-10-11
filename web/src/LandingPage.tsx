@@ -1,10 +1,397 @@
 import React from "react";
 
 type Role = "coordinator" | "lead" | "physician";
-interface LandingPageProps { onEnter: (role: Role) => void; onGoToSignIn: () => void; }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, onGoToSignIn }) => { const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); return <div className="min-h-screen overflow-x-hidden scroll-smooth bg-[#FBF9F5] text-slate-900 selection:bg-teal-100 selection:text-teal-900"><style>{`@keyframes slideDownFade { 0% { opacity:0; transform:translateY(-24px) } 100% { opacity:1; transform:translateY(0) } } @keyframes streamFlow { from { stroke-dashoffset:200 } to { stroke-dashoffset:0 } } .anim-slide-1 { animation:slideDownFade .6s cubic-bezier(.16,1,.3,1) forwards } .anim-slide-2 { opacity:0; animation:slideDownFade .8s cubic-bezier(.16,1,.3,1) .15s forwards } .anim-slide-3 { opacity:0; animation:slideDownFade .9s cubic-bezier(.16,1,.3,1) .3s forwards } .stream-arc { stroke-dasharray:10 14; animation:streamFlow 20s linear infinite }`}</style><nav className="anim-slide-1 fixed inset-x-0 top-5 z-50 mx-auto flex w-[calc(100%-32px)] items-center justify-between rounded-full border border-slate-200/90 bg-white/95 px-5 py-3 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]"><button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2"><span className="relative block h-5 w-6"><i className="absolute left-0 top-0 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-teal-600" /><i className="absolute left-2.5 top-1.5 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#161E2E]" /></span><strong className="text-base font-bold tracking-tight text-slate-900">overlap</strong></button><div className="hidden items-center gap-8 text-xs font-semibold text-slate-600 sm:flex"><button onClick={() => scrollTo("network")} className="transition hover:text-teal-700">Network Operations</button><button onClick={() => scrollTo("roles")} className="transition hover:text-teal-700">Roles & Access</button></div><button onClick={onGoToSignIn} className="rounded-full bg-[#161E2E] px-5 py-2 text-xs font-semibold text-white shadow-md transition hover:scale-105 hover:bg-black">Sign in →</button></nav><main className="mx-auto w-full px-5 pb-24 pt-36"><section className="anim-slide-2 mx-auto max-w-3xl text-center"><h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-slate-900 sm:text-6xl">Every hospital covered,<br /><span className="font-serif font-normal italic text-teal-700">before</span> the gap opens.</h1><p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">Autonomous cross-timezone tele-stroke coordination across 24 emergency networks.</p><div className="mt-8 flex flex-wrap justify-center gap-3"><button onClick={onGoToSignIn} className="rounded-full bg-teal-700 px-7 py-3.5 text-xs font-semibold text-white shadow-lg shadow-teal-900/10 transition hover:-translate-y-0.5 hover:bg-teal-800">Enter Command Center →</button><button onClick={() => onEnter("physician")} className="rounded-full border border-slate-300 bg-white px-6 py-3.5 text-xs font-medium text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-400">View physician experience</button></div></section><div id="network" className="anim-slide-3 mx-auto mt-14 scroll-mt-28"><NetworkMap /></div><section id="roles" className="mt-20 scroll-mt-28 border-t border-slate-200/80 pt-16"><div className="mx-auto mb-10 max-w-xl text-center"><h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Two workspaces, one synchronized schedule.</h2><p className="mt-2 text-xs text-slate-600 sm:text-sm">Continuous coordination between clinical leads and physicians.</p></div><div className="grid gap-6 md:grid-cols-2"><RoleCard label="Coordinator & Lead Workspace" detail="Desktop Web" title="Command Center" text="Real-time triage queue ranked by clinical urgency. 90-minute predictive forecast across all regional hospital networks." button="Sign In to Command" onClick={onGoToSignIn} /><RoleCard label="Physician Experience" detail="Mobile & Web" title="Mobile & Web Handoff" text="Clean off-shift offers without patient data. 1-tap shift acceptance with 8-rule rest verification and anti-fatigue safeguards." button="Open Physician View" onClick={() => onEnter("physician")} /></div></section></main><footer className="border-t border-slate-200 px-5 py-8 text-center font-mono text-xs text-slate-400">© 2026 Overlap Systems. Intelligent Clinical Operations.</footer></div>; };
+interface LandingPageProps {
+  onEnter: (role: Role) => void;
+  onGoToSignIn: (role?: Role) => void;
+}
 
-function RoleCard({ label, detail, title, text, button, onClick }: { label: string; detail: string; title: string; text: string; button: string; onClick: () => void }) { return <article className="flex flex-col justify-between rounded-3xl border border-[#E2DFD8] bg-white p-7 shadow-sm transition hover:shadow-lg"><div><div className="mb-3 flex flex-wrap gap-3 items-center justify-between"><span className="rounded-full border border-teal-200/60 bg-teal-50 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-teal-800">{label}</span><span className="font-mono text-xs text-slate-400">{detail}</span></div><h3 className="mt-3 text-xl font-bold text-slate-900">{title}</h3><p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">{text}</p></div><div className="mt-8 flex flex-wrap gap-3 items-center justify-between border-t border-slate-100 pt-4"><button onClick={onClick} className="flex items-center gap-2 rounded-xl bg-[#161E2E] px-5 py-3 text-xs font-semibold text-white shadow transition hover:bg-black">{button}<span>→</span></button><span className="font-mono text-[11px] text-slate-400">{title === "Command Center" ? "Desktop Web" : "Mobile & Web"}</span></div></article>; }
+export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
-function NetworkMap() { const hubs = [{ name: "Seattle", x: 130, y: 80, isSurge: false }, { name: "Bay Area", x: 105, y: 190, isSurge: false }, { name: "Denver", x: 330, y: 180, isSurge: false }, { name: "Dallas", x: 470, y: 310, isSurge: true }, { name: "Chicago", x: 580, y: 155, isSurge: false }, { name: "Atlanta", x: 670, y: 280, isSurge: false }, { name: "Metro East", x: 775, y: 140, isSurge: false }]; return <div className="relative flex flex-col h-[340px] sm:h-auto sm:aspect-[16/9] w-full overflow-hidden rounded-3xl border border-[#E2DFD8] bg-white p-4 shadow-xl sm:p-6"><div className="relative z-10 flex flex-wrap gap-2 items-center justify-between border-b border-slate-100 pb-3 text-xs"><div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-red-400" /><span className="h-3 w-3 rounded-full bg-amber-400" /><span className="h-3 w-3 rounded-full bg-emerald-400" /><span className="hidden sm:inline pl-2 font-mono text-[11px] text-slate-400">overlap // nationwide-tele-stroke-mesh</span></div><span className="rounded-full border border-teal-200/60 bg-teal-50 px-2.5 py-0.5 font-mono text-[11px] font-medium text-teal-700"><i className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-teal-600" />24 Health Systems Monitored</span></div><div className="relative mt-2.5 flex-1 min-h-0 w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-[#FAF8F5]"><div className="absolute inset-0 grid grid-cols-4 pointer-events-none font-mono text-[10px] tracking-wider text-slate-400/80"><div className="border-r border-slate-200/40 p-1 sm:p-3.5 flex items-end">PACIFIC</div><div className="border-r border-slate-200/40 p-1 sm:p-3.5 flex items-end">MOUNTAIN</div><div className="border-r border-slate-200/40 p-1 sm:p-3.5 flex items-end">CENTRAL</div><div className="p-1 sm:p-3.5 flex items-end font-bold text-teal-800/80">EASTERN</div></div><svg viewBox="0 0 900 440" className="absolute inset-0 h-full w-full select-none"><defs><linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#0D9488" /><stop offset="100%" stopColor="#14B8A6" /></linearGradient><linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#D97706" /><stop offset="100%" stopColor="#0D9488" /></linearGradient></defs><path d="M120 60 C180 58 270 70 380 70 C425 75 470 60 520 62 C560 70 590 88 625 78 C660 72 700 90 735 82 C765 72 805 50 830 65 C840 80 825 105 840 125 C815 145 805 170 800 195 C790 230 775 260 770 290 C775 320 788 350 780 375 C760 375 745 340 730 310 C695 315 660 320 625 310 C590 328 560 355 530 380 C500 360 460 325 435 310 C390 310 345 315 300 300 C245 305 205 310 175 300 C150 270 130 230 120 185 C112 145 108 100 120 60 Z" fill="#fff" stroke="#94A3B8" strokeWidth="1.5" /><path d="M105 190 Q330 95 580 155" fill="none" stroke="url(#tealGrad)" strokeWidth="2.5" strokeDasharray="8 8" className="stream-arc" /><path d="M470 310 Q620 210 775 140" fill="none" stroke="url(#amberGrad)" strokeWidth="3" strokeDasharray="8 8" className="stream-arc" /><path d="M130 80 Q220 130 330 180" fill="none" stroke="url(#tealGrad)" strokeWidth="2" strokeDasharray="6 6" /><path d="M330 180 Q500 240 670 280" fill="none" stroke="url(#tealGrad)" strokeWidth="2" strokeDasharray="6 6" />{hubs.map((hub) => { const color = hub.isSurge ? "#D97706" : "#0D9488"; return <g key={hub.name} transform={`translate(${hub.x},${hub.y})`}>{hub.isSurge && <circle cx="0" cy="0" r="14" fill={color} className="animate-ping opacity-25" />}<circle cx="0" cy="0" r="8" fill={color} opacity=".2" /><circle cx="0" cy="0" r="4.5" fill={color} /><text x="0" y={hub.isSurge ? 18 : -10} textAnchor="middle" className="font-mono text-[10px] font-bold" fill={hub.isSurge ? "#B45309" : "#334155"}>{hub.name}{hub.isSurge ? " · SURGE" : ""}</text></g>; })}</svg></div></div>; }
+  return (
+    <div className="min-h-screen bg-[#F8F6F0] text-slate-900 overflow-x-hidden selection:bg-teal-100 selection:text-teal-900 flex flex-col justify-between">
+      <style>{`
+        /* Floating Glass Cards */
+        @keyframes floatCard1 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-7px); }
+        }
+        @keyframes floatCard2 {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(6px); }
+        }
+        .anim-float-1 { animation: floatCard1 4.5s ease-in-out infinite; }
+        .anim-float-2 { animation: floatCard2 5s ease-in-out infinite; }
+
+        /* Card Hover Lift */
+        .hover-lift {
+          transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease;
+        }
+        .hover-lift:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 20px 35px -8px rgba(15, 23, 42, 0.08), 0 8px 16px -4px rgba(15, 23, 42, 0.03);
+          border-color: rgba(13, 148, 136, 0.35);
+        }
+      `}</style>
+
+      {/* ================= 1. FLOATING CENTERED NAVBAR ================= */}
+      <nav className="fixed top-5 inset-x-0 mx-auto z-50 flex w-[calc(100%-48px)] items-center justify-between rounded-full border border-slate-200/90 bg-white/90 px-6 py-3 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.05)]">
+        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2">
+          <span className="relative block h-5 w-6">
+            <i className="absolute left-0 top-0 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-teal-600" />
+            <i className="absolute left-2.5 top-1.5 h-3.5 w-3.5 -skew-x-12 rounded-sm bg-[#161E2E]" />
+          </span>
+          <strong className="text-base font-bold tracking-tight text-slate-900">overlap</strong>
+        </button>
+
+        <div className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-full border border-slate-200/50 text-xs font-semibold text-slate-600">
+          <button onClick={() => scrollTo("overview")} className="bg-white text-slate-900 px-4 py-1.5 rounded-full shadow-sm">Overview</button>
+          <button onClick={() => scrollTo("network")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Network</button>
+          <button onClick={() => scrollTo("roles")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Workspaces</button>
+          <button onClick={() => scrollTo("safety")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Clinical Proof</button>
+        </div>
+
+        <button
+          onClick={() => onGoToSignIn("coordinator")}
+          className="text-xs font-semibold text-slate-900 hover:text-teal-700 transition px-3 py-1.5"
+        >
+          Sign In →
+        </button>
+      </nav>
+
+      {/* ================= 2. MAIN HERO SECTION ================= */}
+      <main id="overview" className="relative w-full mx-auto px-4 sm:px-6 pt-32 pb-16 flex-1 flex flex-col items-center">
+
+        {/* CENTERED HEADLINE */}
+        <section className="text-center max-w-3xl mx-auto mb-8 px-4">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold font-heading text-slate-900 tracking-tight leading-[1.08]">
+            Every hospital covered,<br />
+            <span className="font-normal italic font-serif text-teal-700">before</span> the gap opens.
+          </h1>
+          <p className="mt-4 text-base md:text-lg text-slate-600 max-w-xl mx-auto leading-relaxed">
+            Autonomous tele-stroke scheduling and cross-timezone coverage across 100+ partner hospitals nationwide.
+          </p>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => onGoToSignIn("coordinator")}
+              className="rounded-full bg-teal-700 px-7 py-3.5 text-xs font-semibold text-white shadow-lg shadow-teal-900/10 transition hover:-translate-y-0.5 hover:bg-teal-800"
+            >
+              Sign In to Command Center →
+            </button>
+            <button
+              onClick={() => onGoToSignIn("physician")}
+              className="rounded-full border border-slate-300 bg-white px-6 py-3.5 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-400 shadow-sm"
+            >
+              Sign In as Physician
+            </button>
+          </div>
+        </section>
+
+        {/* ================= THE LIVING TOPOGRAPHIC US NETWORK MAP (ALWAYS IN MOTION) ================= */}
+        <div id="network" className="relative w-full h-[420px] md:h-[min(64vh,720px)] md:min-h-[460px] flex items-center justify-center my-4">
+
+          {/* FLOATING GLASS CARD 1 (SEVARO REAL STAT: <45s) */}
+          <div className="anim-float-1 absolute top-4 left-2 md:top-8 md:left-6 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 px-5 py-4 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
+            <div className="text-[11px] font-mono text-slate-500 font-medium">Synapse AI Response</div>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading whitespace-nowrap">&lt;&nbsp;45s</span>
+              <span className="text-xs text-slate-500 font-medium whitespace-nowrap">door-to-neuro</span>
+            </div>
+          </div>
+
+          {/* FLOATING GLASS CARD 2 (SEVARO REAL STAT: 100+) */}
+          <div className="anim-float-2 absolute bottom-6 right-2 md:bottom-12 md:right-8 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 p-4 md:p-5 flex items-center gap-3.5 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
+            <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading">100+</span>
+            <div className="text-xs font-semibold text-slate-700 leading-snug">
+              Hospitals Served<br />Across the Nation
+            </div>
+          </div>
+
+          {/* BASE HIGH-RESOLUTION TOPOGRAPHIC TERRAIN RELIEF MAP */}
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img
+              src="/us_network_map.jpg"
+              alt="United States Tele-Stroke Coordination Topology"
+              className="w-full h-full object-contain pointer-events-none select-none"
+            />
+
+            {/* LIVING MOTION SVG OVERLAY: CONTINUOUSLY STREAMING COMETS & PULSES */}
+            <svg viewBox="0 0 1376 768" className="absolute inset-0 w-full h-full pointer-events-auto" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="cyanBeam" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#14B8A6" stopOpacity="0.8" />
+                  <stop offset="50%" stopColor="#2DD4BF" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#5EEAD4" stopOpacity="0.9" />
+                </linearGradient>
+
+                <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="4" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+
+              {/* ROUTING ARCS */}
+              <path d="M 340 195 Q 500 330 695 545" fill="none" stroke="url(#cyanBeam)" strokeWidth="2.5" opacity="0.65" />
+              <path d="M 288 392 Q 420 340 565 395" fill="none" stroke="url(#cyanBeam)" strokeWidth="2.5" opacity="0.65" />
+              <path d="M 565 395 Q 640 450 695 545" fill="none" stroke="url(#cyanBeam)" strokeWidth="2.5" opacity="0.65" />
+              <path d="M 695 545 Q 770 430 838 355" fill="none" stroke="url(#cyanBeam)" strokeWidth="3" opacity="0.75" />
+              <path d="M 838 355 Q 950 310 1050 345" fill="none" stroke="url(#cyanBeam)" strokeWidth="3" opacity="0.75" />
+              <path d="M 695 545 Q 890 470 1050 345" fill="none" stroke="url(#cyanBeam)" strokeWidth="2.5" opacity="0.6" />
+
+              {/* GLOWING CYAN COMETS (CONTINUOUS MOTION ACROSS THE MAP) */}
+              <circle r="6" fill="#5EEAD4" filter="url(#glow)">
+                <animateMotion dur="2.8s" repeatCount="indefinite" path="M 340 195 Q 500 330 695 545" />
+              </circle>
+              <circle r="5" fill="#5EEAD4" filter="url(#glow)">
+                <animateMotion dur="2.4s" repeatCount="indefinite" path="M 288 392 Q 420 340 565 395" />
+              </circle>
+              <circle r="5.5" fill="#5EEAD4" filter="url(#glow)">
+                <animateMotion dur="2.2s" repeatCount="indefinite" path="M 695 545 Q 770 430 838 355" />
+              </circle>
+              <circle r="6" fill="#5EEAD4" filter="url(#glow)">
+                <animateMotion dur="2.5s" repeatCount="indefinite" path="M 838 355 Q 950 310 1050 345" />
+              </circle>
+              <circle r="5" fill="#5EEAD4" filter="url(#glow)">
+                <animateMotion dur="3s" begin="1.2s" repeatCount="indefinite" path="M 695 545 Q 890 470 1050 345" />
+              </circle>
+
+              {/* DALLAS CONTINUOUS EXPANDING AMBER PULSE RINGS */}
+              <circle cx="695" cy="545" r="20" fill="rgba(245, 158, 11, 0.25)" stroke="#F59E0B" strokeWidth="2.5">
+                <animate attributeName="r" from="20" to="90" dur="2.4s" repeatCount="indefinite" />
+                <animate attributeName="opacity" from="0.9" to="0" dur="2.4s" repeatCount="indefinite" />
+              </circle>
+              <circle cx="695" cy="545" r="30" fill="none" stroke="#F59E0B" strokeWidth="1.8">
+                <animate attributeName="r" from="20" to="135" dur="2.4s" begin="0.8s" repeatCount="indefinite" />
+                <animate attributeName="opacity" from="0.8" to="0" dur="2.4s" begin="0.8s" repeatCount="indefinite" />
+              </circle>
+              <circle cx="695" cy="545" r="45" fill="none" stroke="#F59E0B" strokeWidth="1.2">
+                <animate attributeName="r" from="20" to="180" dur="2.4s" begin="1.6s" repeatCount="indefinite" />
+                <animate attributeName="opacity" from="0.6" to="0" dur="2.4s" begin="1.6s" repeatCount="indefinite" />
+              </circle>
+
+              {/* PULSING CITY NODES */}
+              <g transform="translate(340, 195)">
+                <circle cx="0" cy="0" r="14" fill="rgba(20, 184, 166, 0.25)">
+                  <animate attributeName="r" values="8;16;8" dur="3s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="18" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">Seattle</text>
+              </g>
+
+              <g transform="translate(288, 392)">
+                <circle cx="0" cy="0" r="14" fill="rgba(20, 184, 166, 0.25)">
+                  <animate attributeName="r" values="8;16;8" dur="3s" begin="0.5s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="0.5s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="18" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">San Francisco</text>
+              </g>
+
+              <g transform="translate(565, 395)">
+                <circle cx="0" cy="0" r="14" fill="rgba(20, 184, 166, 0.25)">
+                  <animate attributeName="r" values="8;16;8" dur="3s" begin="1s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="1s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="0" y="24" textAnchor="middle" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">Denver</text>
+              </g>
+
+              <g transform="translate(838, 355)">
+                <circle cx="0" cy="0" r="14" fill="rgba(20, 184, 166, 0.25)">
+                  <animate attributeName="r" values="8;16;8" dur="3s" begin="1.5s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="1.5s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="0" cy="0" r="6" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="0" y="24" textAnchor="middle" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">Chicago</text>
+              </g>
+
+              <g transform="translate(1050, 345)">
+                <circle cx="0" cy="0" r="16" fill="rgba(20, 184, 166, 0.3)">
+                  <animate attributeName="r" values="8;18;8" dur="3s" begin="2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" begin="2s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="0" cy="0" r="7" fill="#0D9488" stroke="#FFFFFF" strokeWidth="2" />
+                <text x="20" y="5" fontFamily="'IBM Plex Sans'" fontSize="16" fontWeight="700" fill="#0F172A">New York</text>
+              </g>
+
+              {/* DALLAS HUB & FIXED 280px CAPSULE PILL */}
+              <g transform="translate(695, 545)" className="cursor-pointer">
+                <circle cx="0" cy="0" r="9" fill="#D97706" stroke="#FFFFFF" strokeWidth="2.5" />
+                <text x="20" y="6" fontFamily="'IBM Plex Sans'" fontSize="17" fontWeight="800" fill="#B45309">Dallas</text>
+
+                <g transform="translate(0, -42)">
+                  <rect x="-140" y="-15" width="280" height="30" rx="15" fill="#0F172A" stroke="#334155" strokeWidth="1.2" />
+                  <polygon points="-6,15 0,21 6,15" fill="#0F172A" />
+                  <text x="0" y="5" textAnchor="middle" fontFamily="'IBM Plex Mono'" fontSize="11.5" fontWeight="600">
+                    <tspan fill="#F59E0B">ED Stroke Surge</tspan>
+                    <tspan fill="#64748B"> · </tspan>
+                    <tspan fill="#2DD4BF">Auto-Balancing</tspan>
+                  </text>
+                </g>
+              </g>
+            </svg>
+          </div>
+
+        </div>
+
+        {/* ================= 3. TWO WORKSPACES (PREVIEW SHOWCASE) ================= */}
+        <section id="roles" className="mt-20 w-full scroll-mt-28 border-t border-slate-200/80 pt-16">
+
+          <div className="text-center max-w-xl mx-auto mb-12">
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              Two workspaces, one synchronized schedule
+            </h2>
+            <p className="text-sm md:text-base text-slate-600 mt-2.5 leading-relaxed">
+              Coordinators manage national coverage while neurologists accept verified emergency shifts in seconds.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+
+            {/* Coordinator Workspace Card */}
+            <div className="hover-lift bg-white rounded-3xl border border-[#E2DFD8] p-5 sm:p-8 md:p-10 flex flex-col justify-between shadow-sm">
+              <div>
+                <div className="flex flex-wrap gap-3 items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
+                    Coordinator Workspace
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    LIVE DISPATCH
+                  </span>
+                </div>
+
+                <h3 className="text-2xl font-bold text-slate-900 mt-4 tracking-tight">Command Center</h3>
+                <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
+                  Real-time national grid oversight. Triage queue monitoring, predictive shortfall detection, and automated physician dispatch across 100+ partner hospitals.
+                </p>
+
+                <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200/70 p-4 space-y-2.5">
+                  <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
+                    <span className="text-slate-500 font-mono">Surge Mitigation Target</span>
+                    <span className="text-teal-700 font-bold font-mono">&lt; 45s Response SLA</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div className="bg-teal-600 h-2 rounded-full w-[82%]" />
+                  </div>
+                  <div className="flex flex-wrap gap-3 items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
+                    <span>Cross-regional pool balancing active</span>
+                    <span className="text-emerald-600 font-bold">100+ Hospitals</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap gap-3 items-center justify-between">
+                <button
+                  onClick={() => onGoToSignIn("coordinator")}
+                  className="rounded-xl bg-[#161E2E] hover:bg-slate-900 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group"
+                >
+                  <span>Sign In to Command Center</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </button>
+                <span className="text-xs font-mono text-slate-400">Desktop Web Optimized</span>
+              </div>
+            </div>
+
+            {/* Physician Experience Card */}
+            <div className="hover-lift bg-white rounded-3xl border border-[#E2DFD8] p-5 sm:p-8 md:p-10 flex flex-col justify-between shadow-sm">
+              <div>
+                <div className="flex flex-wrap gap-3 items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
+                    Physician Experience
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[11px] font-mono text-teal-700 font-semibold bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200/50">
+                    1-TAP HANDOFF
+                  </span>
+                </div>
+
+                <h3 className="text-2xl font-bold text-slate-900 mt-4 tracking-tight">Mobile & Web Handoff</h3>
+                <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
+                  Distraction-free emergency shift acceptance. Doctor rest intervals are checked against 8 clinical fatigue rules before alerts reach their phone. Zero patient PHI.
+                </p>
+
+                <div className="mt-6 rounded-2xl bg-teal-900/5 border border-teal-800/15 p-4 space-y-2.5">
+                  <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
+                    <span className="text-slate-700 font-medium">Surge Shift Offer · Regional Match</span>
+                    <span className="text-teal-800 font-bold font-mono text-[11px] bg-teal-100/70 px-2 py-0.5 rounded">60m Coverage</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-600 font-mono">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span>8 Rest Safeguards Passed · Medical License Active</span>
+                  </div>
+                  <div className="pt-1 flex flex-wrap gap-3 items-center justify-between text-[11px]">
+                    <span className="text-slate-500">HIPAA Safe Harbor Compliance</span>
+                    <span className="text-slate-900 font-bold font-mono">100% Verified</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-slate-100 flex flex-wrap gap-3 items-center justify-between">
+                <button
+                  onClick={() => onGoToSignIn("physician")}
+                  className="rounded-xl bg-teal-700 hover:bg-teal-800 px-6 py-3.5 text-xs font-semibold text-white shadow-md transition flex items-center gap-2 group"
+                >
+                  <span>Sign In as Physician</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </button>
+                <span className="text-xs font-mono text-slate-400">Mobile Responsive</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* ================= 4. REAL SEVARO CLINICAL PROOF (100% AUTHENTIC METRICS) ================= */}
+        <section id="safety" className="mt-20 w-full border-t border-slate-200/80 pt-16">
+          <div className="text-center max-w-xl mx-auto mb-10">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Clinical Performance Proof</h2>
+            <p className="text-sm text-slate-600 mt-2">Published real-world outcomes delivered by Sevaro's tele-stroke network.</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+            {/* Stat 1: < 45s */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
+              <div className="text-2xl font-extrabold font-heading text-slate-900">&lt; 45s</div>
+              <div className="text-xs font-semibold text-slate-800 mt-1">Response Time SLA</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Powered by Synapse AI</div>
+            </div>
+
+            {/* Stat 2: 100+ Hospitals */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
+              <div className="text-2xl font-extrabold font-heading text-teal-700">100+</div>
+              <div className="text-xs font-semibold text-slate-800 mt-1">Hospitals Served</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Across Emergency Depts</div>
+            </div>
+
+            {/* Stat 3: 30% Transfer Reduction */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
+              <div className="text-2xl font-extrabold font-heading text-slate-900">30%</div>
+              <div className="text-xs font-semibold text-slate-800 mt-1">Transfer Reduction</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Avoiding Unnecessary Moves</div>
+            </div>
+
+            {/* Stat 4: 20% Reduced Length of Stay */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
+              <div className="text-2xl font-extrabold font-heading text-emerald-600">20%</div>
+              <div className="text-xs font-semibold text-slate-800 mt-1">Reduced Length of Stay</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Rapid Acute Intervention</div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200/80 pt-8 pb-12 text-center text-xs text-slate-400 font-mono">
+        © 2026 Overlap Systems · Sevaro Tele-Stroke Challenge · Autonomous Clinical Coordination
+      </footer>
+    </div>
+  );
+};

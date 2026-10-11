@@ -45,6 +45,7 @@ export default function App() {
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const [notice, setNotice] = useState<string>();
+  const [targetRole, setTargetRole] = useState<"coordinator" | "lead" | "physician">("coordinator");
   const [signingIn, setSigningIn] = useState(() => location.hash === "#signin");
   useEffect(() => {
     const onHash = () => setSigningIn(location.hash === "#signin");
@@ -93,11 +94,11 @@ export default function App() {
 
   // Signed-out visitors start on the landing page; its buttons lead to sign-in (#signin). A session-ended notice goes straight to sign-in.
   if (!session && !notice && !signingIn) {
-    const toSignIn = () => { location.hash = "signin"; };
+    const toSignIn = (role: "coordinator" | "lead" | "physician" = "coordinator") => { setTargetRole(role); location.hash = "signin"; };
     return <div className="tw"><LandingPage onEnter={toSignIn} onGoToSignIn={toSignIn} /></div>;
   }
   if (!session) {
-    return <SignIn notice={notice} onBackToLanding={() => { setNotice(undefined); location.hash = ""; }}
+    return <SignIn key={targetRole} initialRole={targetRole} notice={notice} onBackToLanding={() => { setNotice(undefined); location.hash = ""; }}
       onSignedIn={(next) => { setNotice(undefined); setChecking(false); setSession(next); location.hash = PAGES_BY_ROLE[next.user.role][0]; }} />;
   }
   if (checking) return <main className="signin-page"><div className="signin-main"><div className="signin">
