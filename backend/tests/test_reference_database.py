@@ -26,7 +26,7 @@ def files():
 def hosted(db_url,monkeypatch):
     monkeypatch.setattr('app.main.settings',replace(settings, reference_fingerprint=None,reference_dir=None))
     return create_app(db_url,FixedClock(START),auth=TEST_AUTH,sweep_s=0,
-                      speech=SimpleNamespace(available=False,conn=SimpleNamespace(close=lambda:None)))
+                      speech=SimpleNamespace(available=False,close=lambda: None))
 
 
 def test_persisted_reference_manifest_restart_counts_and_event_retention(db_url,monkeypatch):
@@ -68,7 +68,7 @@ def test_directory_reference_count_excludes_event_and_snapshot_csvs(db_url, monk
     (tmp_path / 'snapshot_open_consults.csv').write_text('consult_id\n')
     monkeypatch.setattr('app.main.settings', replace(settings, reference_fingerprint=None, reference_dir=str(tmp_path), service_date='2026-04-07'))
     with TestClient(create_app(db_url, FixedClock(START), auth=TEST_AUTH, sweep_s=0,
-                              speech=SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None)))) as client:
+                              speech=SimpleNamespace(available=False, close=lambda: None))) as client:
         status = client.get('/admin/references', headers=ADMIN).json()
         assert status['dataset']['reference_files'] == 6
         assert status['event_count'] == 0

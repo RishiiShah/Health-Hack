@@ -23,7 +23,10 @@ class FakeSpeech:
     available = True
 
     def __init__(self):
-        self.texts, self.conn = [], type("Conn", (), {"close": lambda self: None})()
+        self.texts = []
+
+    def close(self):
+        pass
 
     def audio(self, text):
         self.texts.append(text)

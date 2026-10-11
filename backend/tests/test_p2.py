@@ -45,7 +45,7 @@ def test_orphan_release_converges_across_batch_order_and_restart(db_url, new_db_
     server.value = at(1)
     assert coord.ingest([child])["duplicates"] == 1
     assert db.holds()["child"][1] == deadline
-    db.conn.close()
+    db.close()
     reopened = EventDatabase(db_url)
     recovered = MutationCoordinator(reopened, clock, receipt_clock=server)
     report = recovered.ingest([parent])
@@ -55,7 +55,7 @@ def test_orphan_release_converges_across_batch_order_and_restart(db_url, new_db_
     both.ingest([parent, child])
     assert recovered.published.state == both.published.state
     assert recovered.refs == both.refs
-    reopened.conn.close()
+    reopened.close()
 
 
 def test_orphan_expiry_uses_server_clock_at_exact_deadline_and_stays_expired(db_url):
@@ -72,14 +72,15 @@ def test_orphan_expiry_uses_server_clock_at_exact_deadline_and_stays_expired(db_
     assert p.as_of == at(30)
     coord.sweep()
     assert coord.published.stats["expired_orphans"] == 1
-    db.conn.close()
+    db.close()
     reopened = EventDatabase(db_url)
     coord = MutationCoordinator(reopened, simulation, receipt_clock=server)
     report = coord.ingest([row("parent"), child])
     assert report["duplicates"] == 1 and report["accepted"] == 1
     assert coord.published.state.consults["C"].stage == "Received"
-    assert reopened.conn.execute("SELECT COUNT(*) FROM quarantine").fetchone()["count"] == 1
-    reopened.conn.close()
+    with reopened.pool.connection() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM quarantine").fetchone()["count"] == 1
+    reopened.close()
 
 
 def test_reference_activation_releases_known_ids_atomically_and_survives_restart(db_url):
@@ -93,12 +94,12 @@ def test_reference_activation_releases_known_ids_atomically_and_survives_restart
     report = coord.activate_references(new_refs)
     assert report["accepted"] == 1 and coord.published.reference_revision == 2
     assert coord.published.state.consults["C2"].hospital_id == "H2"
-    db.conn.close()
+    db.close()
     reopened = EventDatabase(db_url)
     recovered = MutationCoordinator(reopened, clock, receipt_clock=server)
     assert recovered.refs == new_refs
     assert recovered.published == coord.published
-    reopened.conn.close()
+    reopened.close()
 
 
 def test_failed_hold_or_reference_commit_does_not_publish(db_url, monkeypatch):
@@ -127,11 +128,11 @@ def test_quality_metrics_persist_and_do_not_recount_on_replay(db_url):
     assert expected["max_reorder_lag_s"] == 480
     clock.value = at(3)
     assert dict(coord.current_publication().stats) == expected
-    db.conn.close()
+    db.close()
     reopened = EventDatabase(db_url)
     recovered = MutationCoordinator(reopened, clock)
     assert dict(recovered.published.stats) == expected
-    reopened.conn.close()
+    reopened.close()
 
 
 def test_matching_sessions_and_rings_do_not_clear_other_consults_or_directions():
@@ -328,7 +329,8 @@ def test_raw_g1_rows_quarantine_individually_without_losing_valid_rows(db_url):
     report = coord.ingest_raw([invalid, valid, {"unexpected": "fields"}])
     assert report["accepted"] == 1 and len(report["quarantined"]) == 2
     assert coord.published.stats["rejected"] == 2
-    assert coord.db.conn.execute("SELECT COUNT(*) FROM quarantine").fetchone()["count"] == 2
+    with coord.db.pool.connection() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM quarantine").fetchone()["count"] == 2
 
 
 def test_sample_adapter_unknown_description_is_quarantined_and_raw_is_preserved(db_url):

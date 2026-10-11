@@ -129,7 +129,8 @@ def test_database_order_preserves_fractional_seconds(db_url):
     later = early.model_copy(update={"event_id":"later", "consult_id":"C2", "event_time":early.event_time.replace(microsecond=100000)})
     db.commit_batch([later, early], [])
     assert [e.event_id for e in db.events()] == ["early", "later"]
-    stored = db.conn.execute("SELECT event_time FROM events ORDER BY event_time").fetchall()
+    with db.pool.connection() as conn:
+        stored = conn.execute("SELECT event_time FROM events ORDER BY event_time").fetchall()
     assert [r["event_time"] for r in stored] == [early.event_time, later.event_time]
     assert stored[1]["event_time"].microsecond == 100000
 
@@ -140,7 +141,8 @@ def test_conflicting_duplicate_is_durably_quarantined(db_url):
     report = coord.ingest([first, first.model_copy(update={"consult_type":"General Neuro"})])
     assert report["accepted"] == 1 and report["conflicts"] == 1 and report["duplicates"] == 0
     assert coord.published.state.consults["C"].consult_type == "Stroke"
-    rejected = db.conn.execute("SELECT reason, received_at FROM quarantine").fetchone()
+    with db.pool.connection() as conn:
+        rejected = conn.execute("SELECT reason, received_at FROM quarantine").fetchone()
     assert "G2 conflicting payload" in rejected["reason"]
     assert rejected["received_at"].utcoffset().total_seconds() == 0
 
@@ -151,11 +153,11 @@ def test_restart_restores_committed_consult_state(db_url):
     row = EventInput(event_id="r", event_time=t("2026-03-17T12:00:00"), event_type="consult_received", consult_id="C", hospital_id="H", consult_type="Stroke")
     original.ingest([row])
     expected = original.published
-    db.conn.close()
+    db.close()
     reopened = EventDatabase(db_url)
     recovered = MutationCoordinator(reopened, clock).published
     assert recovered == expected
-    reopened.conn.close()
+    reopened.close()
 
 def test_snapshot_reuses_state_when_only_time_changes(db_url):
     db = EventDatabase(db_url)
@@ -255,7 +257,6 @@ def test_batch_row_limit_rejects_entire_request(db_url, monkeypatch):
 
 
 def test_failed_startup_closes_database(db_url, monkeypatch):
-    import psycopg
     from dataclasses import replace
     from importlib import import_module
     main = import_module("app.main")
@@ -265,8 +266,7 @@ def test_failed_startup_closes_database(db_url, monkeypatch):
     with pytest.raises(ValueError, match="fixed clock requires"):
         with TestClient(create_app(db_url)):
             pass
-    with pytest.raises(psycopg.OperationalError, match="closed"):
-        db.conn.execute("SELECT 1")
+    assert db.pool.closed
 
 
 def test_snapshot_cache_reuses_bytes_within_a_second_but_never_hides_new_events(db_url):

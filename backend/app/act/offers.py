@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import Callable
 import psycopg
 from app.clock import Clock, utc
-from app.db import connect
+from app.db import pool
 from app.decide.eligibility import MIN_OFFER, OfferHistory, Proposal, evaluate_proposal
 from app.engine.replay import State
 from app.ops.coverage import SplitShift, current_coverage, project, remaining_need
@@ -133,33 +133,33 @@ class OfferDesk:
     def __init__(self, url: str, context: Callable[[], Context], base_history: OfferHistory = OfferHistory(), shared_log=False):
         """`shared_log`: the event log lives in the same database, so a command first checks this server is not behind it."""
         self.url, self.context, self.base_history, self.shared_log = url, context, base_history, shared_log
-        self.lock = RLock()  # one connection is shared by the API's worker threads: one command or read at a time
+        self.lock = RLock()  # one command at a time in this process (the advisory lock serializes across servers)
         self.version = 0  # bumps on every committed command, so cached snapshots know offers changed
-        self.conn = self._connect()
-        with self.conn.transaction():
+        self.pool = pool(url)
+        with self.pool.connection() as conn, conn.transaction():
             for statement in SCHEMA:
-                self.conn.execute(statement)
+                conn.execute(statement)
 
-    def _connect(self):
-        return connect(self.url)
+    def close(self):
+        self.pool.close()
 
     # ---- reads -------------------------------------------------------------------------------------------
     def offers(self, physician_id: str | None = None) -> list[Offer]:
-        with self.lock:
-            rows = self.conn.execute("SELECT * FROM offers WHERE %s::text IS NULL OR (physician_id=%s AND sent_at IS NOT NULL) ORDER BY id", (physician_id, physician_id)).fetchall()
+        with self.pool.connection() as conn:
+            rows = conn.execute("SELECT * FROM offers WHERE %s::text IS NULL OR (physician_id=%s AND sent_at IS NOT NULL) ORDER BY id", (physician_id, physician_id)).fetchall()
         return [_row(r) for r in rows]
 
     def offer(self, offer_id: str, physician_id: str | None = None) -> Offer:
-        with self.lock:
-            r = self.conn.execute("SELECT * FROM offers WHERE id=%s", (offer_id,)).fetchone()
+        with self.pool.connection() as conn:
+            r = conn.execute("SELECT * FROM offers WHERE id=%s", (offer_id,)).fetchone()
         if r is None or (physician_id is not None and (r["physician_id"] != physician_id or r["sent_at"] is None)):
             raise OfferError(404, "not_found", "no such offer")  # another physician's offer is indistinguishable from none
         return _row(r)
 
     def audit(self, gap_id: str | None = None, limit: int | None = None) -> list[dict]:
         """Oldest first; with `limit`, only the newest rows (the log grows by a recommendation pass per decision change)."""
-        with self.lock:
-            rows = self.conn.execute("SELECT * FROM (SELECT * FROM offer_audit WHERE %s::text IS NULL OR gap_id=%s ORDER BY id DESC LIMIT %s) t ORDER BY id",
+        with self.pool.connection() as conn:
+            rows = conn.execute("SELECT * FROM (SELECT * FROM offer_audit WHERE %s::text IS NULL OR gap_id=%s ORDER BY id DESC LIMIT %s) t ORDER BY id",
                                      (gap_id, gap_id, limit)).fetchall()
         return [{**r, "detail": json.loads(r["detail"])} for r in rows]
 
@@ -167,7 +167,7 @@ class OfferDesk:
         """A cached pass is recorded once, including across restarts; no offer version change on an audit write."""
         encoded = json.dumps({"revision": ctx.revision, "as_of": ctx.now, "items": recommendations}, sort_keys=True, default=str)
         fingerprint = hashlib.sha256(encoded.encode()).hexdigest()
-        with self.lock, self.conn.transaction(), self.conn.cursor() as cur:
+        with self.pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
             cur.execute("INSERT INTO decision_passes VALUES(%s) ON CONFLICT DO NOTHING RETURNING fingerprint", (fingerprint,))
             if cur.fetchone() is None:
                 return
@@ -175,8 +175,8 @@ class OfferDesk:
                 self._audit(cur, ctx, None, row["id"], "system", "recommendation", None, None, row)
 
     def outbox(self) -> list[dict]:
-        with self.lock:
-            return self.conn.execute("SELECT * FROM offer_outbox ORDER BY id").fetchall()
+        with self.pool.connection() as conn:
+            return conn.execute("SELECT * FROM offer_outbox ORDER BY id").fetchall()
 
     def accepted(self) -> tuple:
         """Accepted split shifts, as decide()/project() take them."""
@@ -212,11 +212,9 @@ class OfferDesk:
                 self.version += 1
 
     def _run_locked(self, command, actor, args, idempotency_key, body):
-        if self.conn.broken:
-            self.conn = self._connect()
         request = json.dumps({"command": command, "actor": actor, **args}, sort_keys=True, default=str)
         error = None
-        with self.conn.transaction(), self.conn.cursor() as cur:
+        with self.pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
             cur.execute("SELECT pg_advisory_xact_lock(%s)", (OFFER_LOCK,))
             if idempotency_key:
                 cur.execute("SELECT request, response FROM offer_idempotency WHERE key=%s", (idempotency_key,))
@@ -337,7 +335,7 @@ class OfferDesk:
 
     def reset(self, actor: str, at: datetime):
         """Admin reset for a fresh demo run: open and past offers go; the audit log is append-only and keeps a reset row."""
-        with self.lock, self.conn.transaction(), self.conn.cursor() as cur:
+        with self.lock, self.pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
             cur.execute("SELECT pg_advisory_xact_lock(%s)", (OFFER_LOCK,))
             cur.execute("TRUNCATE offers, offer_outbox, offer_idempotency")
             cur.execute("INSERT INTO offer_audit(at,actor,command,detail) VALUES(%s,%s,'reset','{}')", (at, actor))

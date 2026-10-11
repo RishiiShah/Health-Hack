@@ -132,7 +132,7 @@ def test_restart_recovers_a_switched_kit_under_the_official_pin(db_url, monkeypa
     monkeypatch.setattr(main, 'settings', replace(main.settings, reference_dir=None, reference_fingerprint=pin))
     def pinned():
         return main.create_app(db_url, FixedClock(START), auth=TEST_AUTH, sweep_s=0,
-                               speech=SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None)))
+                               speech=SimpleNamespace(available=False, close=lambda: None))
     with TestClient(pinned()) as client:
         # The first kit must be the official one; others are stored beside it.
         assert client.post('/admin/references', headers=ADMIN, json={'files': second_kit(), 'service_date': '2026-04-07'}).status_code == 409

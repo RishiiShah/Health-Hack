@@ -18,7 +18,7 @@ from test_accepted_routing import START, END, event, world
 
 def test_mobile_backend_payload_contract(db_url, tmp_path):
     refs, ops, _ = world()
-    speech = SimpleNamespace(available=False, audio=lambda text: None, conn=SimpleNamespace(close=lambda: None))
+    speech = SimpleNamespace(available=False, audio=lambda text: None, close=lambda: None)
     app = create_app(db_url, FixedClock(START - timedelta(minutes=20)), auth=TEST_AUTH,
                      references=(refs, ops), history_path=tmp_path / "absent.csv", speech=speech, sweep_s=0)
     bundle = {}

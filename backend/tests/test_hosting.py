@@ -33,7 +33,7 @@ def test_built_web_app_is_served_beside_the_api(db_url, monkeypatch, tmp_path):
     from app.main import create_app
     (tmp_path / "index.html").write_text("<!doctype html><title>web</title>")
     monkeypatch.setattr("app.main.settings", replace(settings, reference_fingerprint=None, reference_dir=None, web_dir=str(tmp_path)))
-    speech = SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None))
+    speech = SimpleNamespace(available=False, close=lambda: None)
     with TestClient(create_app(db_url, auth=TEST_AUTH, speech=speech, sweep_s=0)) as client:
         assert "<title>web</title>" in client.get("/").text
         assert client.get("/snapshot", headers=COORD).json()["clock"]
@@ -70,7 +70,27 @@ def test_database_url_falls_back_to_the_image_ca_bundle(tmp_path, monkeypatch):
 
 def test_server_connections_bound_lock_waits_and_idle_transactions(db_url):
     """A session stuck holding the offer lock must not hang other instances forever."""
-    from app.db import connect
-    with connect(db_url) as conn:
+    from app.db import pool
+    with pool(db_url) as connections, connections.connection() as conn:
         settings = {k: conn.execute(f"SHOW {k}").fetchone()[k] for k in ("lock_timeout", "idle_in_transaction_session_timeout", "TimeZone")}
     assert settings == {"lock_timeout": "15s", "idle_in_transaction_session_timeout": "1min", "TimeZone": "UTC"}
+
+
+def test_a_slow_query_does_not_hold_up_other_reads(db_url):
+    """Pooled connections: a read waiting on a locked row must not queue every other request behind it."""
+    import psycopg
+    from threading import Thread
+    from app.db import EventDatabase
+    db = EventDatabase(db_url)
+    with psycopg.connect(db_url) as other:
+        other.execute("SELECT * FROM metadata WHERE key='revision' FOR UPDATE")  # held until this block ends
+        slow = Thread(target=db.set_metadata, args=("revision", 9), daemon=True)
+        slow.start()
+        slow.join(0.5)
+        assert slow.is_alive()  # waiting on the row lock, holding one connection
+        reads = Thread(target=db.uploads, daemon=True)
+        reads.start()
+        reads.join(3)
+        assert not reads.is_alive()
+    slow.join(5)
+    db.close()

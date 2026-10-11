@@ -109,8 +109,8 @@ Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already
 - **Context:** the app will be stress tested, and the earlier SQLite-on-disk design tied storage to a single host's disk.
 - **Decision:**
   - One RDS PostgreSQL database; the original region plan was us-east-1, while the configured instance is us-west-2. Its high-availability configuration was not inspected.
-  - Driver: `psycopg[binary]` only. No ORM and no migration tool: schema statements in the owning modules use `CREATE TABLE IF NOT EXISTS` at startup.
-  - Separate event, offer, intervention and speech-cache connections in one process, with short transactions.
+  - Driver: `psycopg[binary]`, with its `pool` extra (`psycopg-pool`, same maintainers) so concurrent requests get their own connection. No ORM and no migration tool: schema statements in the owning modules use `CREATE TABLE IF NOT EXISTS` at startup.
+  - Separate event, offer, intervention and speech-cache connection pools (1 to 4 connections each) in one process, with short transactions.
   - Encrypted connections (`sslmode=verify-full` with the RDS certificate bundle).
   - The `CC_DATABASE_URL` environment variable replaces `CC_DB_PATH`.
 - **Consequences:**
@@ -129,7 +129,7 @@ Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already
 ## Allowed dependencies (anything else needs a written reason in the PR)
 | Area | Allowed | Explicitly not allowed |
 |---|---|---|
-| Backend | fastapi, uvicorn, pydantic (existing); psycopg[binary] (needed for RDS); pytest, httpx (tests) | requests, the ElevenLabs SDK, ORMs, alembic, celery, redis |
+| Backend | fastapi, uvicorn, pydantic (existing); psycopg[binary] (needed for RDS); psycopg[pool] (concurrent requests must not queue on one connection); pytest, httpx (tests) | requests, the ElevenLabs SDK, ORMs, alembic, celery, redis |
 | Web | react, react-dom, vite, typescript; openapi-typescript (development only) | ECharts, router, state, UI-kit, date or HTTP libraries |
 | Mobile | Flutter SDK, `http`, `web` (both made by the Dart team) | state-management, router, Firebase or audio plugins |
 | Synthetic data | Python standard library only | numpy, pandas, faker |

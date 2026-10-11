@@ -28,7 +28,7 @@ def test_override_and_csv_advance_survive_restart(db_url, monkeypatch, csv_advan
     monkeypatch.setattr("app.main.settings", replace(settings, reference_fingerprint=None, clock_mode="fixed", clock_fixed=AT.isoformat(), reference_dir=None))
     later = AT + timedelta(minutes=20)
     def hosted():
-        speech = SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None))
+        speech = SimpleNamespace(available=False, close=lambda: None)
         return create_app(db_url, auth=TEST_AUTH, speech=speech, sweep_s=0)
     with TestClient(hosted()) as client:
         if csv_advance:
@@ -61,7 +61,7 @@ def test_failed_clock_commit_keeps_previous_clock(db_url, monkeypatch):
         coordinator.set_clock(FixedClock(AT + timedelta(hours=1)))
     assert coordinator.current_publication().as_of == AT
     assert db.metadata("clock") is None
-    db.conn.close()
+    db.close()
 
 
 def test_running_override_survives_restart_with_downtime(db_url, monkeypatch):
@@ -71,7 +71,7 @@ def test_running_override_survives_restart_with_downtime(db_url, monkeypatch):
     monkeypatch.setattr("app.clock.ServerReceiptClock.now", lambda self: receipt[0])
     later = AT + timedelta(hours=1)
     def hosted():
-        speech = SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None))
+        speech = SimpleNamespace(available=False, close=lambda: None)
         return create_app(db_url, auth=TEST_AUTH, speech=speech, sweep_s=0)
     with TestClient(hosted()) as client:
         response = client.post("/admin/clock", headers=ADMIN, json={"at": later.isoformat(), "paused": False})
@@ -87,7 +87,7 @@ def test_auto_clock_on_an_empty_database_follows_the_first_upload(db_url, monkey
     """A fresh deploy starts on wall time; loading an old kit moves it to the kit's clock without waiting for a restart."""
     monkeypatch.setattr("app.main.settings", replace(settings, reference_fingerprint=None, clock_mode="auto", clock_fixed=None, reference_dir=None))
     def hosted():
-        speech = SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None))
+        speech = SimpleNamespace(available=False, close=lambda: None)
         return create_app(db_url, auth=TEST_AUTH, speech=speech, sweep_s=0)
     body = ("event_id,event_time,ingested_at,consult_id,event_type,physician_id,hospital_id,description\n"
             f"R,{AT.isoformat()},{AT.isoformat()},C,consult_received,,H,Stroke consult request received\n")

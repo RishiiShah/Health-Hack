@@ -49,7 +49,7 @@ def test_wrong_bootstrap_and_tampered_restart_are_rejected(db_url, monkeypatch):
     monkeypatch.setattr(main, 'settings', replace(main.settings, reference_dir=None, reference_fingerprint=pin))
     def pinned():
         return main.create_app(db_url, FixedClock(START), auth=TEST_AUTH, sweep_s=0,
-                               speech=SimpleNamespace(available=False, conn=SimpleNamespace(close=lambda: None)))
+                               speech=SimpleNamespace(available=False, close=lambda: None))
     with TestClient(pinned()) as client:
         changed = files()
         changed['hospitals.csv'] = changed['hospitals.csv'].replace('Hospital,', 'Changed,')
@@ -59,6 +59,7 @@ def test_wrong_bootstrap_and_tampered_restart_are_rejected(db_url, monkeypatch):
         saved = db.metadata('references')
         saved['source']['files']['baseline_hourly_volume.csv'] += '\n'
         import json
-        db.conn.execute("UPDATE metadata SET value=%s WHERE key='references'", (json.dumps(saved),))
+        with db.pool.connection() as conn:
+            conn.execute("UPDATE metadata SET value=%s WHERE key='references'", (json.dumps(saved),))
     with pytest.raises(ValueError, match='official Sevaro kit or a stored reference kit'):
         with TestClient(pinned()): pass

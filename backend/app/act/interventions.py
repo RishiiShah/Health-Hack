@@ -5,9 +5,8 @@ that writes the intervention and its audit row together, serialized with offer c
 """
 import json
 from datetime import datetime
-from threading import RLock
 from app.act.offers import OFFER_LOCK, OfferError
-from app.db import connect
+from app.db import pool
 
 SCHEMA = (
     "SELECT pg_advisory_xact_lock(7310001)",
@@ -24,23 +23,25 @@ SCHEMA = (
 
 class InterventionLog:
     def __init__(self, url: str):
-        self.conn = connect(url)
-        self.lock = RLock()
+        self.pool = pool(url)
         self.version = 0
-        with self.conn.transaction():
+        with self.pool.connection() as conn, conn.transaction():
             for statement in SCHEMA:
-                self.conn.execute(statement)
+                conn.execute(statement)
+
+    def close(self):
+        self.pool.close()
 
     def latest(self) -> dict[str, dict]:
         """Newest intervention per queue item, so the queue can show what was already done."""
-        with self.lock:
-            rows = self.conn.execute("SELECT * FROM interventions ORDER BY id").fetchall()
+        with self.pool.connection() as conn:
+            rows = conn.execute("SELECT * FROM interventions ORDER BY id").fetchall()
         return {r["item_id"]: r for r in rows}
 
     def pending(self) -> list[dict]:
         """Escalations waiting for the lead, oldest first."""
-        with self.lock:
-            return self.conn.execute("SELECT * FROM interventions WHERE state='REQUESTED' ORDER BY id").fetchall()
+        with self.pool.connection() as conn:
+            return conn.execute("SELECT * FROM interventions WHERE state='REQUESTED' ORDER BY id").fetchall()
 
     def _audit(self, cur, at, item_id, actor, command, detail):
         cur.execute("INSERT INTO offer_audit(gap_id,at,actor,command,detail) VALUES(%s,%s,%s,%s,%s)",
@@ -60,7 +61,7 @@ class InterventionLog:
             state, physician_id = "REQUESTED", None
         else:
             raise OfferError(422, "unknown_kind", "kind must be reassign or escalate")
-        with self.lock, self.conn.transaction(), self.conn.cursor() as cur:
+        with self.pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
             cur.execute("SELECT pg_advisory_xact_lock(%s)", (OFFER_LOCK,))
             cur.execute("""INSERT INTO interventions(item_id,kind,consult_id,physician_id,state,created_at,created_by,reason)
                            VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
@@ -72,7 +73,7 @@ class InterventionLog:
         return row
 
     def authorize(self, intervention_id: str, actor: str, at: datetime) -> dict:
-        with self.lock, self.conn.transaction(), self.conn.cursor() as cur:
+        with self.pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
             cur.execute("SELECT pg_advisory_xact_lock(%s)", (OFFER_LOCK,))
             cur.execute("SELECT * FROM interventions WHERE id=%s FOR UPDATE", (intervention_id,))
             row = cur.fetchone()
@@ -87,7 +88,7 @@ class InterventionLog:
         return row
 
     def reset(self):
-        with self.lock, self.conn.transaction():
-            self.conn.execute("SELECT pg_advisory_xact_lock(%s)", (OFFER_LOCK,))
-            self.conn.execute("TRUNCATE interventions")
+        with self.pool.connection() as conn, conn.transaction():
+            conn.execute("SELECT pg_advisory_xact_lock(%s)", (OFFER_LOCK,))
+            conn.execute("TRUNCATE interventions")
             self.version += 1

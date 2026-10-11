@@ -15,7 +15,8 @@ from test_accepted_routing import START, END, world
 
 class SyntheticSpeech:
     available = True
-    conn = type('Connection', (), {'close': lambda self: None})()
+    def close(self):
+        pass
 
     def audio(self, text):
         assert 'PATIENT' not in text and 'CONSULT' not in text

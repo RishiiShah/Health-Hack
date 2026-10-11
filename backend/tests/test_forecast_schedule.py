@@ -39,7 +39,7 @@ def test_final_cliff_between_regular_steps_is_in_grid_and_gap_flags():
 def test_live_grid_schedule_headline_and_recommendation_evidence(db_url,tmp_path):
     now,refs,ops=scenario()
     app=create_app(db_url,FixedClock(now),auth=TEST_AUTH,references=(refs,ops),history_path=tmp_path/'absent',sweep_s=0,
-                   speech=SimpleNamespace(available=False,conn=SimpleNamespace(close=lambda:None)))
+                   speech=SimpleNamespace(available=False,close=lambda: None))
     with TestClient(app) as c:
         assert c.get('/schedule').status_code==401
         snapshot=c.get('/snapshot',headers=COORD).json()
@@ -61,7 +61,7 @@ def test_live_grid_schedule_headline_and_recommendation_evidence(db_url,tmp_path
         evidence=c.get('/audit',headers=LEAD).json()['items'][0]['evidence']
         assert 'fix' in evidence and 'candidates' in evidence and 'gaps' in evidence
     restarted=create_app(db_url,FixedClock(now),auth=TEST_AUTH,references=(refs,ops),history_path=tmp_path/'absent',sweep_s=0,
-                         speech=SimpleNamespace(available=False,conn=SimpleNamespace(close=lambda:None)))
+                         speech=SimpleNamespace(available=False,close=lambda: None))
     with TestClient(restarted) as c:
         c.get('/snapshot',headers=COORD)
         assert restarted.state.engine.desk.audit()==trail
@@ -71,7 +71,7 @@ def test_schedule_distinguishes_pending_accepted_arrived_and_incomplete(db_url,t
     refs,ops,_=world()
     clock=FixedClock(START-timedelta(minutes=20))
     app=create_app(db_url,clock,auth=TEST_AUTH,references=(refs,ops),history_path=tmp_path/'absent',sweep_s=0,
-                   speech=SimpleNamespace(available=False,conn=SimpleNamespace(close=lambda:None)))
+                   speech=SimpleNamespace(available=False,close=lambda: None))
     with TestClient(app) as c:
         o=c.post('/offers',headers=COORD,json={'gap_id':'now_gap:G','physician_id':'J','start':START.isoformat(),
                                               'end':(START+timedelta(hours=2)).isoformat(),'hospitals':['G']}).json()

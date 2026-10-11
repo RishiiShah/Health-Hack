@@ -109,7 +109,7 @@ def test_api_accept_arrive_snapshot_and_shift_end(db_url, tmp_path):
     from app.main import create_app
     from app.models import EventInput
     refs, ops, _ = world()
-    speech = SimpleNamespace(available=False, audio=lambda text: None, conn=SimpleNamespace(close=lambda: None))
+    speech = SimpleNamespace(available=False, audio=lambda text: None, close=lambda: None)
     api = create_app(db_url, FixedClock(START - timedelta(minutes=20)), auth=TEST_AUTH,
                      references=(refs, ops), history_path=tmp_path / "absent.csv", speech=speech, sweep_s=0)
     with TestClient(api) as client:

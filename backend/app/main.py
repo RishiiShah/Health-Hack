@@ -116,7 +116,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         if not url:
             raise RuntimeError("Set CC_DATABASE_URL to the production database (root .env locally, the host's environment when deployed).")
         db = EventDatabase(url)
-        task, conns = None, [db.conn]
+        task, stores = None, [db]
         try:
             events = db.events()
             override = db.metadata("clock")
@@ -129,13 +129,13 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
             engine = Engine(coordinator, ops, None, InterventionLog(url), dataset)
             if refs is not None and source:
                 engine.store_kit(refs, source)  # databases from before stored kits hold only the active one
-            conns.append(engine.interventions.conn)
+            stores.append(engine.interventions)
             engine.desk = OfferDesk(url, engine.context, base_history(history_path or settings.offer_history, clock.now()), shared_log=True)
             api.state.db, api.state.clock, api.state.coordinator, api.state.engine = db, clock, coordinator, engine
             api.state.auth = auth or auth_from_settings()
             api.state.speech = speech or Speech(url)
             engine.speech_available = api.state.speech.available
-            conns += [engine.desk.conn, api.state.speech.conn]
+            stores += [engine.desk, api.state.speech]
             interval = settings.sweep_s if sweep_s is None else sweep_s
             if interval > 0:
                 task = asyncio.create_task(sweeper(api, interval))
@@ -143,8 +143,8 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         finally:
             if task:
                 task.cancel()
-            for conn in conns:
-                conn.close()
+            for store in stores:
+                store.close()
 
     def dataset_of(directory):
         if not directory or not Path(directory).is_dir():

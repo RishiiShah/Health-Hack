@@ -20,7 +20,7 @@ def probe():
 def test_hosting_probe_seeds_known_hospital_at_paused_clock_then_verifies(db_url, monkeypatch):
     refs, ops, _ = world()
     app = create_app(db_url, FixedClock(START), auth=TEST_AUTH, references=(refs,ops), sweep_s=0,
-                     speech=SimpleNamespace(available=False,conn=SimpleNamespace(close=lambda:None)))
+                     speech=SimpleNamespace(available=False,close=lambda: None))
     smoke = probe()
     monkeypatch.setenv('CC_ADMIN_TOKEN','admin-token')
     monkeypatch.setenv('CC_COORDINATOR_TOKEN','coord-token')
