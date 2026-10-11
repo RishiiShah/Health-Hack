@@ -63,7 +63,10 @@ export function detectFromSnapshot(snapshot: Row): DetectSnapshot | null {
     return {
       id: String(c.consult_id), hospital: hospitals[String(c.hospital_id)] ?? String(c.hospital_id), type: String(c.consult_type),
       stage: String(c.current_stage), minutesInStage: Number(c.minutes_in_stage), minutesSinceReceived: Number(c.minutes_since_received),
-      level: flagged?.level ?? "Normal", limit: num(why.warning_min) !== null ? `${why.warning_min} / ${why.critical_min} min` : "–",
+      // The server's own level per consult; "none" = within the standard, null = no standard for this stage.
+      level: str(c.level) && c.level !== "none" ? String(c.level) : flagged?.level ?? "Normal",
+      limit: Array.isArray(c.limit_min) ? `${c.limit_min[0]} / ${c.limit_min[1]} min`
+        : num(why.warning_min) !== null ? `${why.warning_min} / ${why.critical_min} min` : "–",
     };
   });
 
@@ -79,10 +82,10 @@ export function detectFromSnapshot(snapshot: Row): DetectSnapshot | null {
   return {
     queue: items, consults, physicians: doctors,
     headline: {
-      openConsults: Number(headline.open_consults ?? consults.length), pastCritical: Number(headline.critical ?? 0),
+      openConsults: Number(headline.open_consults ?? consults.length), pastCritical: Number(headline.consults_past_critical ?? headline.critical ?? 0),
       freePhysicians: doctors.filter((d) => d.canTakeCalls).length, totalPhysicians: doctors.length,
       signalDisagreements: onShift.filter((p) => list(p.flags).length > 0).length,
-      shortIn90: Number(headline.hard_gaps_in_horizon ?? 0), waitingOnPerson: Number(snapshot.pending_approvals ?? 0),
+      shortIn90: Number(headline.hospitals_short_in_horizon ?? headline.hard_gaps_in_horizon ?? 0), waitingOnPerson: Number(snapshot.pending_approvals ?? 0),
     },
   };
 }

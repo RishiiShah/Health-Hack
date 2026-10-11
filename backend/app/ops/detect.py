@@ -41,13 +41,19 @@ class Finding:
         return f"{self.kind}:{self.consult_id or self.physician_id or self.hospital_id}"
 
 
+def sla_limit(c) -> tuple[int, int] | None:
+    """(warning, critical) minutes for the consult's current stage; None: no standard applies [B p3]."""
+    if c.stage in NOTE_STAGES and c.note_pending_since:
+        return NOTE_LIMITS[c.consult_type]
+    limits = STAGE_LIMITS.get(c.stage, {})
+    return limits.get("All") or limits.get(c.consult_type)
+
+
 def consult_sla(c, now: datetime) -> tuple[str | None, timedelta]:
     """Level against the stage standard and the elapsed time it is measured on. None: no standard applies."""
-    if c.stage in NOTE_STAGES and c.note_pending_since:
-        return _level(now - c.note_pending_since, NOTE_LIMITS[c.consult_type]) or "none", now - c.note_pending_since
-    limits = STAGE_LIMITS.get(c.stage, {})
-    limit = limits.get("All") or limits.get(c.consult_type)
-    return (_level(now - c.entered_at, limit) or "none") if limit else None, now - c.entered_at
+    limit = sla_limit(c)
+    elapsed = now - (c.note_pending_since if c.stage in NOTE_STAGES and c.note_pending_since else c.entered_at)
+    return (_level(elapsed, limit) or "none") if limit else None, elapsed
 
 
 def views_at(state: State, refs: Refs, now: datetime) -> dict[str, PhysicianView]:

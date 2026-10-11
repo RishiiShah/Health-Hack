@@ -13,8 +13,8 @@ from app.decide.eligibility import OfferHistory, Proposal, evaluate, evaluate_pr
 from app.decide.interventions import Decisions, decide
 from app.decide.routing_sim import observed_service, trap_check
 from app.ops.coverage import HORIZON, current_coverage, outlook_end, supply, surge_at, _received
-from app.ops.detect import NOTE_STAGES
-from app.ops.refs import OpsRefs, load_ops_refs
+from app.ops.detect import NOTE_STAGES, UNASSIGNED_STAGES, consult_sla, sla_limit
+from app.ops.refs import ET, OpsRefs, load_ops_refs
 from app.references import Refs, load_reference_dir
 
 
@@ -39,6 +39,21 @@ def references_from_files(files: dict[str, str], service_date: date | None = Non
 
 def base_history(path: str | Path | None, now: datetime) -> OfferHistory:
     return load_offer_history(path, now) if path and Path(path).exists() else OfferHistory()
+
+
+def readable(value):
+    """Audit detail for people: times as Eastern HH:MM, mappings as "key value" pairs, lists comma-separated."""
+    if isinstance(value, dict):
+        return ", ".join(f"{k} {readable(v)}" for k, v in value.items())
+    if isinstance(value, (list, tuple)):
+        return ", ".join(map(readable, value))
+    if isinstance(value, str):
+        try:
+            moment = datetime.fromisoformat(value)
+        except ValueError:
+            return value
+        return f"{moment.astimezone(ET):%H:%M}" if moment.tzinfo else value
+    return str(value)
 
 
 def jsonable(value):
@@ -297,9 +312,9 @@ class Engine:
             if a["command"].endswith(":refused"):
                 text = d.get("message", "")
             elif a["command"] == "propose":
-                text = f"{d.get('physician_id')} · {', '.join(d.get('hospitals', []))} · {d.get('start')} to {d.get('end')}"
+                text = f"{d.get('physician_id')} · {', '.join(d.get('hospitals', []))} · {readable(d.get('start'))} to {readable(d.get('end'))} ET"
             else:
-                text = "; ".join(f"{k}: {v}" for k, v in d.items() if v not in (None, "", [], {}))
+                text = "; ".join(f"{k.replace('_', ' ')}: {readable(v)}" for k, v in d.items() if v not in (None, "", [], {}))
             items.append({"at": a["at"].isoformat(), "actor": a["actor"],
                           "action": ACTIONS.get(a["command"], a["command"].replace(":", ": ").replace("_", " ")), "detail": text,
                           "offer_id": a["offer_id"], "command": a["command"], "from_state": a["from_state"], "to_state": a["to_state"]})
@@ -311,7 +326,10 @@ class Engine:
                      "current_stage": c.stage, "stage_entered_at": c.entered_at.isoformat(),
                      "minutes_in_stage": max(0, int((p.as_of - c.entered_at).total_seconds() // 60)),
                      "minutes_since_received": max(0, int((p.as_of - c.received_at).total_seconds() // 60)),
-                     "repeat_contacts": c.repeat_contacts, "routing_failures": c.routing_failures}
+                     "repeat_contacts": c.repeat_contacts, "routing_failures": c.routing_failures,
+                     # Each consult's own level, so a board never infers it from the queue (notes are grouped per physician there).
+                     "level": consult_sla(c, p.as_of)[0], "limit_min": list(sla_limit(c)) if sla_limit(c) else None,
+                     "measured_min": int(consult_sla(c, p.as_of)[1].total_seconds() // 60)}
                     for c in p.state.consults.values() if c.stage != "Signed Off"]
         body = {"revision": p.revision, "reference_revision": p.reference_revision, "clock_revision": 0, "epoch": epoch, "sequence": p.revision,
                 "clock": {"mode": clock_mode, "now": p.as_of.isoformat(), "paused": clock_mode == "fixed"}, "consults": consults,
@@ -325,9 +343,17 @@ class Engine:
         done = self.interventions.latest()
         offers = self.desk.offers()
         coverage = current_coverage(p.state, p.refs, self.ops, d.views, p.as_of)
+        open_states = [c for c in p.state.consults.values() if c.stage != "Signed Off"]
+        short_now = {c.hospital_id for c in coverage if c.gap}
         return {**body,
                 "headline": {"open_consults": len(consults), "critical": sum(i.severity == "Critical" for i in d.items),
                              "hard_gaps_in_horizon": sum(g.kind == "hard" and g.in_horizon for g in d.gaps),
+                             # The PRD's headline numbers [PRD: headline numbers]. Short now = by live signals; in the
+                             # horizon = short now or a schedule gap starting within 90 min.
+                             "consults_past_critical": sum(consult_sla(c, p.as_of)[0] == "Critical" for c in open_states),
+                             "unassigned_consults": sum(c.stage in UNASSIGNED_STAGES and c.owner == "Unassigned" for c in open_states),
+                             "hospitals_short_now": len(short_now),
+                             "hospitals_short_in_horizon": len(short_now | {g.hospital_id for g in d.gaps if g.kind == "hard" and g.in_horizon}),
                              "offers_awaiting_approval": sum(o.state == "PROPOSED" for o in offers), "offers_out": sum(o.state == "SENT" for o in offers)},
                 "queue": {"supported": True, "items": [item_payload(n, i, done.get(i.id)) for n, i in enumerate(d.items, 1)]},
                 "physicians": {"supported": True, "items": [{"physician_id": v.physician_id, "derived_state": v.derived_state,
