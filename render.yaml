@@ -17,8 +17,6 @@ services:
         sync: false
       - key: CC_CLOCK_MODE
         value: auto
-      - key: CC_DATA_DIR
-        value: /data/ref
       - key: CC_COORDINATOR_TOKEN  # demo tokens and the physician-token secret: set in the dashboard, never in Git
         sync: false
       - key: CC_LEAD_TOKEN

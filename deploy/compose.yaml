@@ -10,7 +10,6 @@ services:
       CC_DATABASE_URL: ${CC_DATABASE_URL:?Set CC_DATABASE_URL to the RDS PostgreSQL URL}
       CC_USERS: ${CC_USERS:?Set CC_USERS to the JSON account list}
       CC_AUTH_SECRET: ${CC_AUTH_SECRET:?Set CC_AUTH_SECRET to 32+ random characters}
-      CC_DATA_DIR: /data/ref
       CC_CLOCK_MODE: ${CC_CLOCK_MODE:-auto}
       CC_CLOCK_FIXED: ${CC_CLOCK_FIXED:-}
     # A TLS reverse proxy/load balancer on this host forwards to localhost:8000.
