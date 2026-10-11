@@ -92,3 +92,43 @@ explains this limitation.
 
 This branch is suitable for the user's review and integration merge after the
 phone pass. It is not a deployed or authenticated production app yet.
+
+## Auth integration update — 10 October 2026
+
+The earlier auth-deferred status above is superseded for sign-in/session behavior.
+The merged web-joy backend now serves `/auth/login` and `/auth/me` with account
+identity. `BackendAuthRepository` and `BackendAuthGate` connect these exact shapes
+to the phone app when `API_MODE=live`, including server messages, restore,
+sign-out, periodic/resume session validation and 401 handling. Older requests
+cannot clear a newer session token. The default debug workflow demo remains separate.
+
+Successful real login shows the verified account; the backend still lacks mobile
+workflow endpoints and richer Me metadata. The auth adapter does not fabricate
+those fields or treat demo workflows as live data. Native sessions are in memory;
+browser sessions restore within their tab. Android debug HTTP is enabled for
+local USB testing. See [mobile/README.md](../mobile/README.md) for commands.
+
+Local `/health` responds successfully, and `/ready` reports authentication enabled.
+No real account password or token was read or used by the agent. Tests use synthetic
+HTTP responses; the user's phone test verifies their account end to end.
+No Git commands, backend changes, app builds, app launches or deployment performed.
+
+Latest mobile verification: **139 tests passed** (8 new backend-auth tests), and
+`dart analyze lib test integration` reports no issues.
+# Live login dashboard routing update
+
+Live login now mounts the existing ServiceSession dashboard using the backend
+account role: physician maps to physician, lead maps to clinical_lead, and
+coordinator gets the web dashboard guidance. The dashboard repositories share
+the authenticated API client and token. Sign-out or any authenticated 401 removes
+the dashboard and nested routes. Live mode has no demo account selector.
+
+The account identity bridge leaves shift status, opt-in, counts and permissions
+unknown until GET /me supplies the mobile contract. Missing workflow endpoints
+show Retry errors; no sample workflow data is injected into live sessions.
+The Account tab retains its existing controls and includes Check session.
+
+Validation: static analysis clean; all 141 mobile tests passed, including role
+tab restrictions, coordinator isolation, authenticated shift rendering, expired
+sessions and sign-out. No builds, app launches or Git commands were run.
+
