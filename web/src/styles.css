@@ -145,3 +145,130 @@ table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 720p
 @keyframes schedule-pulse { 0%,100% { box-shadow: 0 2px 6px rgba(220,38,38,.22); } 50% { box-shadow: 0 2px 14px rgba(220,38,38,.5); } } @keyframes offer-glow { 0%,100% { box-shadow: 0 0 0 rgba(13,148,136,0); } 50% { box-shadow: 0 0 9px rgba(13,148,136,.24); } }
 @media (max-width: 900px) { .schedule-head { align-items: flex-start; flex-direction: column; }.schedule-layout { grid-template-columns: 1fr; }.schedule-side { grid-template-columns: 1fr 1fr; }.schedule-alert { border-radius: 10px; } }
 @media (max-width: 600px) { .schedule-page { padding: 14px 12px 40px; }.schedule-filters { width: 100%; overflow-x: auto; }.schedule-filters button { white-space: nowrap; }.schedule-side { grid-template-columns: 1fr; }.schedule-alert { align-items: flex-start; flex-direction: column; }.schedule-alert button { align-self: flex-end; }.gantt-card { padding: 16px 12px; } }
+
+/* Command page: coverage spans the full width; offer tracker and activity sit side by side below it. Grid
+   children get min-width: 0 so a wide table scrolls inside its card instead of pushing its neighbours. */
+.command-top > * { min-width: 0; }
+.command-coverage { margin-top: 16px; min-width: 0; }
+.command-page .command-rail { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; margin-top: 16px; }
+.command-rail > div:empty { display: none; }
+@media (max-width: 700px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+
+/* Shared fluid canvas. Keep the header in flow so wrapped navigation never covers content. */
+:root { --canvas-gutter: clamp(12px, 2vw, 32px); }
+#root { min-height: 100dvh; }
+.app-header {
+  position: sticky;
+  top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin: 12px var(--canvas-gutter) 0;
+}
+.header-brand, .header-account { min-width: 0; flex-wrap: wrap; }
+.header-clock { display: none; }
+.header-account { margin-left: auto; }
+.header-account > span { overflow-wrap: anywhere; }
+.header-account button { flex-shrink: 0; white-space: nowrap; }
+.header-nav { flex-basis: 100%; order: 3; overflow-x: auto; min-width: 0; padding-bottom: 2px; }
+.header-nav a { flex-shrink: 0; white-space: nowrap; }
+.workspace-main { width: 100%; min-width: 0; padding: 24px var(--canvas-gutter) 48px; }
+.workspace-main > .page, .workspace-main > .command-page, .workspace-main > .schedule-page {
+  width: 100%; max-width: none; margin: 0; padding: 0;
+}
+.workspace-main { overflow-wrap: anywhere; }
+.workspace-main :where(section, aside, .panel, .approval > div, .command-rail > div, .schedule-side, .table-scroll, .table-wrap) { min-width: 0; }
+.command-top { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+.command-page .command-rail { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.forecast-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 24px; margin-top: 24px; }
+.dense-queue-row { grid-template-columns: 27px minmax(0, 1fr) auto; }
+.panel-head, .workspace-title, .command-title, .gantt-top { flex-wrap: wrap; gap: 12px; }
+.dossier-actions, .tracker-actions, .clock-row, .checks li, .checked li, .cell-detail, .approval-banner { flex-wrap: wrap; }
+.checks li { gap: 8px; }
+.checks .badge, .checked .badge { white-space: normal; }
+.offer-form label { min-width: 0; max-width: 100%; }
+.offer-form input { width: 100%; min-width: 0; }
+.audit-list > div { grid-template-columns: 90px minmax(0, 130px) minmax(0, 1fr) minmax(0, 1fr); }
+.decision { top: 140px; }
+.table-scroll, .table-wrap { max-width: 100%; overscroll-behavior-x: contain; }
+@media (min-width: 1500px) {
+  .header-clock { display: flex; }
+  .header-nav { flex-basis: auto; order: 0; }
+  .decision { top: 100px; }
+}
+@media (max-width: 1000px) {
+  .command-top { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .app-header { top: 0; gap: 10px; }
+  .header-brand, .header-account { flex: 1 1 100%; }
+  .header-account { justify-content: space-between; }
+  .workspace-main { padding-top: 20px; }
+  .dossier-card { padding: 16px; }
+  .dossier-grid, .physician-top { grid-template-columns: minmax(0, 1fr); }
+  .audit-list > div { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .consult-line { grid-template-columns: minmax(0, 1fr); gap: 8px; justify-items: start; }
+  .consult-line .badge { white-space: normal; }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .schedule-day { gap: 8px; }
+  .schedule-day strong { font-size: 17px; }
+  .schedule-filters { max-width: 100%; }
+}
+
+/* Command is one continuous dashboard with viewport-sized working areas. */
+.command-shell { min-height: 100vh; min-height: 100dvh; }
+.command-page { display: flex; flex-direction: column; gap: clamp(28px, 4vh, 48px); }
+.command-page .command-title { margin: 0; align-items: center; }
+.command-page .command-title h1 { font-size: clamp(28px, 2.5vw, 38px); }
+.command-subtitle { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+.command-page .command-clock { padding: 10px 14px; background: #eef4f2; color: #42635c; border-radius: 8px; }
+.command-page .headline-grid { margin: -8px 0 0; gap: 1px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--line); }
+.command-page .metric-card { border: 0; min-height: 112px; padding: 18px 22px; background: #fff; }
+.command-page .metric-card strong { font-size: 30px; }
+.command-section { min-width: 0; }
+.command-section-head { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.section-index { display: block; color: #658078; font: 600 10px var(--font-mono); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 7px; }
+.command-section-head h2 { font-size: 23px; letter-spacing: -.025em; }
+.command-section-head > p { color: var(--muted); font-size: 13px; margin: 0 0 3px; }
+.command-page .command-top { gap: 24px; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); height: clamp(420px, 56vh, 640px); height: clamp(420px, 56dvh, 640px); }
+.command-page :is(.queue-card, .dossier-card, .panel, .auto-log) { border-radius: 14px; background: #fff; box-shadow: 0 2px 6px rgba(30,37,48,.025); }
+.command-page :is(.queue-card, .dossier-card, .panel, .auto-log) { padding: clamp(18px, 2vw, 28px); }
+.command-page .queue-card { display: flex; flex-direction: column; min-height: 0; }
+.command-page .queue-card-head { flex-shrink: 0; margin-bottom: 18px; }
+.command-page .dense-queue { overflow-y: auto; min-height: 0; scrollbar-gutter: stable; }
+.command-page .dense-queue-row { padding: 14px 8px; gap: 12px; }
+.command-page .queue-label strong { font-size: 13px; }
+.command-page .queue-label small { margin-top: 6px; font-size: 12px; }
+.command-page .dossier-card { display: flex; flex-direction: column; min-height: 0; }
+.command-page .dossier-grid { gap: 0 28px; overflow-y: auto; min-height: 0; scrollbar-gutter: stable; }
+.command-page .dossier-grid > div { padding: 18px 0; }
+.command-page .dossier-grid p, .command-page .dossier-grid li { font-size: 14px; line-height: 1.65; }
+.command-page .dossier-grid ul { padding-left: 20px; }
+.command-page .dossier-head, .command-page .dossier-actions { flex-shrink: 0; }
+.command-page .dossier-actions { margin-top: auto; padding-top: 20px; }
+.command-page .command-coverage, .command-page .command-rail { margin-top: 0; }
+.command-page .forecast-panels { margin-top: 24px; align-items: start; }
+.command-page .command-rail { gap: 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.command-page .panel-head { align-items: start; }
+.command-page .coverage .panel-head .note { max-width: 70ch; line-height: 1.6; }
+.command-page .coverage .table-wrap { max-height: 60vh; max-height: 60dvh; }
+.command-page .forecast-panels .table-scroll { max-height: 48vh; max-height: 48dvh; }
+.command-page :is(.table-scroll, .table-wrap) thead { position: sticky; top: 0; z-index: 1; background: white; }
+.command-page .rows { min-width: 560px; }
+.command-page .rows td { padding: 14px 10px 14px 0; }
+.command-page .command-offers h2 { margin-top: 8px; }
+#command-cover-action { scroll-margin-top: 160px; }
+@media (max-width: 1000px) {
+  .command-page .command-top { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .command-page .dense-queue { max-height: 44vh; max-height: 44dvh; }
+  .command-page .dossier-grid { max-height: 55vh; max-height: 55dvh; }
+}
+@media (max-width: 700px) {
+  .command-page .command-rail { grid-template-columns: minmax(0, 1fr); }
+  .command-page .metric-card { min-height: 96px; padding: 14px; }
+  .command-page .command-title { align-items: start; }
+  .command-section-head { margin-bottom: 16px; }
+  .command-section-head > p { font-size: 12px; }
+}

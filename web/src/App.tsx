@@ -110,13 +110,13 @@ export default function App() {
 
 // Anish's floating header: brand, live clock line, role tabs, account and sign-out.
 function Header({ session, page, clock, counts = {} }: { session: Session; page: string; clock?: string; counts?: Record<string, number> }) {
-  return <header className="tw fixed left-1/2 top-4 z-50 flex w-[calc(100%-32px)] max-w-6xl -translate-x-1/2 items-center justify-between rounded-full border border-slate-200/90 bg-white/90 px-5 py-2.5 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-    <div className="flex items-center gap-3">
+  return <header className="tw app-header z-50 rounded-2xl border border-slate-200/90 bg-white/90 px-5 py-2.5 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+    <div className="header-brand flex items-center gap-3">
       <span className="flex items-center gap-2"><span className="relative block h-5 w-6"><i className="absolute left-0 top-0 h-3 w-3 -skew-x-12 rounded-sm bg-teal-600" /><i className="absolute left-2.5 top-1.5 h-3 w-3 -skew-x-12 rounded-sm bg-[#161E2E]" /></span><strong className="text-sm font-bold tracking-tight text-slate-900">overlap</strong></span>
-      {clock && <span className="hidden items-center gap-1.5 pl-2 font-mono text-[11px] text-slate-500 sm:flex"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-600" />{clock}</span>}
+      {clock && <span className="header-clock items-center gap-1.5 pl-2 font-mono text-[11px] text-slate-500"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-600" />{clock}</span>}
       {DEMO && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Demo data</span>}
     </div>
-    <nav className="flex items-center gap-1">
+    <nav aria-label="Workspace" className="header-nav flex items-center gap-1">
       {PAGES_BY_ROLE[session.user.role].map((key) => (
         <a key={key} href={`#${key}`} aria-current={page === key ? "page" : undefined}
           className={`rounded-full px-3 py-1 text-xs font-semibold transition ${page === key ? "bg-[#161E2E] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"}`}>
@@ -124,14 +124,14 @@ function Header({ session, page, clock, counts = {} }: { session: Session; page:
         </a>
       ))}
     </nav>
-    <div className="flex items-center gap-2">
+    <div className="header-account flex items-center gap-2">
       <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600" title={session.user.email}>{session.user.name} · {session.user.role_label}</span>
       <button onClick={() => clearSession()} className="rounded-full px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900">Sign out ↗</button>
     </div>
   </header>;
 }
 
-const Main = ({ children }: { children: ReactNode }) => <main className="mx-auto max-w-7xl px-4 pb-12 pt-24 sm:px-6">{children}</main>;
+const Main = ({ children }: { children: ReactNode }) => <main className="workspace-main">{children}</main>;
 const Title = ({ eyebrow, title, note }: { eyebrow: string; title: string; note?: string }) =>
   <div className="workspace-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div>{note && <span className="mono muted">{note}</span>}</div>;
 const Unavailable = ({ what }: { what: string }) => <p className="unavailable">Not available yet: the server doesn't send {what}.</p>;
@@ -147,7 +147,7 @@ function OperationsApp({ session }: { session: Session }) {
   const workspace = role === "lead" ? "Clinical lead workspace" : "Coordinator workspace";
   const clock = s && now !== null ? `${headerDate(now)} · ${clockTime(new Date(now).toISOString())} ET · ${(s.dataset as Dataset | undefined)?.name ?? s.clock.mode}` : undefined;
 
-  return <div className="min-h-screen bg-[#FBF9F5] text-slate-900">
+  return <div className={`${page === "command" ? "command-shell " : ""}min-h-screen bg-[#FBF9F5] text-slate-900`}>
     <Header session={session} page={page} clock={clock} counts={role === "lead" ? { approvals: Number(s?.pending_approvals ?? 0) } : {}} />
     <Main>
       {live.error && !s && <p className="error">Can't reach the server: {live.error}</p>}
@@ -167,11 +167,18 @@ function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [gapId, setGapId] = useState<string | null>(null);
+  const findCover = (id: string) => { setGapId(id); };
+  useEffect(() => {
+    if (gapId) document.getElementById("command-cover-action")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [gapId]);
+  const openOffers = offers.filter(isOpen);
   const item = detect?.queue.find((entry) => entry.id === selectedId) ?? detect?.queue[0] ?? null;
   return <div className="command-page">
-    <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Command</h1></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
+    <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Command</h1><p className="command-subtitle">Network status, priorities, and coverage in one place.</p></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
     {detect && <HeadlineNumbers headline={detect.headline} />}
-    <div className="command-top">
+    <section className="command-section" aria-labelledby="attention-heading">
+      <div className="command-section-head"><div><span className="section-index">01 / Respond</span><h2 id="attention-heading">Needs attention</h2></div><p>Select an item to review the next action.</p></div>
+      <div className="command-top">
       <section className="queue-card">
         <div className="queue-card-head"><div><span className="eyebrow">Needs attention</span><h2>Ranked queue</h2></div><span className="mono queue-count">{detect?.queue.length ?? 0} items</span></div>
         {detect ? <div className="dense-queue">{detect.queue.map((entry) => (
@@ -182,22 +189,27 @@ function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
           </button>
         ))}</div> : <Unavailable what="the attention queue" />}
       </section>
-      {item && <Dossier item={item} total={detect!.queue.length} onFindCover={setGapId} onDone={refresh} />}
-    </div>
-    <div className="command-lower">
-      <div>
-        <CoverageGrid coverage={snapshot.coverage as Coverage | undefined} onFindCover={setGapId} />
-        {gapId && <GapPanel gapId={gapId} reloadKey={reloadKey} canPropose onClose={() => setGapId(null)} onProposed={() => { setGapId(null); refresh(); }} />}
+      {item && <Dossier item={item} total={detect!.queue.length} onFindCover={findCover} onDone={refresh} />}
       </div>
+    </section>
+    <section className="command-section" aria-labelledby="coverage-heading">
+      <div className="command-section-head"><div><span className="section-index">02 / Anticipate</span><h2 id="coverage-heading">Network coverage</h2></div><p>Staffing against demand across every hospital.</p></div>
+      <div className="command-coverage">
+      <CoverageGrid coverage={snapshot.coverage as Coverage | undefined} onFindCover={setGapId} />
+      {gapId && <div id="command-cover-action"><GapPanel gapId={gapId} reloadKey={reloadKey} canPropose onClose={() => setGapId(null)} onProposed={() => { setGapId(null); refresh(); }} /></div>}
+      </div>
+      <div className="forecast-panels">
+        <DemandPanel demand={snapshot.demand as Demand | undefined} />
+        <WorkloadPanel workload={snapshot.workload as Workload | undefined} />
+      </div>
+    </section>
+    <section className="command-section" aria-labelledby="coordination-heading">
+      <div className="command-section-head"><div><span className="section-index">03 / Coordinate</span><h2 id="coordination-heading">Offers & activity</h2></div><p>Track open offers and recent network actions.</p></div>
       <div className="command-rail">
-        {offers.filter(isOpen).map((o) => <OfferTracker key={o.offer_id} offer={o} now={now} />)}
+        <div className="command-offers">{openOffers.length ? openOffers.map((o) => <OfferTracker key={o.offer_id} offer={o} now={now} />) : <section className="panel"><span className="eyebrow">Open offers</span><h2>No offers in progress</h2><p className="muted">New coverage offers will appear here.</p></section>}</div>
         <AutoLog reloadKey={reloadKey} />
       </div>
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 24, marginTop: 24 }}>
-      <DemandPanel demand={snapshot.demand as Demand | undefined} />
-      <WorkloadPanel workload={snapshot.workload as Workload | undefined} />
-    </div>
+    </section>
   </div>;
 }
 
