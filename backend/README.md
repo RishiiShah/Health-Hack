@@ -67,3 +67,9 @@ P2 now implements the G1–G8 domain layer: immutable roster/credential referenc
 P2 verification: the full local suite passes 57 tests, including all supplied physician and consult snapshot fields. Of these, 55 tests use synthetic inputs independent of source data. `CC_ORPHAN_HOLD_S` configures the existing service’s hold deadline (default 300 seconds); pure physician views accept an explicit cooldown, defaulting to the config constant of 120 seconds.
 
 Organizer-aligned regressions additionally verify other service dates/ID prefixes and a March 17 append without reset. Independent practice datasets use another date and unique prefixes; judging rehearsals remain isolated March 17 extensions. See [P2 handoff](../docs/P2-Backend.md).
+
+### Local account configuration precedence
+
+`make backend` mounts `backend/.local/auth.json` as `CC_AUTH_CONFIG`. That explicit file takes precedence over `CC_USERS` and `CC_AUTH_SECRET`, so old environment accounts cannot override accounts created by `make backend-account`. Without `CC_AUTH_CONFIG`, deployments continue to use the environment accounts.
+
+If supplying `CC_USERS` in a Compose `.env` file, wrap the entire JSON value in single quotes to preserve the password hashes’ literal `$` separators. [Docker documents single-quoted values as literal](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/).

@@ -55,7 +55,7 @@ export function clearSession(expectedToken?: string, message?: string) {
 
 // Which top-level screens each role sees.
 export const PAGES_BY_ROLE: Record<Role, readonly string[]> = {
-  coordinator: ["command", "schedule", "data"],
-  lead: ["command", "schedule", "approvals", "data"],
-  physician: ["offers"],
+  coordinator: ["command", "consults", "doctors", "schedule", "audit", "data"],
+  lead: ["approvals", "audit", "consults", "data"],
+  physician: ["shift", "offers", "settings"],
 };

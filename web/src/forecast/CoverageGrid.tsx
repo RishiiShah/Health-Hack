@@ -26,6 +26,7 @@ export function CoverageGrid({ coverage, onFindCover }: { coverage?: Coverage; o
         <h2>Coverage, next 90 minutes</h2>
         <span className="note">staffed / required{coverage.assumption ? ` · ${coverage.assumption}` : ""}</span>
       </div>
+      <div className="table-wrap">
       <table>
         <thead>
           <tr>
@@ -55,6 +56,7 @@ export function CoverageGrid({ coverage, onFindCover }: { coverage?: Coverage; o
           ))}
         </tbody>
       </table>
+      </div>
       <div className="legend">
         <span className="key key-above">Above minimum</span>
         <span className="key key-at">At minimum</span>

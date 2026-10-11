@@ -11,7 +11,7 @@ export function DemandPanel({ demand }: { demand?: Demand }) {
       {!demand?.supported || !demand.items ? (
         <p className="unavailable">Not available yet: the server doesn't send demand.</p>
       ) : (
-        <table className="rows">
+        <div className="table-scroll" tabIndex={0} role="region" aria-label="Scrollable data table"><table className="rows">
           <thead><tr><th>Hospital</th><th className="num">Last 60 min</th><th className="num">Usual peak</th><th /></tr></thead>
           <tbody>
             {demand.items.map((d) => (
@@ -23,7 +23,7 @@ export function DemandPanel({ demand }: { demand?: Demand }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </section>
   );

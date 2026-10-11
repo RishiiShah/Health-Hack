@@ -14,7 +14,7 @@ export function WorkloadPanel({ workload }: { workload?: Workload }) {
       {!workload?.supported || !workload.items ? (
         <p className="unavailable">Not available yet: the server doesn't send workload.</p>
       ) : (
-        <table className="rows">
+        <div className="table-scroll" tabIndex={0} role="region" aria-label="Scrollable data table"><table className="rows">
           <thead>
             <tr><th>Physician</th><th className="num">Consults</th><th className="num">Calls</th><th className="num">Open</th><th className="num">Shift ends in</th><th>Risk</th></tr>
           </thead>
@@ -33,7 +33,7 @@ export function WorkloadPanel({ workload }: { workload?: Workload }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </section>
   );

@@ -19,7 +19,7 @@ export function OffersPage() {
   const now = data ? Date.parse(data.now) + (Date.now() - fetchedAt) : null;
 
   return (
-    <div className="page" style={{ maxWidth: 760 }}>
+    <div className="page">
       <h1>Your offers</h1>
       <p className="muted" style={{ margin: "6px 0 24px" }}>Offers show the hospital and hours only. No patient details are shared.</p>
       {error && !data ? (

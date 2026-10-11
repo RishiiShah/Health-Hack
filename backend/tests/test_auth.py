@@ -72,12 +72,13 @@ def test_malformed_signed_claims_are_rejected_without_server_errors(claims):
     assert auth.verify(f"{body}.{sig}") is None
 
 
-def test_local_config_loads_real_auth_without_disabling_roles(tmp_path, monkeypatch):
+@pytest.mark.parametrize("environment_users", ["", "stale-or-interpolated-accounts"])
+def test_local_config_loads_real_auth_without_disabling_roles(tmp_path, monkeypatch, environment_users):
     from types import SimpleNamespace
     import app.main as main
     config = tmp_path / "auth.json"
     config.write_text(json.dumps({"users": json.loads(USERS), "secret": SECRET}))
-    monkeypatch.setattr(main, "settings", SimpleNamespace(users="", auth_secret="", auth_config=str(config), **NO_TOKENS))
+    monkeypatch.setattr(main, "settings", SimpleNamespace(users=environment_users, auth_secret="", auth_config=str(config), **NO_TOKENS))
     auth = main.auth_from_settings()
     token, _, _ = auth.accounts.login("doc@example.test", "right-password")
     assert auth.identify(token, datetime.now().astimezone()).role == "physician"
