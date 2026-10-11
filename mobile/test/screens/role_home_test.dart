@@ -35,6 +35,50 @@ void main() {
     expect(find.text('Offers'), findsNothing);
   });
 
+  testWidgets('phone navigation remains usable at 200 percent text size', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: RoleHome(
+          role: 'physician',
+          physicianPages: List.generate(
+            4,
+            (index) =>
+                (_) => Text('Physician page $index'),
+          ),
+          leadPages: List.generate(
+            4,
+            (index) =>
+                (_) => Text('Lead page $index'),
+          ),
+          actions: [
+            IconButton(onPressed: () {}, icon: const Icon(Icons.logout)),
+          ],
+        ),
+      ),
+    );
+    for (final label in ['Schedule', 'Offers', 'Account']) {
+      final tab = find.widgetWithText(TextButton, label);
+      await tester.ensureVisible(tab);
+      await tester.tap(tab);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    }
+    expect(find.text('Physician page 3'), findsOneWidget);
+    expect(find.text('Physician page 0'), findsNothing);
+  });
+
   for (final role in ['coordinator', 'admin']) {
     testWidgets('$role uses web dashboard', (tester) async {
       await tester.pumpWidget(home(role));

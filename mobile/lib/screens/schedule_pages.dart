@@ -3,6 +3,7 @@ import '../data/api.dart';
 import 'data_widgets.dart';
 import 'schedule_timeline.dart';
 import 'shared.dart';
+import 'theme.dart';
 
 double _hour(DateTime instant, DateTime anchor) {
   final a = toEtFields(anchor);
@@ -77,10 +78,10 @@ class _PhysicianSchedulePageState extends State<PhysicianSchedulePage> {
                           '${formatDate(day.date)}\n${day.kind == DayKind.split ? 'Extra shift' : day.kind.wire}',
                         ),
                         backgroundColor: switch (day.kind) {
-                          DayKind.day => const Color(0xFFDDEEE4),
-                          DayKind.night => const Color(0xFFE5E3FF),
-                          DayKind.split => const Color(0xFFDDEFFA),
-                          DayKind.off => const Color(0xFFEEEDE8),
+                          DayKind.day => const Color(0xFFBDE9DF),
+                          DayKind.night => const Color(0xFFE2E8F0),
+                          DayKind.split => const Color(0xFFD9F7EF),
+                          DayKind.off => const Color(0xFFEEF1F2),
                         },
                       ),
                   ],
@@ -326,9 +327,9 @@ class CoveragePage extends StatelessWidget {
                 row.statusText,
                 style: TextStyle(
                   color: switch (row.level) {
-                    CoverageLevel.short => const Color(0xFFB53C2C),
-                    CoverageLevel.covered => const Color(0xFF138B72),
-                    _ => const Color(0xFF93600B),
+                    CoverageLevel.short => OverlapStyle.red,
+                    CoverageLevel.covered => OverlapStyle.green,
+                    _ => OverlapStyle.amber,
                   },
                 ),
               ),
@@ -348,11 +349,33 @@ class CoveragePage extends StatelessWidget {
                         Text(
                           '${board.columns[i].label} · ${formatEtLabel(board.columns[i].at)}',
                         ),
-                        Text(
-                          '${row.cells[i].staffed}/${row.cells[i].required}${row.cells[i].marker ?? ''}',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
+                        Container(
+                          margin: const EdgeInsets.only(top: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            color: row.cells[i].staffed < row.cells[i].required
+                                ? OverlapStyle.redSoft
+                                : row.cells[i].staffed == row.cells[i].required
+                                ? const Color(0xFFDBEAFE)
+                                : OverlapStyle.greenSoft,
+                          ),
+                          child: Text(
+                            '${row.cells[i].staffed}/${row.cells[i].required}${row.cells[i].marker ?? ''}',
+                            style: TextStyle(
+                              fontFamily: OverlapStyle.mono,
+                              fontSize: 16,
+                              color:
+                                  row.cells[i].staffed < row.cells[i].required
+                                  ? OverlapStyle.red
+                                  : row.cells[i].staffed ==
+                                        row.cells[i].required
+                                  ? const Color(0xFF275B9A)
+                                  : OverlapStyle.green,
+                            ),
                           ),
                         ),
                       ],

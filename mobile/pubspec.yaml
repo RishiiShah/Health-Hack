@@ -55,6 +55,30 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Bricolage Grotesque
+      fonts:
+        - asset: assets/fonts/BricolageGrotesque.ttf
+          weight: 400
+        - asset: assets/fonts/BricolageGrotesque.ttf
+          weight: 600
+        - asset: assets/fonts/BricolageGrotesque.ttf
+          weight: 700
+        - asset: assets/fonts/BricolageGrotesque.ttf
+          weight: 800
+    - family: IBM Plex Sans
+      fonts:
+        - asset: assets/fonts/IBMPlexSans.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSans.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSans.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSans.ttf
+          weight: 700
+    - family: IBM Plex Mono
+      fonts:
+        - asset: assets/fonts/IBMPlexMono-Regular.ttf
   assets:
     - assets/contracts/
     - assets/chime.mp3

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/api.dart';
 import 'shared.dart';
+import 'theme.dart';
 
 String errorText(Object error) => switch (error) {
   Forbidden() => "You don't have permission for this.",
@@ -41,10 +42,7 @@ class DataCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(bottom: 16),
     padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: color ?? Colors.white,
-      borderRadius: BorderRadius.circular(22),
-    ),
+    decoration: OverlapStyle.panel(color: color ?? Colors.white),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: children,

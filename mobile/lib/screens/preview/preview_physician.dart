@@ -52,7 +52,7 @@ class PreviewShift extends StatelessWidget {
             'New · Stroke',
             'Suncrest Medical Pavilion',
             'Contact the hospital within 3 min',
-            Color(0xFFB53C2C),
+            Color(0xFFB42318),
           ),
           (
             'CON-2104',
@@ -66,7 +66,7 @@ class PreviewShift extends StatelessWidget {
             'Note due',
             'Suncrest Medical Pavilion',
             'Note open 12 of 30 min',
-            Color(0xFF93600B),
+            Color(0xFF8A5A00),
           ),
         ])
           PreviewCard(

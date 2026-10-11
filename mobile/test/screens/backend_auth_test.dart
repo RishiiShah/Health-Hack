@@ -156,6 +156,7 @@ void main() {
     expect(find.text('Preview screens'), findsNothing);
     expect(find.text('Check session'), findsOneWidget);
     expired = true;
+    await tester.ensureVisible(find.text('Check session'));
     await tester.tap(find.text('Check session'));
     await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);

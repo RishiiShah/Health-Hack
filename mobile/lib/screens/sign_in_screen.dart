@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'shared.dart';
+import 'theme.dart';
 
 /// The parent calls auth.signIn, routes using the returned Me, and maps errors
 /// to display text. Null means success; credentials are never persisted here.
@@ -13,17 +14,15 @@ class SignInScreen extends StatefulWidget {
     this.onSignIn,
     this.showDemoAccounts = true,
     this.showRoleSelection = true,
-    this.onPreview,
-    this.onDemo,
     this.notice,
+    this.onPreviewRoleChanged,
   });
 
   final SignInCallback? onSignIn;
   final bool showDemoAccounts;
   final bool showRoleSelection;
-  final VoidCallback? onPreview;
-  final VoidCallback? onDemo;
   final String? notice;
+  final ValueChanged<bool>? onPreviewRoleChanged;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -72,160 +71,188 @@ class _SignInScreenState extends State<SignInScreen> {
     context,
   ).showSnackBar(const SnackBar(content: Text('Not available in the demo')));
 
+  void _selectRole(bool physician) {
+    setState(() => _physician = physician);
+    widget.onPreviewRoleChanged?.call(physician);
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: ScreenBody(
       children: [
-        const SizedBox(height: 24),
-        if (widget.notice != null) Notice(widget.notice!),
-        if (widget.onDemo != null) ...[
-          FilledButton.icon(
-            onPressed: widget.onDemo,
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('Open working demo'),
-          ),
-          const SizedBox(height: 12),
-        ],
-        if (widget.onPreview != null) ...[
-          OutlinedButton.icon(
-            onPressed: widget.onPreview,
-            icon: const Icon(Icons.dashboard_customize_outlined),
-            label: const Text('Preview screens'),
-          ),
-          const SizedBox(height: 16),
-        ],
-        const Icon(Icons.local_hospital_outlined, size: 40),
-        const SizedBox(height: 16),
-        Text('Sevaro', style: Theme.of(context).textTheme.headlineLarge),
-        const Text('COMMAND CENTER'),
-        const SizedBox(height: 32),
-        Text('Welcome back', style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 8),
-        Text(
-          !widget.showRoleSelection
-              ? 'Sign in with your work account.'
-              : _physician
-              ? 'Your shifts and coverage requests, in one place.'
-              : 'Keep your team connected and coverage on track.',
-        ),
-        const SizedBox(height: 24),
-        if (widget.showRoleSelection) ...[
-          const Text('I work as'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              ChoiceChip(
-                label: const Text('Operations'),
-                selected: !_physician,
-                onSelected: _busy
-                    ? null
-                    : (_) => setState(() => _physician = false),
-              ),
-              ChoiceChip(
-                label: const Text('Physician'),
-                selected: _physician,
-                onSelected: _busy
-                    ? null
-                    : (_) => setState(() => _physician = true),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-        ],
-        Form(
-          key: _form,
-          child: AutofillGroup(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: _email,
-                  enabled: !_busy,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autofillHints: const [AutofillHints.username],
-                  autocorrect: false,
-                  validator: (value) =>
-                      (value ?? '').trim().isEmpty ? 'Enter your email' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _password,
-                  enabled: !_busy,
-                  obscureText: _obscure,
-                  enableSuggestions: false,
-                  autocorrect: false,
-                  autofillHints: const [AutofillHints.password],
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _submit(),
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    suffixIcon: IconButton(
-                      tooltip: _obscure ? 'Show password' : 'Hide password',
-                      onPressed: _busy
-                          ? null
-                          : () => setState(() => _obscure = !_obscure),
-                      icon: Icon(
-                        _obscure ? Icons.visibility : Icons.visibility_off,
+        const OverlapBrand(),
+        const SizedBox(height: 28),
+        Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 448),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: OverlapStyle.panel(radius: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (widget.notice != null) Notice(widget.notice!),
+                  Text(
+                    'Welcome back',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    !widget.showRoleSelection
+                        ? 'Sign in with your work account.'
+                        : _physician
+                        ? 'Your shifts and coverage requests, in one place.'
+                        : 'Keep your team connected and coverage on track.',
+                  ),
+                  const SizedBox(height: 24),
+                  if (widget.showRoleSelection) ...[
+                    const Text('I work as'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: Text(
+                            widget.onPreviewRoleChanged == null
+                                ? 'Operations'
+                                : 'Clinical lead',
+                          ),
+                          selected: !_physician,
+                          onSelected: _busy ? null : (_) => _selectRole(false),
+                        ),
+                        ChoiceChip(
+                          label: const Text('Physician'),
+                          selected: _physician,
+                          onSelected: _busy ? null : (_) => _selectRole(true),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  Form(
+                    key: _form,
+                    child: AutofillGroup(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextFormField(
+                            controller: _email,
+                            enabled: !_busy,
+                            decoration: const InputDecoration(
+                              labelText: 'Work email',
+                            ),
+                            style: const TextStyle(
+                              fontFamily: OverlapStyle.mono,
+                              fontSize: 13,
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.username],
+                            autocorrect: false,
+                            validator: (value) => (value ?? '').trim().isEmpty
+                                ? 'Enter your email'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _password,
+                            enabled: !_busy,
+                            obscureText: _obscure,
+                            style: const TextStyle(
+                              fontFamily: OverlapStyle.mono,
+                              fontSize: 13,
+                            ),
+                            enableSuggestions: false,
+                            autocorrect: false,
+                            autofillHints: const [AutofillHints.password],
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _submit(),
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              suffixIcon: IconButton(
+                                tooltip: _obscure
+                                    ? 'Show password'
+                                    : 'Hide password',
+                                onPressed: _busy
+                                    ? null
+                                    : () =>
+                                          setState(() => _obscure = !_obscure),
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                              ),
+                            ),
+                            validator: (value) => (value ?? '').isEmpty
+                                ? 'Enter your password'
+                                : null,
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _busy ? null : _unavailable,
+                              child: const Text('Forgot password?'),
+                            ),
+                          ),
+                          if (_error != null) ...[
+                            Notice(_error!, isError: true),
+                            const SizedBox(height: 16),
+                          ],
+                          if (widget.onSignIn == null) ...[
+                            const Notice('Sign-in is temporarily unavailable.'),
+                            const SizedBox(height: 16),
+                          ],
+                          FilledButton(
+                            onPressed: _busy || widget.onSignIn == null
+                                ? null
+                                : _submit,
+                            child: _busy
+                                ? const SizedBox.square(
+                                    dimension: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      semanticsLabel: 'Signing in',
+                                    ),
+                                  )
+                                : const Text('Sign in'),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  validator: (value) =>
-                      (value ?? '').isEmpty ? 'Enter your password' : null,
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
+                  const SizedBox(height: 12),
+                  if (!widget.showRoleSelection) ...[
+                    const Text("Access is based on your account's role."),
+                    const SizedBox(height: 12),
+                  ],
+                  OutlinedButton(
                     onPressed: _busy ? null : _unavailable,
-                    child: const Text('Forgot password?'),
+                    child: const Text('Use Sevaro single sign-on'),
                   ),
-                ),
-                if (_error != null) ...[
-                  Notice(_error!, isError: true),
-                  const SizedBox(height: 16),
+                  if (widget.showDemoAccounts) ...[
+                    const SizedBox(height: 32),
+                    const Text('Demo accounts'),
+                    const SizedBox(height: 8),
+                    const SelectableText(
+                      'lead@demo.sevaro\nshah@demo.sevaro\nokafor@demo.sevaro\nbrennan@demo.sevaro\nPassword: demo',
+                    ),
+                  ],
                 ],
-                if (widget.onSignIn == null) ...[
-                  const Notice('Sign-in is temporarily unavailable.'),
-                  const SizedBox(height: 16),
-                ],
-                FilledButton(
-                  onPressed: _busy || widget.onSignIn == null ? null : _submit,
-                  child: _busy
-                      ? const SizedBox.square(
-                          dimension: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            semanticsLabel: 'Signing in',
-                          ),
-                        )
-                      : const Text('Sign in'),
-                ),
-              ],
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        if (!widget.showRoleSelection) ...[
-          const Text("Access is based on your account's role."),
-          const SizedBox(height: 12),
-        ],
-        OutlinedButton(
-          onPressed: _busy ? null : _unavailable,
-          child: const Text('Use Sevaro single sign-on'),
-        ),
-        if (widget.showDemoAccounts) ...[
-          const SizedBox(height: 32),
-          const Text('Demo accounts'),
-          const SizedBox(height: 8),
-          const SelectableText(
-            'lead@demo.sevaro\nshah@demo.sevaro\nokafor@demo.sevaro\nbrennan@demo.sevaro\nPassword: demo',
-          ),
-        ],
         const SizedBox(height: 24),
-        const Text('Synthetic data only', textAlign: TextAlign.center),
+        const Text(
+          'Overlap Systems \u00b7 Clinical Operations',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: OverlapStyle.muted, fontSize: 11),
+        ),
+        if (widget.showDemoAccounts)
+          const Text('Synthetic data only', textAlign: TextAlign.center),
       ],
     ),
   );
