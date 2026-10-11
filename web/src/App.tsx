@@ -19,6 +19,7 @@ import { WorkloadPanel } from "./forecast/WorkloadPanel.tsx";
 import { LandingPage } from "./LandingPage.tsx";
 import { ConsultQueues, PhysicianActivity, SignalVerification } from "./detect/LiveWorkload.tsx";
 import "./command.css";
+import { IncomingCall } from "./physician/IncomingCall.tsx";
 import { OffersPage } from "./physician/OffersPage.tsx";
 import SchedulePage from "./Schedule.tsx";
 import { SignIn } from "./SignIn.tsx";
@@ -296,6 +297,7 @@ function PhysicianApp({ session }: { session: Session }) {
   const page = useHashPage(PAGES_BY_ROLE.physician);
   return <div className="min-h-screen bg-[#FBF9F5] text-slate-900">
     <Header session={session} page={page} />
+    <IncomingCall />
     <Main page={page}>
       {page === "shift" && <MyShift />}
       {page === "offers" && <OffersPage />}

@@ -63,3 +63,13 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const post = <T>(path: string, payload?: unknown) =>
   api<T>(path, { method: "POST", body: payload === undefined ? undefined : JSON.stringify(payload) });
+
+// Audio endpoints need the bearer token, which a bare `new Audio(url)` can't send.
+export async function playAudio(path: string): Promise<HTMLAudioElement> {
+  const token = readSession()?.token;
+  const response = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!response.ok) throw new ApiError(response.status, "Audio unavailable");
+  const audio = new Audio(URL.createObjectURL(await response.blob()));
+  await audio.play();
+  return audio;
+}

@@ -169,6 +169,8 @@ export function createDemoServer(localNow: () => number = Date.now) {
           Object.assign(offer, {
             state: "Sent", approved_by: user.name, approved_at: iso(), sent_at: iso(),
             expires_at: new Date(now() + 10 * 60_000).toISOString(), message: sentData.message,
+            // Recorded once by the backend's ElevenLabs voice from sentData.message; the browser never holds the key.
+            audio_url: new URL("./offer-call.mp3", import.meta.url).href,
           });
           log(user.name, "Approved offer", offer.physician_name);
           log("System", "Sent offer", offer.physician_name);
