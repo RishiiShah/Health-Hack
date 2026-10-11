@@ -43,4 +43,30 @@ void main() {
     await tester.pump();
     expect(find.text('Accepted'), findsOneWidget);
   });
+
+  testWidgets('physician sign-in rings the call; answer then accept', (
+    tester,
+  ) async {
+    await launch(tester, 'Physician');
+    await tester.pump(const Duration(seconds: 3));
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('INCOMING CALL'), findsOneWidget);
+    expect(find.text('Suncrest Medical Pavilion'), findsOneWidget);
+    await tester.tap(find.text('Answer'));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('ON CALL'), findsOneWidget);
+    expect(find.text('Play message again'), findsOneWidget);
+    await tester.tap(find.text('Accept shift'));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.textContaining("You're on Suncrest"), findsOneWidget);
+    await tester.ensureVisible(find.text('Close'));
+    await tester.tap(find.text('Close'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('CALL ENDED'), findsNothing);
+  });
 }
