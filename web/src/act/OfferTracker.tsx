@@ -1,4 +1,3 @@
-import { playAudio } from "../api/client.ts";
 import { offerSteps, stateBadge } from "./offerSteps.ts";
 import { clockTime, countdown } from "./time.ts";
 import type { Offer } from "./types.ts";
@@ -28,7 +27,7 @@ export function OfferTracker({ offer, now }: { offer: Offer; now: number | null 
       {offer.reject_reason && <p className="message">Rejected: {offer.reject_reason}</p>}
       {offer.message && offer.sent_at && (
         <details className="offer-message"><summary>View sent message</summary><p className="message">{offer.message}</p><div className="tracker-actions">
-          {offer.audio_url && <button className="btn" onClick={() => void playAudio(offer.audio_url!).catch(() => undefined)}>Play message</button>}
+          {offer.audio_url && <OfferAudio path={offer.audio_url} />}
           {offer.phone_url && <a href={offer.phone_url} target="_blank" rel="noreferrer">Open the physician's phone view</a>}
         </div></details>
       )}
