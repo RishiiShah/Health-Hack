@@ -21,6 +21,7 @@ import SchedulePage from "./Schedule.tsx";
 import { Shell } from "./shell/Shell.tsx";
 import { SignIn } from "./SignIn.tsx";
 import { PageHead, Panel } from "./ui/Layout.tsx";
+import { useSmoothScroll } from "./ui/smoothScroll.ts";
 
 function useHashPage(pages: readonly string[]): string {
   const pick = () => (pages.includes(location.hash.slice(1)) ? location.hash.slice(1) : pages[0]);
@@ -35,6 +36,7 @@ function useHashPage(pages: readonly string[]): string {
 }
 
 export default function App() {
+  useSmoothScroll();
   const [session, setSession] = useState<Session | null>(readSession);
   const [checking, setChecking] = useState(() => readSession() !== null);
   const [restoreError, setRestoreError] = useState<string | null>(null);

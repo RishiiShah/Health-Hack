@@ -54,6 +54,12 @@
 
 **Out of scope:** charting libraries, editing eligibility rules, client-side permission logic, and sending real SMS or push notifications.
 
+## Motion dependencies
+
+- `lenis` (1.3.26): smooth window scrolling for every page (`src/ui/smoothScroll.ts`). Nested scroll areas keep native scrolling, reduced motion turns it off, and the landing page's section links glide without touching the URL hash that routes app pages.
+- `gsap` (3.15.0) and `@gsap/react` (2.1.2): drive Lenis from GSAP's ticker so ScrollTrigger and Lenis share one scroll position, and power the React Bits components.
+- React Bits components are copied source, not a package: `src/ui/reactbits/SplitText.tsx` (the landing headline) and `AnimatedContent.tsx` (landing sections revealing on scroll). Both are adapted to respect reduced motion; every tween, ScrollTrigger and split is reverted on unmount.
+
 ## Demo data
 
 `VITE_DEMO_DATA=1 npm run dev` (or `VITE_DEMO_DATA=1` in `web/.env.local`) answers every API call from `web/src/demo/`, an in-memory stand-in. Its data in `web/src/demo/data/` was captured from the real backend at 18:20 on the training day (snapshot, the Suncrest gap's candidates and trap check, a proposed offer and its audit), plus Anish's schedule roster with IDs matched to the reference files. Sign in as `coord@demo.sevaro`, `lead@demo.sevaro`, `okafor@demo.sevaro` or `shah@demo.sevaro` with any password. Propose, approve, reject, accept, decline, escalate, add events, pause and +5 min all work, and the header shows a "Demo data" badge. Without the variable the app calls the real backend and the demo code is left out of the build; `web/.env.local` applies to `npm run build` too, so remove it before building for deployment.

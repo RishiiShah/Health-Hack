@@ -1,4 +1,8 @@
+import type { ReactNode } from "react";
 import { stagger } from "./ui/motion.ts";
+import AnimatedContent from "./ui/reactbits/AnimatedContent.tsx";
+import SplitText from "./ui/reactbits/SplitText.tsx";
+import { scrollToSection } from "./ui/smoothScroll.ts";
 import { Pulse } from "./ui/Pulse.tsx";
 import { Brand, ThemeToggle } from "./ui/theme.tsx";
 import "./landing.css";
@@ -18,6 +22,12 @@ const ROLE_CARDS: [Role, string, string, string[]][] = [
   ["physician", "Physician", "Answer coverage calls on phone or web. Offers carry hospital names and hours only.", ["Simulated coverage call", "Accept or decline in one tap", "Routing starts on observed arrival"]],
 ];
 
+// Sections below the fold reveal as they scroll in; the hero animates on load.
+const Reveal = ({ children, delay = 0 }: { children: ReactNode; delay?: number }) =>
+  <AnimatedContent distance={40} duration={0.9} delay={delay}>{children}</AnimatedContent>;
+
+const SECTIONS: [string, string][] = [["how", "How it works"], ["roles", "Workspaces"], ["scope", "Scope"]];
+
 const FACTS: [string, string, string][] = [
   ["12", "Reference hospitals", "Official Sevaro kit"],
   ["14", "Reference physicians", "Supplied roster and credentials"],
@@ -29,14 +39,14 @@ export function LandingPage({ onGoToSignIn }: { onGoToSignIn: (role?: Role) => v
   return <div className="landing">
     <header className="landing-bar">
       <Brand />
-      <nav aria-label="Overview"><a href="#how">How it works</a><a href="#roles">Workspaces</a><a href="#scope">Scope</a></nav>
+      <nav aria-label="Overview">{SECTIONS.map(([id, label]) => <a key={id} href={`#${id}`} onClick={(e) => { e.preventDefault(); scrollToSection(id); }}>{label}</a>)}</nav>
       <div className="actions"><ThemeToggle /><button className="btn primary" onClick={() => onGoToSignIn("coordinator")}>Sign in<span aria-hidden="true">→</span></button></div>
     </header>
 
     <section className="hero">
       <div className="hero-copy">
         <span className="kicker rise"><b>●</b>Tele-neurology command center</span>
-        <h1 className="rise" style={stagger(1)}>Time is brain.<em>See the coverage gap before the shift changes.</em></h1>
+        <h1><SplitText tag="span" text="Time is brain." delay={35} duration={0.9} /><em className="rise" style={stagger(2)}>See the coverage gap before the shift changes.</em></h1>
         <p className="rise" style={stagger(2)}>Cerevia gives Sevaro's operations team one deterministic view of the stroke network: what needs action now, where staffing runs short, and which physician can cover, approved by a clinical lead before anyone is called.</p>
         <div className="actions rise" style={stagger(3)}>
           <button className="btn primary" onClick={() => onGoToSignIn("coordinator")}>Open the command center<span aria-hidden="true">→</span></button>
@@ -51,26 +61,26 @@ export function LandingPage({ onGoToSignIn }: { onGoToSignIn: (role?: Role) => v
     </section>
 
     <section id="how" className="landing-section">
-      <header className="landing-head"><span className="kicker"><b>01</b>How it works</span><h2>One loop, from signal to covered shift.</h2></header>
-      <ol className="steps-row">{STEPS.map(([title, text, tag], i) => <li key={title} className="rise" style={stagger(i)}>
+      <Reveal><header className="landing-head"><span className="kicker"><b>01</b>How it works</span><h2>One loop, from signal to covered shift.</h2></header></Reveal>
+      <Reveal delay={0.12}><ol className="steps-row">{STEPS.map(([title, text, tag], i) => <li key={title}>
         <span className="step-index">{String(i + 1).padStart(2, "0")}</span><h3>{title}</h3><p>{text}</p><span className="badge teal">{tag}</span>
-      </li>)}</ol>
+      </li>)}</ol></Reveal>
     </section>
 
     <section id="roles" className="landing-section">
-      <header className="landing-head"><span className="kicker"><b>02</b>Workspaces</span><h2>Three roles, one record.</h2></header>
-      <div className="role-columns">{ROLE_CARDS.map(([role, title, text, points], i) => <article key={role} className="role-column rise" style={stagger(i)}>
+      <Reveal><header className="landing-head"><span className="kicker"><b>02</b>Workspaces</span><h2>Three roles, one record.</h2></header></Reveal>
+      <Reveal delay={0.12}><div className="role-columns">{ROLE_CARDS.map(([role, title, text, points]) => <article key={role} className="role-column">
         <span className="kicker">{role === "physician" ? "Phone and web" : "Desktop web"}</span>
         <h3>{title}</h3><p>{text}</p>
         <ul>{points.map((point) => <li key={point}>{point}</li>)}</ul>
         <button className="btn" onClick={() => onGoToSignIn(role)}>Sign in as {title.toLowerCase()}<span aria-hidden="true">→</span></button>
-      </article>)}</div>
+      </article>)}</div></Reveal>
     </section>
 
     <section id="scope" className="landing-section">
-      <header className="landing-head"><span className="kicker"><b>03</b>Prototype scope</span><h2>Decision support, honestly scoped.</h2>
-        <p>Replays the supplied challenge data and supports reviewed staffing decisions. Clinical outcomes and production compliance have not been validated.</p></header>
-      <dl className="facts-row">{FACTS.map(([value, label, note], i) => <div key={label} className="rise" style={stagger(i)}><dt>{value}</dt><dd><b>{label}</b>{note}</dd></div>)}</dl>
+      <Reveal><header className="landing-head"><span className="kicker"><b>03</b>Prototype scope</span><h2>Decision support, honestly scoped.</h2>
+        <p>Replays the supplied challenge data and supports reviewed staffing decisions. Clinical outcomes and production compliance have not been validated.</p></header></Reveal>
+      <Reveal delay={0.12}><dl className="facts-row">{FACTS.map(([value, label, note]) => <div key={label}><dt>{value}</dt><dd><b>{label}</b>{note}</dd></div>)}</dl></Reveal>
     </section>
 
     <footer className="colophon">
