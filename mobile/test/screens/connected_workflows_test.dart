@@ -175,19 +175,19 @@ void main() {
     fake.offers.pushNewOffer();
     await fake.services.physicianFeed.refreshNow();
     await tester.pumpAndSettle();
-    expect(find.text('Coverage notification'), findsOneWidget);
+    expect(find.text('Sevaro Coverage Call'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.text('Coverage notification'), findsNothing);
+    expect(find.text('Sevaro Coverage Call'), findsNothing);
     expect(find.text("You're off shift"), findsOneWidget);
     fake.offers.pushNewOffer();
     await fake.services.physicianFeed.refreshNow();
     await tester.pumpAndSettle();
-    expect(find.text('Coverage notification'), findsOneWidget);
+    expect(find.text('Sevaro Coverage Call'), findsOneWidget);
     await fake.auth.signOut();
     await tester.pumpAndSettle();
     expect(ended, isTrue);
-    expect(find.text('Coverage notification'), findsNothing);
+    expect(find.text('Sevaro Coverage Call'), findsNothing);
   });
 
   testWidgets('all candidates expose all eight server rule results', (

@@ -245,6 +245,34 @@ void main() {
       expect(browser.session['sevaro_token'], 'stored');
     });
 
+    test('offer audio returns the bytes, sent with the session token', () async {
+      final server = _Server()
+        ..onResponse(
+          'GET /offers/OFF-0007/audio',
+          http.Response.bytes([1, 2, 3], 200, headers: {'content-type': 'audio/mpeg'}),
+        );
+      final s = server.services(browser: _signedIn());
+      expect(await s.offers.getOfferAudio('OFF-0007'), [1, 2, 3]);
+      expect(server.requests.single.headers['Authorization'], 'Bearer stored');
+    });
+
+    test('offer audio: 503 and 409 are Unavailable, 404 is NotFound, 401 signs out', () async {
+      for (final (status, matcher) in [
+        (503, isA<Unavailable>()),
+        (409, isA<Unavailable>()),
+        (404, isA<NotFound>()),
+        (401, isA<Unauthorized>()),
+      ]) {
+        final server = _Server()..on('GET /offers/OFF-0007/audio', kSamples['mobile_error_401.json']!, status: status);
+        final s = server.services(browser: _signedIn());
+        var signedOut = 0;
+        s.auth.signedOut.listen((_) => signedOut++);
+        await expectLater(s.offers.getOfferAudio('OFF-0007'), throwsA(matcher));
+        await Future<void>.delayed(Duration.zero);
+        expect(signedOut, status == 401 ? 1 : 0);
+      }
+    });
+
     test('a 404 and a 503 map to NotFound and Unavailable', () async {
       final server = _Server()
         ..on('GET /offers/OFF-9', '{"error":{"code":"not_found","message":"x"}}', status: 404)

@@ -10,6 +10,7 @@
 //   final fake = FakeServices(ticking: false);
 //   fake.offers.pushNewOffer();            // a new `sent` offer for the signed-in physician
 //   fake.offers.expire('OFF-0007');        // → expired (Missed)
+//   fake.offers.audio = bytes;             // spoken offer; null (default) → Unavailable
 //   fake.offers.fillByOther('OFF-0007');   // → withdrawn / filled_by_another_physician
 //   fake.clock.set(DateTime.parse('2026-03-17T18:34:59-04:00'));
 //   fake.lead.addProposal();               // another proposal in the lead queue
@@ -794,6 +795,16 @@ class FakeOfferRepository implements OfferRepository {
   @override
   Future<OfferActionResult> release(String offerId) =>
       _b.respond(() => _b.releaseOffer(_own(offerId)), OfferActionResult.parse, physician: true);
+
+  /// The spoken offer [getOfferAudio] returns. Null: there is no text-to-speech
+  /// without a server, so the call is [Unavailable] and screens show the text.
+  Uint8List? audio;
+
+  @override
+  Future<Uint8List> getOfferAudio(String offerId) => _b.respond(() {
+        _own(offerId);
+        return null;
+      }, (_) => audio ?? (throw const Unavailable('Text-to-speech unavailable.')), physician: true);
 
   @override
   Future<NotificationList> notifications() => _b.respond(

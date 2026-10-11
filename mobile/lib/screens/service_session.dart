@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/api.dart';
 import 'account_page.dart';
 import 'data_widgets.dart';
+import 'incoming_call_screen.dart';
 import 'lead_pages.dart';
 import 'physician_pages.dart';
 import 'role_home.dart';
@@ -35,7 +36,7 @@ class _ServiceSessionState extends State<ServiceSession> {
   final _navigator = GlobalKey<NavigatorState>();
   final _tab = ValueNotifier(0);
   final _opened = <String>{};
-  final _pending = <String>{};
+  final _pending = <String, Offer>{};
   final _subscriptions = <StreamSubscription<dynamic>>[];
   Poller? _mePoller;
   bool _ended = false;
@@ -91,7 +92,7 @@ class _ServiceSessionState extends State<ServiceSession> {
         offer.offerId == _initialOffer) {
       return;
     }
-    _pending.add(offer.offerId);
+    _pending[offer.offerId] = offer;
     _showPending();
   }
 
@@ -104,28 +105,24 @@ class _ServiceSessionState extends State<ServiceSession> {
       return;
     }
     _lockOpen = true;
-    if (s.alerts.soundEnabled) s.alerts.chime();
-    s.alerts.vibrate();
+    final offer = _pending.values.last;
     s.alerts.setBadge(
       s.physicianFeed.notifications.value.data?.unreadOffers ?? _pending.length,
     );
     _navigator.currentState!
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => NotificationsScreen(
-              services: s,
-              me: s.auth.me.value ?? widget.me,
-              openOffer: (id) => _openOffer(id, replaceLock: true),
-            ),
+            builder: (_) => IncomingCallScreen(services: s, offer: offer),
           ),
         )
         .whenComplete(() {
           _lockOpen = false;
           _pending.clear();
+          s.alerts.setBadge(0);
         });
   }
 
-  void _openOffer(String id, {bool replaceLock = false}) {
+  void _openOffer(String id) {
     if (!mounted || _ended) return;
     _opened.add(id);
     _pending.remove(id);
@@ -133,12 +130,7 @@ class _ServiceSessionState extends State<ServiceSession> {
     final route = MaterialPageRoute<void>(
       builder: (_) => ConnectedOffer(services: s, offerId: id),
     );
-    if (replaceLock) {
-      _lockOpen = false;
-      _navigator.currentState?.pushReplacement(route);
-    } else {
-      _navigator.currentState?.push(route);
-    }
+    _navigator.currentState?.push(route);
   }
 
   void _openProposal(String id) {
