@@ -1,4 +1,4 @@
-data/
+/data/
 .DS_Store
 __pycache__/
 *.py[cod]
@@ -9,4 +9,4 @@ backend/.local/
 web/node_modules/
 web/dist/
 *.local
-test_data/
+/test_data/
