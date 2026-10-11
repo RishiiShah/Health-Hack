@@ -27,6 +27,7 @@
 3. Walk the eight demonstrations at 18:20.
 4. Judges' file: upload it on the Data page; a CSV upload moves the clock to its latest event (`/events/csv?advance_clock=true`, never backwards) and the report says where the clock moved. Never restart the server.
 5. If something looks wrong, `POST /admin/reset` starts a clean generation (the old one stays in the database).
+6. Hosted: the image has no reference CSVs. Before the demo run `python3 scripts/upload_references.py data --url https://<host> --service-date 2026-03-17` once; the database keeps them across restarts.
 
 ## Open items for teammates
 - **Web Detect screens (Anish):** `web/src/detect/` does not exist, so the web has no attention queue, consult board, physician board, stuck-consult panel, signal flags or voice alerts (demonstrations 2–3). The backend serves all of it in `/snapshot` (`queue`, `consults`, `physicians`).

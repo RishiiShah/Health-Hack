@@ -93,20 +93,21 @@ class MutationCoordinator:
                     rejected.append((str(exc), json.dumps(raw, sort_keys=True)))
             return self._mutate(normalized, rejected=rejected)
 
-    def activate_references(self, refs: Refs) -> dict:
-        """P1 activation hook: validated reference snapshot and releases commit together."""
+    def activate_references(self, refs: Refs, source: dict | None = None) -> dict:
+        """P1 activation hook: validated reference snapshot and releases commit together. `source` (the uploaded
+        files and service date) is stored in the same transaction so a restart can rebuild the operational tables."""
         with self.lock:
-            return self._mutate([], refs)
+            return self._mutate([], refs, source=source)
 
-    def _mutate(self, rows, refs=None, rejected=()):
+    def _mutate(self, rows, refs=None, rejected=(), source=None):
         try:
-            return self._mutate_once(rows, refs, rejected)
+            return self._mutate_once(rows, refs, rejected, source)
         except StaleRevision:
             # Another instance wrote (e.g. a deploy overlap): reload the durable log, then retry once.
             self._load()
-            return self._mutate_once(rows, refs, rejected)
+            return self._mutate_once(rows, refs, rejected, source)
 
-    def _mutate_once(self, rows, refs=None, rejected=()):
+    def _mutate_once(self, rows, refs=None, rejected=(), source=None):
         as_of, received_at = self.clock.now(), self.receipt_clock.now()
         active_refs = refs if refs is not None else self.refs
         holds, stats = dict(self._holds), dict(self._stats)
@@ -172,7 +173,7 @@ class MutationCoordinator:
         state = replay(candidate[:visible_count]) if accepted or visible_count != self._visible_count else self.published.state
         unresolved_history = self._unknown_history(candidate, active_refs) if refs is not None else self._unresolved_history
         ref_revision = self.reference_revision + int(refs is not None and (self.refs is None or refs.payload() != self.refs.payload()))
-        saved_refs = {"revision": ref_revision, "payload": active_refs.payload()} if refs is not None else None
+        saved_refs = {"revision": ref_revision, "payload": active_refs.payload(), **({"source": source} if source else {})} if refs is not None else None
         revision = self.db.commit_batch(accepted, quarantined, received_at, holds=holds, stats=stats, references=saved_refs, expected_revision=self.published.revision)
         self._events, self._holds, self._stats = candidate, holds, stats
         self._visible_count, self.watermark = visible_count, watermark

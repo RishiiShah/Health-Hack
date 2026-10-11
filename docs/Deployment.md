@@ -52,8 +52,9 @@ python3 scripts/stress.py --url https://YOUR-SERVICE --seed 2000 --readers 16 --
 1. Create the RDS instance in us-east-1 and a database for the service.
 2. Create a Render Blueprint from the repository's root `render.yaml`. It runs the Dockerfile in the Virginia region with one instance and `/ready` as the health check.
 3. Set `CC_DATABASE_URL` in the Render dashboard (it is marked `sync: false`, so it never lives in Git). Keep `PORT` managed by Render. Do not run more than one worker or instance.
-4. Confirm `/ready` responds. A new database starts with an empty event log.
-5. Verify persistence with `scripts/hosting_smoke.py seed`, a manual redeploy, then `verify`, against a disposable database before loading real operational data.
+4. Confirm `/ready` responds. A new database starts with an empty event log and, since the image has no reference CSVs, with decisions off (`detection: false`).
+5. Upload the six reference CSVs once: `python3 scripts/upload_references.py data --url https://YOUR-SERVICE --service-date 2026-03-17` (`--service-date` only for the kit's sample layout). They are stored in the database, so restarts and redeploys keep them; `/ready` then reports `detection: true`.
+6. Verify persistence with `scripts/hosting_smoke.py seed`, a manual redeploy, then `verify`, against a disposable database before loading real operational data.
 
 ## AWS fallback
 
@@ -81,7 +82,7 @@ Use an Azure Linux VM with Docker Engine and Compose and the same commands. The 
 | `CC_USERS` | JSON list of accounts: `email`, `name`, `role` (`coordinator`, `lead` or `physician`), `password_hash` from `python -m app.auth`, and `physician_id` for physicians | needed for web and mobile sign-in; without accounts only the fixed role tokens work, and with neither the server refuses to start |
 | `CC_AUTH_SECRET` | 32+ random characters that sign sign-in tokens (`python3 -c "import secrets; print(secrets.token_urlsafe(32))"`) | required with `CC_USERS` |
 | `CC_AUTH_CONFIG` | Private JSON file with `secret` and `users`; used if `CC_USERS` is absent | local Compose mounts the gitignored setup file read-only |
-| `CC_DATA_DIR` | Reference CSVs (hospitals, shifts, off-shift roster, credentials, baseline volume, coverage requirements), sample or scenario-pack layout. Missing: the API runs, `/ready` reports detection unavailable, decision routes return 503 | `/data/ref` |
+| `CC_DATA_DIR` | Reference CSVs (hospitals, shifts, off-shift roster, credentials, baseline volume, coverage requirements), sample or scenario-pack layout. Missing: the API runs, `/ready` reports detection unavailable, decision routes return 503. References uploaded with `POST /admin/references` are kept in the database and take precedence | `/data/ref` |
 | `CC_CLOCK_MODE` | `auto`, `wall`, `anchored`, `fixed` | `auto` |
 | `CC_CLOCK_FIXED` | Offset-aware fixed/anchor time, when needed | unset |
 | `CC_OFFER_HISTORY` | Offers sent outside this tool (`offer_id, physician_id, sent_at, status`), counted for R7/R8 | unset |

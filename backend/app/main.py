@@ -21,7 +21,7 @@ from app.coordinator import MutationCoordinator
 from app.db import EventDatabase
 from app.ingest.adapters import FIXTURE_VERSION
 from app.models import EventInput
-from app.service import Engine, base_history, jsonable, load_references
+from app.service import Engine, base_history, jsonable, load_references, references_from_files
 from app.tts import Speech
 
 log = logging.getLogger(__name__)
@@ -52,6 +52,15 @@ class ClockRequest(BaseModel):
     at: datetime | None = None  # default: the current simulated time
     advance_s: float | None = None  # jump forward (the web's "+5 min")
     paused: bool | None = None  # True = fixed at the current time, False = resume running
+
+
+class ReferencesRequest(BaseModel):
+    files: dict[str, str]  # the six reference CSVs: file name -> text (REFERENCE_FILES)
+    service_date: date | None = None  # only the sample layout needs it: its shift times have no date
+    name: str = Field("uploaded references", max_length=200)
+
+
+MAX_REFERENCE_CHARS = 5_000_000
 
 
 class Login(BaseModel):
@@ -108,9 +117,9 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         try:
             events = db.events()
             clock = test_clock or make_clock(settings.clock_mode, settings.fixed_datetime(), max((e.event_time for e in events), default=None))
-            refs, ops = references or startup_references()
+            refs, ops, dataset = (*references, dataset_of(None)) if references else startup_references(db)
             coordinator = MutationCoordinator(db, clock, settings.late_lag_s, refs=refs, orphan_hold_s=settings.orphan_hold_s)
-            engine = Engine(coordinator, ops, None, InterventionLog(url), dataset_of(settings.reference_dir if references is None else None))
+            engine = Engine(coordinator, ops, None, InterventionLog(url), dataset)
             conns.append(engine.interventions.conn)
             engine.desk = OfferDesk(url, engine.context, base_history(history_path or settings.offer_history, clock.now()))
             api.state.db, api.state.clock, api.state.coordinator, api.state.engine = db, clock, coordinator, engine
@@ -135,13 +144,25 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         name = folder.parent.name if folder.name == "inputs" else folder.name
         return {"name": name, "description": f"reference files from {folder.name}", "reference_files": len(list(folder.glob("*.csv")))}
 
-    def startup_references():
+    def uploaded_dataset(source):
+        return {"name": source["name"], "description": "uploaded reference files", "reference_files": len(source["files"])}
+
+    def startup_references(db):
+        """Uploaded references (POST /admin/references, kept in the database) win: they are the latest admin action
+        and the only source on a host without the CSVs. Otherwise CC_DATA_DIR; otherwise none."""
+        source = (db.metadata("references") or {}).get("source")
         directory = settings.reference_dir
+        if source:
+            if directory:
+                log.warning("using the uploaded references %r from the database; CC_DATA_DIR=%r is ignored", source["name"], directory)
+            day = date.fromisoformat(source["service_date"]) if source.get("service_date") else None
+            return *references_from_files(source["files"], day), uploaded_dataset(source)
         if not directory or not (Path(directory) / "hospitals.csv").exists():
             # Loud, not fatal: /ready reports detection unavailable and decision routes answer 503.
-            log.warning("no reference files at CC_DATA_DIR=%r; decisions are unavailable until they are provided", directory)
-            return None, None
-        return load_references(directory, date.fromisoformat(settings.service_date) if settings.service_date else None)
+            log.warning("no reference files at CC_DATA_DIR=%r; decisions are unavailable until they are uploaded", directory)
+            return None, None, dataset_of(None)
+        day = date.fromisoformat(settings.service_date) if settings.service_date else None
+        return *load_references(directory, day), dataset_of(directory)
 
     async def sweeper(api, interval):
         while True:
@@ -404,6 +425,22 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         return engine_of(request).audit_view(gap_id)
 
     # ---- admin -------------------------------------------------------------------------------------------
+    @api.post("/admin/references")
+    def upload_references(body: ReferencesRequest, request: Request, who: Principal = need("admin.inject")):
+        """Load or replace the reference CSVs without a redeploy (a host has no CC_DATA_DIR). Checked by the same loaders,
+        then stored in the database with the switch, so restarts keep them. Loaded events stay: POST /admin/reset to
+        start the new dataset with an empty stream."""
+        if sum(map(len, body.files.values())) > MAX_REFERENCE_CHARS:
+            raise HTTPException(413, "reference files exceed the size limit")
+        try:
+            refs, ops = references_from_files(body.files, body.service_date)
+        except (ValueError, KeyError, csv.Error) as exc:  # KeyError includes an unknown time zone
+            raise HTTPException(422, f"reference files rejected: {exc}") from None
+        source = {"name": body.name, "service_date": body.service_date.isoformat() if body.service_date else None, "files": body.files}
+        report = request.app.state.engine.use_references(refs, ops, source, uploaded_dataset(source))
+        return {"activated": True, "dataset": request.app.state.engine.dataset, "revision": report["revision"],
+                "hospitals": len(refs.hospitals), "physicians": len(refs.physicians)}
+
     @api.post("/admin/reset")
     def reset(request: Request, who: Principal = need("admin.inject")):
         app = request.app

@@ -297,3 +297,49 @@ def test_judge_file_on_the_original_kit_updates_without_restart(db_url):
         assert (new["consult_type"], new["repeat_contacts"], new["minutes_since_received"]) == ("Stroke", 1, 9)  # one patient, first clock
         assert any("CON-J01" in (i["where"].get("consult_id") or "") for i in snap["queue"]["items"] if i["severity"] == "Critical")
         assert next(s for s in snap["forecast"]["surges"] if s["hospital_id"] == "SYN-005")["count"] == 6  # repeat call is not new demand
+
+
+def test_uploaded_references_turn_decisions_on_and_survive_a_restart(db_url, monkeypatch):
+    """A host has no CC_DATA_DIR: decisions are off until the reference CSVs are uploaded; the database keeps them."""
+    from dataclasses import replace
+    from app import main
+    from app.service import REFERENCE_FILES
+    monkeypatch.setattr(main, "settings", replace(main.settings, reference_dir=None))
+    path = PACKS[0]
+    pack = load_pack(path)
+    files = {name: (path / "inputs" / name).read_text(encoding="utf-8-sig") for name in REFERENCE_FILES}
+    hosted = lambda: create_app(db_url, FixedClock(pack.time("1820")), auth=TEST_AUTH, speech=FakeSpeech(), sweep_s=0)
+    with TestClient(hosted()) as client:
+        assert client.get("/ready").json()["capabilities"]["detection"] is False
+        assert client.get("/gaps/x/candidates", headers=COORD).status_code == 503
+        missing = {k: v for k, v in files.items() if k != "coverage_requirements.csv"}
+        assert client.post("/admin/references", json={"files": missing}, headers=ADMIN).status_code == 422
+        bad = {**files, "hospitals.csv": files["hospitals.csv"].replace("America/", "Nowhere/", 1)}
+        assert client.post("/admin/references", json={"files": bad}, headers=ADMIN).status_code == 422
+        assert client.post("/admin/references", json={"files": files}, headers={**ADMIN, "Authorization": "Bearer wrong"}).status_code == 401
+        r = client.post("/admin/references", json={"files": files, "name": "pack 01"}, headers=COORD)
+        assert r.status_code == 200 and r.json()["hospitals"] == len(pack.refs.hospitals) and r.json()["physicians"] == len(pack.refs.physicians)
+        assert client.get("/ready").json()["capabilities"]["detection"] is True
+        post_csv(client, raw_rows(path, "inputs/event_stream.csv"))
+        assert served_queue(client) == expected_queue(pack, pack.time("1820"))
+    with TestClient(hosted()) as client:  # restart: nothing on disk, references come back from the database
+        assert client.get("/ready").json()["capabilities"]["detection"] is True
+        assert client.get("/snapshot", headers=COORD).json()["dataset"]["name"] == "pack 01"
+        assert served_queue(client) == expected_queue(pack, pack.time("1820"))
+
+
+def test_sample_layout_upload_needs_its_service_date(db_url, monkeypatch):
+    from dataclasses import replace
+    from pathlib import Path
+    from app import main
+    from app.service import REFERENCE_FILES
+    kit = Path(__file__).resolve().parents[2] / "data"
+    if not (kit / "hospitals.csv").exists():
+        pytest.skip("source data is gitignored")
+    monkeypatch.setattr(main, "settings", replace(main.settings, reference_dir=None))
+    files = {name: (kit / name).read_text(encoding="utf-8-sig") for name in REFERENCE_FILES}
+    with TestClient(create_app(db_url, FixedClock(datetime.fromisoformat("2026-03-17T18:20:00-04:00")), auth=TEST_AUTH,
+                               speech=FakeSpeech(), sweep_s=0)) as client:
+        assert client.post("/admin/references", json={"files": files}, headers=ADMIN).status_code == 422
+        assert client.post("/admin/references", json={"files": files, "service_date": "2026-03-17"}, headers=ADMIN).status_code == 200
+        assert client.get("/ready").json()["capabilities"]["detection"] is True

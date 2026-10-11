@@ -5,6 +5,8 @@ Clients only display what this returns; every level, gap, candidate and fix is c
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from threading import Lock
 from app.act.interventions import InterventionLog
 from app.act.offers import OPEN, Context, OfferDesk
 from app.decide.eligibility import OfferHistory, Proposal, evaluate, evaluate_proposal, load_offer_history
@@ -19,6 +21,20 @@ from app.references import Refs, load_reference_dir
 def load_references(directory: str | Path, service_date: date | None = None) -> tuple[Refs, OpsRefs]:
     refs = load_reference_dir(directory, service_date)
     return refs, load_ops_refs(directory, {h: x.timezone for h, x in refs.hospitals.items()}, set(refs.physicians))
+
+
+REFERENCE_FILES = ("hospitals.csv", "physicians_on_shift.csv", "physicians_off_shift_roster.csv", "credentialing_matrix.csv",
+                   "baseline_hourly_volume.csv", "coverage_requirements.csv")
+
+
+def references_from_files(files: dict[str, str], service_date: date | None = None) -> tuple[Refs, OpsRefs]:
+    """Uploaded reference CSVs (file name -> text), checked by the same loaders as a CC_DATA_DIR folder."""
+    if set(files) != set(REFERENCE_FILES):
+        raise ValueError(f"expected exactly these files: {', '.join(REFERENCE_FILES)}")
+    with TemporaryDirectory() as directory:
+        for name, text in files.items():
+            (Path(directory) / name).write_text(text, encoding="utf-8")
+        return load_references(directory, service_date)
 
 
 def base_history(path: str | Path | None, now: datetime) -> OfferHistory:
@@ -66,24 +82,36 @@ class Engine:
 
     def __post_init__(self):
         self._key, self._value = None, None
+        self.swap = Lock()  # held while references and their operational tables are replaced together
+
+    def use_references(self, refs: Refs, ops: OpsRefs, source: dict, dataset: dict) -> dict:
+        """Switch to uploaded references: readers never see new references with the old operational tables."""
+        with self.swap:
+            report = self.coordinator.activate_references(refs, source)
+            self.ops, self.dataset = ops, dataset
+        return report
+
+    def _current(self):
+        with self.swap:
+            return self.coordinator.current_publication(), self.ops
 
     @property
     def ready(self) -> bool:
         return self.ops is not None and self.coordinator.refs is not None
 
     def context(self) -> Context:
-        p = self.coordinator.current_publication()
-        return Context(p.state, p.refs, self.ops, p.as_of, p.revision)
+        p, ops = self._current()
+        return Context(p.state, p.refs, ops, p.as_of, p.revision)
 
     def decisions(self) -> tuple[object, Decisions | None]:
-        p = self.coordinator.current_publication()
-        key = (p.revision, id(p.state), p.as_of.replace(microsecond=0), self.desk.version)
+        p, ops = self._current()
+        key = (p.revision, id(p.state), p.as_of.replace(microsecond=0), self.desk.version, id(ops))
         if self._key == key:
             return self._value
         decisions = None
-        if self.ready:
+        if ops is not None and p.refs is not None:
             service = observed_service(self.coordinator.visible_events(), p.state)
-            decisions = decide(p.state, p.refs, self.ops, p.as_of, self.desk.history(p.as_of), self.desk.accepted(), service=service)
+            decisions = decide(p.state, p.refs, ops, p.as_of, self.desk.history(p.as_of), self.desk.accepted(), service=service)
         self._key, self._value = key, (p, decisions)
         return self._value
 

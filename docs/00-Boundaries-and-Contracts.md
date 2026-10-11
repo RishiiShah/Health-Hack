@@ -48,6 +48,7 @@ event CSV / JSON ──► backend (1 process, in-memory replay) ──► RDS P
 | `GET /alerts/{item_id}/audio` | coordinator, lead | Anish, Hitanshu |
 | `POST /events` (JSON batch), `POST /events/csv` | admin | Joy |
 | `POST /admin/reset`, `POST /admin/clock` | admin | Joy |
+| `POST /admin/references` `{files: {name: csv text}, service_date?, name?}` (the six reference CSVs) | admin | script / Joy's Data page |
 | `POST /admin/physician-tokens` `{physician_id}` | admin | demo setup: issues a physician's sign-in link |
 
 ## Roles, authentication and RBAC (kept simple, standard library only)
