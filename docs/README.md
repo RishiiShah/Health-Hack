@@ -55,6 +55,10 @@ shift boundary within 120 minutes, with exact boundary steps. This resolves the
 18:20 → 20:00 display requirement; the routing simulator retains its documented
 90-minute horizon.
 
+## Judging and proposed weekend assumptions
+
+[Judging review and weekend scenarios](Judging-and-Weekend-Assumptions.md) maps the supplied rubric to evidence and gaps. It proposes a separate read-only weekday-proxy weekend scenario with explicit provenance and acceptance tests. This is a design proposal; official weekend baselines and live surge status remain unknown.
+
 ## Historical and planned documents
 
 `Command Center Backend Scaffold.md`, `Backend Scaffold Review.md` and
