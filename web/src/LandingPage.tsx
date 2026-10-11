@@ -97,11 +97,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         <div id="network" className="relative w-full max-w-5xl aspect-[16/9] min-h-[460px] md:min-h-[580px] flex items-center justify-center my-4">
           
           {/* FLOATING GLASS CARD 1 (SEVARO REAL STAT: <45s) */}
-          <div className="anim-float-1 absolute top-4 left-2 md:top-8 md:left-6 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 p-4 md:p-5 max-w-[210px] shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
+          <div className="anim-float-1 absolute top-4 left-2 md:top-8 md:left-6 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 px-5 py-4 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
             <div className="text-[11px] font-mono text-slate-500 font-medium">Synapse AI Response</div>
-            <div className="flex items-baseline gap-1.5 mt-1">
-              <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading">&lt; 45s</span>
-              <span className="text-xs text-slate-500 font-medium">door-to-neuro</span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading whitespace-nowrap">&lt;&nbsp;45s</span>
+              <span className="text-xs text-slate-500 font-medium whitespace-nowrap">door-to-neuro</span>
             </div>
           </div>
 
