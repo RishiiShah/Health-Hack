@@ -1,22 +1,22 @@
 import { DEMO } from "../api/client.ts";
 import type { Snapshot } from "../api/live.ts";
+import { EventStream } from "./EventStream.tsx";
+import { PageHead } from "../ui/Layout.tsx";
 import type { Dataset } from "./types.ts";
 import { useApi } from "./hooks.ts";
 import "./act.css";
 
 type StoredKit = { fingerprint: string; name: string; service_date: string | null; hospitals: number; physicians: number; active: boolean };
 
-// Admin: the reference data the server holds. Events are added from the Command page.
-export function DataPage({ snapshot }: { snapshot: Snapshot | null }) {
+// Admin: add events, the checks on the stream, and the reference data the server holds.
+export function DataPage({ snapshot, now, onChanged }: { snapshot: Snapshot | null; now: number | null; onChanged: () => void }) {
   const dataset = snapshot?.dataset as Dataset | undefined;
 
   return (
-    <div className="page">
-      <h1>Data</h1>
-      <p className="intro">
-        Reference data defines the hospitals, physicians, credentials and capacity rules. Events are added on the
-        Command page; decisions are recalculated from the stream's full history using the active reference kit.
-      </p>
+    <>
+      <PageHead kicker="Operations data" title="Data" note="Add events to the stream and review the reference kit. Decisions are recalculated from the stream's full history using the active kit." />
+      {snapshot && <EventStream snapshot={snapshot} now={now} onChanged={onChanged} />}
+      <div className="data-grid">
       <section className="panel">
         <div className="panel-head"><h2>Active reference kit</h2></div>
         {dataset ? (
@@ -27,7 +27,8 @@ export function DataPage({ snapshot }: { snapshot: Snapshot | null }) {
         {!DEMO && <BaselineInventory revision={snapshot?.revision} />}
       </section>
       {!DEMO && <StoredKits revision={snapshot?.revision} />}
-    </div>
+      </div>
+    </>
   );
 }
 

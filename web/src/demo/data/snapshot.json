@@ -198,14 +198,18 @@
             "count": 1,
             "required": 2,
             "status": "gap",
-            "gap_id": "now_gap:SYN-005"
+            "gap_id": "now_gap:SYN-005",
+            "physician_ids": [],
+            "incomplete_physician_ids": []
           },
           {
             "at": "2026-03-18T00:20:00+00:00",
             "count": 1,
             "required": 2,
             "status": "gap",
-            "gap_id": "now_gap:SYN-005"
+            "gap_id": "now_gap:SYN-005",
+            "physician_ids": [],
+            "incomplete_physician_ids": []
           }
         ]
       }

@@ -45,7 +45,9 @@ async function send<T>(path: string, init: RequestInit, token: string | null, bi
     const detail = typeof body === "object" && body && "detail" in body ? body.detail
       : typeof body === "object" && body && "error" in body ? body.error?.message : body;
     const message = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((d) => d.msg).join("; ") : "";
-    throw new ApiError(response.status, message || `Request failed (${response.status})`);
+    // A gateway error without a body means nothing answered behind the proxy (the dev server sends these when the backend is down).
+    const unreachable = !message && response.status >= 502 && response.status <= 504;
+    throw new ApiError(response.status, message || (unreachable ? "The server isn't responding. Check that the backend is running, then try again." : `Request failed (${response.status})`));
   }
   return body as T;
 }

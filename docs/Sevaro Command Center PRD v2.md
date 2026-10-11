@@ -8,8 +8,8 @@ for current delivered behavior and verification. Backend storage is PostgreSQL;
 production RDS is provisioned in us-west-2. The Act loop and existing-workflow
 mobile adapter are implemented, despite the original stretch schedule below.
 Web/mobile source now shares one checkout; hosted application/device verification
-is separate from local tests and builds. Tailwind is installed for the landing
-page; ECharts is not installed.
+is separate from local tests and builds. Styling is plain CSS with light and dark
+themes; neither Tailwind nor ECharts is installed.
 
 **Approved policy alignment:** G15 retains deterministic lexicographic ranking
 with severity first and an ordinal display score. Rishi approved this choice,
@@ -77,7 +77,7 @@ FastAPI backend on Render, Vite + React dashboard on Vercel, one deterministic e
 | Backend | Python 3.14.7, FastAPI, Pydantic v2 | Native async and WebSockets; OpenAPI schema lets frontend generate types and work in parallel |
 | Engine | Pure Python replay functions, stdlib csv for reference loads | Deterministic, testable against snapshots |
 | Storage | Amazon RDS for PostgreSQL | Event log, quarantine, audit; append-only |
-| Dashboard | Vite, React, TypeScript, Tailwind, ECharts | Client-only app; server rendering adds nothing |
+| Dashboard | Vite, React, TypeScript, plain CSS | Client-only app; server rendering adds nothing |
 | Contract | `openapi-typescript` | Frontend types generated from backend schema |
 | Mobile app for clinical lead and physician (stretch) | Flutter web, dashboard chosen by role (RBAC) | Judges open a URL on any phone |
 | Tests and CI | pytest, GitHub Actions | Core fixtures, synthetic boundaries, recovery and consistency checks run on every push; stretch tests only when implemented |

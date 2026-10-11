@@ -14,7 +14,7 @@ export function Candidates({ data, onPropose }: { data: CandidatesData; onPropos
           {data.rules.map((r) => <th key={r.id} title={r.label}>{r.id}</th>)}
           <th>Rank</th>
           <th title="Gap hospitals · minutes to online · declines in 30 days · hours in 7 days">Ranking factors</th>
-          <th style={{ textAlign: "left" }}>Excluded because</th>
+          <th>Excluded because</th>
           <th />
         </tr>
       </thead>

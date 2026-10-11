@@ -6,6 +6,9 @@ import { clockTime, countdown } from "../act/time.ts";
 import type { Offer } from "../act/types.ts";
 import { OfferAudio } from "../api/OfferAudio.tsx";
 import { serverNow } from "../act/time.ts";
+import { PageHead } from "../ui/Layout.tsx";
+import { stagger } from "../ui/motion.ts";
+import "./physician.css";
 
 // A physician's own offers. The server only lists offers a clinical lead has approved and sent to them.
 export function OffersPage() {
@@ -21,17 +24,16 @@ export function OffersPage() {
   const now = data ? serverNow(data.now, data.clock_mode, fetchedAt, Date.now()) : null;
 
   return (
-    <div className="page">
-      <h1>Your offers</h1>
-      <p className="muted" style={{ margin: "6px 0 24px" }}>Offers show the hospital and hours only. No patient details are shared.</p>
+    <>
+      <PageHead kicker="Physician workspace" title="Your offers" note="Offers show the hospital and hours only. No patient details are shared." />
       {error && !data ? (
         <p className="unavailable">{unavailableText(error, "GET /me/offers")}</p>
       ) : !data?.items.length ? (
         <p className="unavailable">No offers right now.</p>
       ) : (
-        data.items.map((o) => <OfferCard key={o.offer_id} offer={o} now={now} onChanged={() => setReloadKey((k) => k + 1)} />)
+        <div className="stack">{data.items.map((o, i) => <div key={o.offer_id} className="rise" style={stagger(i)}><OfferCard offer={o} now={now} onChanged={() => setReloadKey((k) => k + 1)} /></div>)}</div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -50,16 +52,16 @@ function OfferCard({ offer, now, onChanged }: { offer: Offer; now: number | null
   }
 
   return (
-    <section className="panel" style={{ marginBottom: 16, borderColor: open ? "var(--teal)" : undefined }}>
+    <section className={`panel offer-card ${open ? "open" : ""}`}>
       <div className="panel-head">
         <h2>{offer.hospital_names.join(", ")} · {clockTime(offer.start)} to {clockTime(offer.end)} ET</h2>
         <span className={`badge ${badge.tone}`}>{open ? "Waiting for you" : badge.text}</span>
       </div>
       {offer.message && <p className="message">{offer.message}</p>}
       {offer.audio_url && <OfferAudio path={offer.audio_url} />}
-      {open && offer.expires_at && now !== null && <p className="mono" style={{ margin: "0 0 12px" }}>Reply within {countdown(offer.expires_at, now)}</p>}
+      {open && offer.expires_at && now !== null && <p className="reply-within">Reply within {countdown(offer.expires_at, now)}</p>}
       {open && (
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="actions">
           <button className="btn primary" onClick={() => answer("accept")}>Accept</button>
           <button className="btn" onClick={() => answer("decline")}>Decline</button>
         </div>

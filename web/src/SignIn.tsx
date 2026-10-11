@@ -1,10 +1,20 @@
 import { useState, type FormEvent } from "react";
 import { DEMO, post } from "./api/client.ts";
 import { saveSession, type Session } from "./auth/session.ts";
+import { stagger } from "./ui/motion.ts";
+import { Pulse } from "./ui/Pulse.tsx";
+import { Brand, ThemeToggle } from "./ui/theme.tsx";
+import "./auth/auth.css";
 
 type Role = "coordinator" | "lead" | "physician";
 // Demo accounts accept any password; they exist only when VITE_DEMO_DATA=1.
 const DEMO_EMAILS: Record<Role, string> = { coordinator: "coord@demo.sevaro", lead: "lead@demo.sevaro", physician: "okafor@demo.sevaro" };
+const ROLES: [Role, string, string][] = [
+  ["coordinator", "Coordinator", "Watch the network and dispatch"],
+  ["lead", "Clinical lead", "Approve offers and escalations"],
+  ["physician", "Physician", "Your shifts and consults"],
+];
+const FACTS: [string, string][] = [["90+ min", "coverage forecast"], ["3 roles", "in every offer decision"], ["0", "patient details in offers"]];
 
 export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coordinator" }: { initialRole?: Role; onSignedIn: (session: Session) => void; onBackToLanding: () => void; notice?: string }) {
   const [selectedRole, setSelectedRole] = useState<Role>(initialRole);
@@ -29,6 +39,50 @@ export function SignIn({ onSignedIn, onBackToLanding, notice, initialRole = "coo
     }
   };
   const handleSubmit = (event: FormEvent) => { event.preventDefault(); if (!busy) void signIn(email, password, selectedRole); };
-  const roleTitle = selectedRole === "coordinator" ? "Coordinator" : selectedRole === "lead" ? "Clinical Lead" : "Physician";
-  return <div className="tw min-h-screen bg-[#E8E6E0] text-slate-900 flex flex-col justify-between gap-6 p-4 sm:p-6"><div className="w-full flex items-center justify-between pb-6"><button onClick={onBackToLanding} className="flex items-center space-x-2 text-slate-700 hover:text-black transition"><div className="flex items-center space-x-1"><span className="w-3 h-5 bg-[#B8D8EB] rounded-sm transform -skew-x-12" /><span className="w-3 h-5 bg-[#101B2B] rounded-sm transform -skew-x-12 -ml-1" /></div><span className="font-bold tracking-tight text-sm">overlap</span></button><button onClick={onBackToLanding} className="text-xs text-slate-500 hover:text-slate-800">← Back to Overview</button></div><div className="max-w-md mx-auto w-full bg-white rounded-3xl p-4 sm:p-8 border border-slate-200 shadow-xl space-y-6"><div><h1 className="text-2xl font-bold font-heading text-slate-900">Sign in</h1><p className="text-xs text-slate-500 mt-1">Select your operating role to access your dashboard</p>{notice && <p role="status" className="text-xs text-amber-700 mt-2">{notice}</p>}</div><div><p className="block text-xs font-semibold text-slate-700 mb-2">I work as</p><div role="group" aria-label="Operating role" className="grid grid-cols-1 sm:grid-cols-3 gap-2">{([["coordinator", "Coordinator", "Watch network & dispatch"], ["lead", "Clinical lead", "Approve offers & escalations"], ["physician", "Physician", "Your shifts & consults"]] as const).map(([role, title, description]) => <button type="button" key={role} aria-pressed={selectedRole === role} onClick={() => selectRole(role)} className={`p-3 rounded-2xl text-left border transition-all ${selectedRole === role ? "border-[#101B2B] bg-[#E2ECF3]/60 ring-2 ring-[#B8D8EB]" : "border-slate-200 bg-slate-50/50 hover:bg-slate-50"}`}><div className="text-xs font-bold text-slate-900">{title}</div><div className="text-[10px] text-slate-500 mt-1 leading-snug">{description}</div></button>)}</div></div><form onSubmit={handleSubmit} className="space-y-4"><div><label htmlFor="signin-email" className="block text-xs font-medium text-slate-700 mb-1">Work email</label><input id="signin-email" type="email" required autoComplete="username" placeholder="name@sevaro.com" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#B8D8EB] font-mono" /></div><div><div className="flex justify-between items-center mb-1"><label htmlFor="signin-password" className="text-xs font-medium text-slate-700">Password</label><button type="button" onClick={() => setForgot(!forgot)} className="text-[11px] text-[#101B2B]">Forgot it?</button></div><input id="signin-password" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#B8D8EB] font-mono" />{forgot && <p className="text-[11px] text-slate-500 mt-1">Ask your Sevaro administrator to reset it.</p>}</div><button type="submit" disabled={busy} className="w-full py-3.5 bg-[#B8D8EB] hover:bg-[#A6CAE0] text-[#101B2B] rounded-xl font-bold text-xs shadow-md transition-all hover:scale-[1.01] disabled:opacity-60">{busy ? "Signing in…" : `Sign in as ${roleTitle}`}</button>{error && <p role="alert" className="text-xs text-red-700">{error}</p>}</form>{DEMO && <div className="pt-4 border-t border-slate-100 text-center"><div className="text-[11px] text-slate-500 mb-2 font-medium">Or 1-click launch into demo account:</div><div className="flex flex-col gap-1.5 text-xs font-mono">{([["coordinator", "Coordinator"], ["lead", "Lead"], ["physician", "Physician"]] as const).map(([role, label]) => <button key={role} disabled={busy} onClick={() => void signIn(DEMO_EMAILS[role], "demo", role)} className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-left flex flex-wrap gap-1 justify-between"><span>{DEMO_EMAILS[role]}</span><span className="text-[#101B2B] font-sans font-semibold">Launch {label} →</span></button>)}</div></div>}</div><div className="text-center text-[11px] text-slate-400">© 2026 Overlap Systems · Sevaro Tele-Stroke Challenge</div></div>;
-};
+  const roleTitle = ROLES.find(([role]) => role === selectedRole)![1];
+
+  return <div className="auth">
+    <aside className="auth-story">
+      <button type="button" className="auth-brand" onClick={onBackToLanding} aria-label="Back to overview"><Brand /></button>
+      <div className="auth-pitch">
+        <span className="kicker rise"><b>●</b>Sevaro tele-stroke operations</span>
+        <h1 className="rise" style={stagger(1)}>Time is brain.<em>Keep every hospital covered.</em></h1>
+        <p className="rise" style={stagger(2)}>Ranked triage, a coverage outlook across the network, and lead-approved physician offers, replayed from the Sevaro challenge kit.</p>
+        <div className="auth-trace rise" style={stagger(3)}><Pulse /><span>Network monitor · live</span></div>
+      </div>
+      <dl className="auth-facts">{FACTS.map(([value, label], i) => <div key={label} className="rise" style={stagger(4 + i)}><dt>{value}</dt><dd>{label}</dd></div>)}</dl>
+    </aside>
+
+    <main className="auth-panel">
+      <div className="auth-top"><button type="button" className="btn ghost" onClick={onBackToLanding}><span aria-hidden="true">←</span> Overview</button><ThemeToggle /></div>
+      <section className="auth-form-wrap" aria-labelledby="signin-title">
+        <div className="rise" style={stagger(1)}>
+          <h2 id="signin-title">Sign in</h2>
+          <p className="muted">Choose your role to open your workspace.</p>
+          {notice && <p role="status" className="notice">{notice}</p>}
+        </div>
+        <div role="group" aria-label="Operating role" className="role-picker rise" style={stagger(2)}>
+          {ROLES.map(([role, title, description]) => <button type="button" key={role} aria-pressed={selectedRole === role} onClick={() => selectRole(role)}><b>{title}</b><small>{description}</small></button>)}
+        </div>
+        <form onSubmit={handleSubmit} className="auth-form rise" style={stagger(3)}>
+          <label className="field">
+            <span className="field-label">Work email</span>
+            <input id="signin-email" type="email" required autoComplete="username" placeholder="name@sevaro.com" value={email} onChange={(event) => setEmail(event.target.value)} />
+          </label>
+          <div className="field">
+            <div className="field-label"><label htmlFor="signin-password">Password</label><button type="button" onClick={() => setForgot(!forgot)}>Forgot it?</button></div>
+            <input id="signin-password" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            {forgot && <p className="hint field-hint">Ask your Sevaro administrator to reset it.</p>}
+          </div>
+          <button type="submit" disabled={busy} className="btn primary block">{busy ? "Signing in…" : `Sign in as ${roleTitle}`}<span aria-hidden="true">→</span></button>
+          {error && <p role="alert" className="error auth-error">{error}</p>}
+        </form>
+        {DEMO && <div className="auth-demo rise" style={stagger(4)}>
+          <p>Or open a demo account</p>
+          {ROLES.map(([role, title]) => <button key={role} disabled={busy} onClick={() => void signIn(DEMO_EMAILS[role], "demo", role)}><span>{DEMO_EMAILS[role]}</span><b>{title} →</b></button>)}
+        </div>}
+      </section>
+      <p className="auth-foot">© 2026 Overlap Systems · Sevaro Tele-Stroke Challenge</p>
+    </main>
+  </div>;
+}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { unavailableText, useApi } from "./act/hooks.ts";
 import { clockPosition, shiftWindow } from "./scheduleTimeline.ts";
+import { PageHead } from "./ui/Layout.tsx";
 import "./schedule.css";
 
 export type Doctor = { id: string; name: string; group: "On shift" | "Off shift"; status: string; bar: string; tone: "day" | "night" | "unavailable" | "offer" | "off"; detail: string; avatar: string; workload: string; credentialed: string };
@@ -10,7 +11,7 @@ const timeMarks = ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"
 // Reloads with each live snapshot so offers and status changes show without a page refresh.
 export default function SchedulePage({ reloadKey }: { reloadKey?: unknown }) {
   const { data, error } = useApi<ScheduleData>("/schedule", reloadKey);
-  if (!data) return <div className="page"><h1>Schedule</h1><p className="unavailable">{error ? unavailableText(error, "GET /schedule") : "Loading schedule…"}</p></div>;
+  if (!data) return <><PageHead kicker="Staffing & availability" title="Shift schedule" /><p className="unavailable">{error ? unavailableText(error, "GET /schedule") : "Loading schedule…"}</p></>;
   return <Schedule data={data} error={error ? unavailableText(error, "GET /schedule") : null} />;
 }
 
@@ -23,9 +24,9 @@ function Schedule({ data, error }: { data: ScheduleData; error: string | null })
   const visible = doctors.filter(d => shown.has(d.id) && `${d.name} ${d.id}`.toLowerCase().includes(query.trim().toLowerCase()));
   const selected = visible.find(d => d.id === selectedId) ?? visible[0];
   const now = clockPosition(data.now_label);
-  const select = (id: string) => { setSelectedId(id); if (matchMedia("(max-width: 1100px)").matches) requestAnimationFrame(() => document.getElementById("schedule-inspector")?.scrollIntoView({ behavior: "smooth", block: "start" })); };
+  const select = (id: string) => { setSelectedId(id); if (matchMedia("(max-width: 69em)").matches) requestAnimationFrame(() => document.getElementById("schedule-inspector")?.scrollIntoView({ behavior: "smooth", block: "start" })); };
   return <div className="schedule-page roster-page">
-    <div className="roster-heading"><div><span className="eyebrow">Staffing & availability</span><h1>Shift schedule</h1><p>See who is scheduled, review availability, and follow up on coverage.</p></div><div className="roster-date"><strong>{data.date_label}</strong><span>Roster time · {data.now_label} ET</span></div></div>
+    <PageHead kicker="Staffing & availability" title="Shift schedule" note="See who is scheduled, review availability, and follow up on coverage."><div className="roster-date"><strong>{data.date_label}</strong><span>Roster time · {data.now_label} ET</span></div></PageHead>
     {error && <p className="unavailable" role="status">Schedule updates interrupted. {error}</p>}
     <div className="roster-summary"><div><strong>{doctors.filter(d => d.group === "On shift").length}</strong><span>On shift now</span></div><div><strong>{doctors.filter(d => d.group === "Off shift").length}</strong><span>Off shift now</span></div><div><strong>{doctors.filter(d => d.tone === "offer").length}</strong><span>Unconfirmed offers</span></div></div>
     {alert && <div className="roster-alert"><div><span className="roster-alert-label">Coverage follow-up</span><p>{alert.text}</p></div><button onClick={() => { setFilter(filters[0]?.label ?? ""); setQuery(""); select(alert.physician_id); }}>Inspect physician <span aria-hidden="true">→</span></button></div>}
@@ -36,7 +37,7 @@ function Schedule({ data, error }: { data: ScheduleData; error: string | null })
       <div className="roster-scroll" tabIndex={0} role="region" aria-label="Physician shifts from midnight to midnight">
         <div className="roster-timeline">
           <div className="roster-axis"><span>Physician / current status</span><div>{timeMarks.map((time, i) => <span key={time} style={{ left: `${i / 6 * 100}%` }}>{time}</span>)}</div></div>
-          {now !== null && <div className="roster-now" style={{ left: `calc(220px + (100% - 240px) * ${now / 100})` }}><span>{data.now_label} now</span></div>}
+          {now !== null && <div className="roster-now" style={{ left: `calc(var(--roster-name) + (100% - var(--roster-name) - var(--roster-pad)) * ${now / 100})` }}><span>{data.now_label} now</span></div>}
           {(["On shift", "Off shift"] as const).map(group => {
             const members = visible.filter(d => d.group === group);
             return members.length > 0 && <div className="roster-group" key={group}><div className="roster-group-label"><strong>{group}</strong><span>{members.length} physicians</span></div>{members.map(d => {

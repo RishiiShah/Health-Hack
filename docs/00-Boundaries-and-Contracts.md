@@ -130,7 +130,7 @@ Proposed → Approved | Rejected; Approved → Sent; Sent → Accepted | Already
 | Area | Allowed | Explicitly not allowed |
 |---|---|---|
 | Backend | fastapi, uvicorn, pydantic (existing); psycopg[binary] (needed for RDS); pytest, httpx (tests) | requests, the ElevenLabs SDK, ORMs, alembic, celery, redis |
-| Web | react, react-dom, vite, typescript; openapi-typescript (development only); existing tailwindcss and @tailwindcss/vite for the implemented landing-page styles | ECharts, router, state, UI-kit, date or HTTP libraries |
+| Web | react, react-dom, vite, typescript; openapi-typescript (development only) | ECharts, router, state, UI-kit, date or HTTP libraries |
 | Mobile | Flutter SDK, `http`, `web` (both made by the Dart team) | state-management, router, Firebase or audio plugins |
 | Synthetic data | Python standard library only | numpy, pandas, faker |
 | Web tests | Node's built-in `node --test` (Node 24) | jest, vitest |

@@ -3,6 +3,7 @@ import { post } from "../api/client.ts";
 import { unavailableText, useApi } from "./hooks.ts";
 import { clockTime, minutesUntil } from "./time.ts";
 import { TrapCheck } from "./TrapCheck.tsx";
+import { PageHead } from "../ui/Layout.tsx";
 import type { Candidate, Candidates, Intervention, Offer, TrapCheck as TrapCheckData } from "./types.ts";
 import "./act.css";
 
@@ -23,17 +24,17 @@ export function ApprovalsPage({ offers, offersError, now, reloadKey, onChanged }
 
   if (!items.length) {
     return (
-      <div className="page">
-        <h1>Approvals</h1>
+      <>
+        <PageHead kicker="Clinical lead" title="Approvals" note="Offers and escalations appear here when a coordinator sends them to you." />
         <p className="unavailable">{offersError ?? "Nothing is waiting for your approval."}</p>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="page">
+    <>
       {items.length > 1 && (
-        <div className="queue">
+        <div className="approval-list" role="group" aria-label="Waiting for approval">
           {items.map((i) => (
             <button key={idOf(i)} aria-pressed={i === selected} onClick={() => setSelectedId(idOf(i))}>
               {i.kind === "offer" ? `Offer · ${i.offer.physician_name} · ${i.offer.hospital_names.join(", ")}` : `Escalation · ${i.intervention.item_id}`}
@@ -46,7 +47,7 @@ export function ApprovalsPage({ offers, offersError, now, reloadKey, onChanged }
       ) : (
         <EscalationApproval key={selected.intervention.intervention_id} intervention={selected.intervention} onChanged={onChanged} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -60,7 +61,7 @@ function OfferApproval({ offer, now, reloadKey, onChanged }: { offer: Offer; now
     <div className="approval">
       <div>
         <span className="badge amber">Off-shift offer{startsIn !== null && startsIn >= 0 ? ` · gap starts in ${startsIn} min` : ""}</span>
-        <h1 style={{ marginTop: 12 }}>
+        <h1>
           Bring in {offer.physician_name} for {offer.hospital_names.join(", ")}, {clockTime(offer.start)} to {clockTime(offer.end)}?
         </h1>
         <p className="lede">{candidates.data?.gap.summary}</p>
@@ -117,7 +118,7 @@ function Decision({ offer, onChanged }: { offer: Offer; onChanged: () => void })
   return (
     <aside className="panel decision">
       <h2>Your decision</h2>
-      <p style={{ margin: 0, color: "var(--ink-2)", fontSize: 14 }}>
+      <p>
         Approving sends the offer to {offer.physician_name}'s Sevaro app on phone and web.
       </p>
       <span className="label">They will see</span>
@@ -146,7 +147,7 @@ function EscalationApproval({ intervention, onChanged }: { intervention: Interve
     <div className="approval">
       <div>
         <span className="badge amber">Escalation · {clockTime(intervention.created_at)}</span>
-        <h1 style={{ marginTop: 12 }}>{intervention.item_id}</h1>
+        <h1>{intervention.item_id}</h1>
         <p className="lede">{intervention.reason}</p>
       </div>
       <aside className="panel decision">

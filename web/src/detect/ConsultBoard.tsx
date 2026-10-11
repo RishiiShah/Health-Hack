@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { elapsed } from "./activity.ts";
 import type { Consult } from "./types.ts";
+import "./detect.css";
 
 export function ConsultBoard({ consults }: { consults: Consult[] }) {
   const [query, setQuery] = useState("");

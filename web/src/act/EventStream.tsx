@@ -6,10 +6,10 @@ import type { DataQuality, IngestReport, UploadBatch } from "./types.ts";
 import { useApi } from "./hooks.ts";
 import "./act.css";
 
-// Command page: add events, the server's checks on the stream, a fresh-stream reset and the saved upload receipts.
+// Data page: add events, the server's checks on the stream, a fresh-stream reset and the saved upload receipts.
 export function EventStream({ snapshot, now, onChanged }: { snapshot: Snapshot; now: number | null; onChanged: () => void }) {
   return <>
-    <div className="data">
+    <div className="data-grid">
       <LiveTest snapshot={snapshot} now={now} onChanged={onChanged} />
       <section className="panel">
         <div className="panel-head"><h2>Checks on the event stream</h2></div>
@@ -53,10 +53,10 @@ function Reset({ onChanged }: { onChanged: () => void }) {
     }
   }
   return (
-    <div style={{ marginTop: 18, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+    <div className="reset-row">
       {confirming ? (
         <>
-          <span style={{ fontSize: 14 }}>Start an empty event stream with the same references? Current consults, offers and interventions will be cleared.</span>
+          <span>Start an empty event stream with the same references? Current consults, offers and interventions will be cleared.</span>
           <button className="btn danger" onClick={reset}>Start empty stream</button>
           <button className="btn" onClick={() => setConfirming(false)}>Cancel</button>
         </>
@@ -117,17 +117,17 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot; now: numbe
       <div className="panel-head"><h2>Upload events</h2></div>
       <div className="clock-row">
         <span className="big-clock">{now !== null ? clockTimeSeconds(now) : "--:--:--"}</span>
-        <span style={{ display: "flex", gap: 8 }}>
+        <span className="actions">
           <button className="btn" disabled={busy} onClick={() => run(() => post("/admin/clock", { paused: !paused }))}>{paused ? "Resume" : "Pause"}</button>
           <button className="btn" disabled={busy} onClick={() => run(() => post("/admin/clock", { advance_s: 300 }))}>+5 min</button>
         </span>
       </div>
-      <label className="btn primary block" style={{ display: "block", textAlign: "center" }}>
+      <label className="btn primary block">
         Upload an events CSV<input type="file" accept=".csv,text/csv" hidden disabled={busy} onChange={upload} />
       </label>
-      <p className="hint">Use the columns from event_stream.csv. Events append to the current stream and the queue above updates. A file whose hospitals and physicians belong to another stored reference kit starts a fresh stream on that kit. Newly accepted events can move the clock forward by up to 24 hours.</p>
+      <p className="hint">Use the columns from event_stream.csv. Events append to the current stream and the Command page updates. A file whose hospitals and physicians belong to another stored reference kit starts a fresh stream on that kit. Newly accepted events can move the clock forward by up to 24 hours.</p>
       <details>
-        <summary style={{ cursor: "pointer", fontSize: 14 }}>Paste events instead</summary>
+        <summary>Paste events instead</summary>
         <textarea id="events" aria-label="Events to add" value={text} onChange={(e) => setText(e.target.value)} placeholder="event_id,event_time,ingested_at,consult_id,event_type,…" />
         <button className="btn block" disabled={busy || !text.trim()} onClick={() => send(text)}>Add to stream</button>
       </details>
@@ -180,7 +180,7 @@ function UploadHistory({ revision }: { revision?: unknown }) {
     <p className="hint">Latest 20 CSV receipts, saved across navigation, restarts and empty-stream resets. Each report records results at upload time. Earlier uploads made before this feature have no receipt.</p>
     {error && <p className="error" role="alert">Could not load upload history: {error.message}</p>}
     {!data && !error && <p role="status">Loading upload history…</p>}
-    {data?.items.length === 0 && <p>No CSV uploads recorded yet. Upload a file above to test the combined event stream.</p>}
+    {data?.items.length === 0 && <p>No CSV uploads recorded yet. Upload a file above to add to the event stream.</p>}
     {data?.items.map(batch => <details key={batch.batch_id}>
       <summary><b>{batch.filename}</b> · {new Date(batch.received_at).toLocaleString()}<span>
         {batch.report.accepted} accepted · {batch.report.duplicates} duplicates · {batch.report.quarantined.length} quarantined · {batch.report.row_results?.filter(row => row.status === "held").length ?? 0} held rows

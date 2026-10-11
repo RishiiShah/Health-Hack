@@ -1,0 +1,105 @@
+/* Overlap for Sevaro: design tokens.
+   Units: lengths are viewport units only (vw, vh, vmin, vmax), proportions use % and fr, hairlines use `thin`.
+   Type is clamp(rem floor, viewport size, rem ceiling) so text stays legible on a phone held sideways;
+   breakpoints are in em because media queries cannot be measured in viewport units. No px anywhere. */
+:root {
+  color-scheme: light;
+
+  /* Slate, ivory and ice: the clinical console in daylight. */
+  --bg: #EDF1F4;
+  --bg-2: #E2E8EE;
+  --surface: #FBFCFD;
+  --surface-2: #F2F5F8;
+  --surface-3: #E6ECF1;
+  --line: #D3DCE4;
+  --line-strong: #B4C1CD;
+  --text: #0F1A27;
+  --text-2: #364658;
+  --muted: #586777;
+  --accent: #B8D8EB;
+  --accent-hover: #A3CAE1;
+  --on-accent: #0F1A27;
+  --accent-text: #275A7B;
+  --accent-soft: #DFEBF3;
+  --signal: #C23A2C;          /* the stroke-alert red: critical only, never large areas */
+  --critical: #B4372A;
+  --critical-soft: #FBE9E6;
+  --warning: #855700;
+  --warning-soft: #FAF0DA;
+  --warning-line: #D6A451;
+  --ok: #22704E;
+  --ok-soft: #E1F1E8;
+  --ink-shadow: #0F1A27;      /* hard offset shadow */
+  --grid-minor: rgba(39, 90, 123, .045);
+  --grid-major: rgba(39, 90, 123, .085);
+  --overlay: rgba(15, 26, 39, .55);
+
+  /* Type */
+  --font-head: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --t-xs: clamp(0.6875rem, 0.42vw + 0.32vh, 0.8125rem);
+  --t-sm: clamp(0.75rem, 0.5vw + 0.4vh, 0.9375rem);
+  --t-md: clamp(0.8125rem, 0.58vw + 0.5vh, 1.0625rem);
+  --t-lg: clamp(0.9375rem, 0.72vw + 0.55vh, 1.25rem);
+  --t-xl: clamp(1.0625rem, 0.95vw + 0.7vh, 1.6rem);
+  --t-2xl: clamp(1.5rem, 1.6vw + 1vh, 2.6rem);
+  --t-3xl: clamp(1.75rem, 2.2vw + 1.3vh, 3.6rem);
+  --t-hero: clamp(2.5rem, 4.8vw + 2vh, 6.8rem);
+
+  /* Space: one scale, viewport-relative, tracking whichever side is longer. */
+  --s-1: max(0.42vw, 0.7vh);
+  --s-2: max(0.72vw, 1.15vh);
+  --s-3: max(1.1vw, 1.7vh);
+  --s-4: max(1.6vw, 2.5vh);
+  --s-5: max(2.4vw, 3.6vh);
+  --s-6: max(3.6vw, 5.4vh);
+  --gut: max(2.2vw, 2.4vh);
+  --radius: max(0.36vw, 0.55vh);
+  --radius-lg: max(0.62vw, 0.95vh);
+  --offset: max(0.26vw, 0.42vh);
+  --focus-w: max(0.14vw, 0.24vh);
+  --rule-w: max(0.1vw, 0.16vh);
+  --sidebar-w: 16vw;
+  --grid-step: max(2.4vw, 3.8vh);
+
+  /* Motion */
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ease-spring: cubic-bezier(.34, 1.4, .64, 1);
+  --fast: .16s;
+  --med: .32s;
+  --slow: .6s;
+  --step: 45ms;
+}
+
+/* Night shift: smoky slate with ice-blue signal. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #19222B;
+  --bg-2: #141B22;
+  --surface: #232D38;
+  --surface-2: #2A3542;
+  --surface-3: #33404D;
+  --line: #36434F;
+  --line-strong: #4C5C6A;
+  --text: #ECF0F3;
+  --text-2: #C3CED8;
+  --muted: #9AAAB8;
+  --accent: #B8D8EB;
+  --accent-hover: #CDE4F1;
+  --on-accent: #0F1A27;
+  --accent-text: #B8D8EB;
+  --accent-soft: rgba(184, 216, 235, .12);
+  --signal: #F2796B;
+  --critical: #F49A8F;
+  --critical-soft: rgba(244, 154, 143, .13);
+  --warning: #E9BE6E;
+  --warning-soft: rgba(233, 190, 110, .13);
+  --warning-line: #D6A451;
+  --ok: #7DCFA8;
+  --ok-soft: rgba(125, 207, 168, .13);
+  --ink-shadow: rgba(184, 216, 235, .2);
+  --grid-minor: rgba(184, 216, 235, .03);
+  --grid-major: rgba(184, 216, 235, .06);
+  --overlay: rgba(6, 10, 14, .72);
+}

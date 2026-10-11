@@ -18,7 +18,7 @@ Production RDS is provisioned in **us-west-2**; a Render application deployment
 has not been verified. The original Virginia/us-east-1 hosting templates still
 need region alignment before deployment. There is no SQLite production store.
 
-Web uses React, Vite and TypeScript; the existing landing page also uses Tailwind.
+Web uses React, Vite and TypeScript, styled with plain CSS (light and dark themes).
 ECharts is not installed. The current web snapshot client uses serialized REST
 polling; `/ws` exists on the backend but is not the web client's transport.
 Password accounts determine roles; no login role selector changes permission.

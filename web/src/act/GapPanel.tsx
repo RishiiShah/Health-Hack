@@ -24,7 +24,7 @@ export function GapPanel({ gapId, reloadKey, now, canPropose, onClose, onPropose
         <h2>{gap ? `Find cover · ${gap.hospital_names.join(", ")}, ${clockTime(gap.start)} to ${clockTime(gap.end)}` : "Find cover"}</h2>
         <button className="btn" onClick={onClose}>Close</button>
       </div>
-      {gap && <p className="muted" style={{ margin: 0 }}>{gap.summary}</p>}
+      {gap && <p className="gap-summary">{gap.summary}</p>}
 
       <section>
         <h2>Off-shift physicians</h2>

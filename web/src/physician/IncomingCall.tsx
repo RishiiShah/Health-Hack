@@ -4,6 +4,7 @@ import { useApi } from "../act/hooks.ts";
 import { clockTime, countdown } from "../act/time.ts";
 import type { Offer } from "../act/types.ts";
 import { nextRinging } from "./ringing.ts";
+import "./physician.css";
 
 // Simulated phone call: when the server sends this physician an offer, the tab rings. Answering plays the
 // server's audio and asks for a reply; the server decides the outcome. Declining the call only hides it.
@@ -63,33 +64,33 @@ export function IncomingCall() {
 
   const done = result ?? closed;
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-      <section role="alertdialog" aria-labelledby="call-title" className="w-full max-w-sm rounded-3xl bg-[#101B2B] p-7 text-center text-white shadow-2xl">
-        <span className="font-mono text-[11px] uppercase tracking-widest text-[#B8D8EB]">{ringing ? "Incoming call" : answered ? "On call" : "Call ended"}</span>
-        <h2 id="call-title" className="mt-3 text-2xl font-bold">Sevaro Coverage</h2>
-        <p className="mt-1 text-sm text-slate-300">Incoming shift offer from Sevaro Operations</p>
-        <div className="mt-6 rounded-2xl bg-white/10 p-4">
-          <strong className="block text-lg">{call.hospital_names.join(", ")}</strong>
-          <span className="font-mono text-sm text-slate-200">{clockTime(call.start)} to {clockTime(call.end)} ET</span>
-          {call.expires_at && now !== null && !done && <p className="mt-2 font-mono text-xs text-amber-300">Reply within {countdown(call.expires_at, now)}</p>}
+    <div className="call-overlay">
+      <section role="alertdialog" aria-labelledby="call-title" className="call-card">
+        <span className="call-state">{ringing ? "Incoming call" : answered ? "On call" : "Call ended"}</span>
+        <h2 id="call-title">Sevaro Coverage</h2>
+        <p className="call-sub">Incoming shift offer from Sevaro Operations</p>
+        <div className="call-offer">
+          <strong>{call.hospital_names.join(", ")}</strong>
+          <span>{clockTime(call.start)} to {clockTime(call.end)} ET</span>
+          {call.expires_at && now !== null && !done && <p className="call-deadline">Reply within {countdown(call.expires_at, now)}</p>}
         </div>
-        {answered && !done && call.message && <p className="mt-4 text-sm text-slate-200">{call.message}</p>}
-        <p className="mt-3 text-[11px] text-slate-400">Synthetic demonstration · no patient details</p>
+        {answered && !done && call.message && <p className="call-message">{call.message}</p>}
+        <p className="call-note">Synthetic demonstration · no patient details</p>
         {done ? (
-          <div className="mt-6">
-            <p role="status" className="rounded-xl bg-white/10 p-3 text-sm font-semibold">{done}</p>
-            <button onClick={close} className="mt-4 w-full rounded-full bg-white py-3 text-sm font-semibold text-slate-900">Close</button>
+          <div className="call-result">
+            <p role="status">{done}</p>
+            <button onClick={close}>Close</button>
           </div>
         ) : !answered ? (
-          <div className="mt-8 flex justify-around">
-            <button onClick={close} className="h-16 w-16 rounded-full bg-red-600 text-sm font-semibold shadow-lg">Decline</button>
-            <button onClick={answer} className="h-16 w-16 animate-pulse rounded-full bg-[#B8D8EB] text-sm text-[#101B2B] font-semibold shadow-lg">Answer</button>
+          <div className="call-actions">
+            <button onClick={close} className="call-btn decline">Decline</button>
+            <button onClick={answer} className="call-btn answer">Answer</button>
           </div>
         ) : (
-          <div className="mt-6 grid gap-2">
-            <button onClick={() => reply("accept")} className="rounded-full bg-[#B8D8EB] py-3 text-sm text-[#101B2B] font-semibold">Accept shift</button>
-            <button onClick={() => reply("decline")} className="rounded-full bg-white/10 py-3 text-sm font-semibold">Decline shift</button>
-            <button onClick={close} className="py-2 text-xs text-slate-400">Hang up · reply later from Offers</button>
+          <div className="call-replies">
+            <button onClick={() => reply("accept")} className="accept">Accept shift</button>
+            <button onClick={() => reply("decline")} className="decline-shift">Decline shift</button>
+            <button onClick={close} className="hang-up">Hang up · reply later from Offers</button>
           </div>
         )}
       </section>

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { activitySummary, elapsed } from "./activity.ts";
 import type { Consult, DetectSnapshot } from "./types.ts";
+import "./detect.css";
 
 const activityLabel = (state: string) => ({
   "Video Consult": "On video", "Video Consult In Progress": "On video", "Hospital Call": "On hospital call",

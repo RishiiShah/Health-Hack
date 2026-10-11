@@ -1,0 +1,58 @@
+/* Motion: transform and opacity only (colours ease alongside). Entrances run once with `backwards` fill so
+   nothing keeps a transform afterwards. Reduced motion turns all of it off at the end of this file. */
+@keyframes rise { from { opacity: 0; transform: translateY(2.2vh); } }
+@keyframes fade { from { opacity: 0; } }
+@keyframes slide-in { from { opacity: 0; transform: translateX(1.6vw); } }
+@keyframes pop { 0% { opacity: 0; transform: scale(.94); } 70% { opacity: 1; transform: scale(1.015); } 100% { transform: scale(1); } }
+@keyframes grow-x { from { transform: scaleX(0); } }
+@keyframes grow-y { from { transform: scaleY(0); } }
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@keyframes ring { 0% { transform: scale(.6); opacity: .7; } 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes sweep { from { stroke-dashoffset: 1; } to { stroke-dashoffset: -1; } }
+@keyframes nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(.3em); } }
+
+/* Entrances: pages fade in; panels and list rows rise, rows staggered. */
+.page-enter { animation: fade var(--med) var(--ease-out) backwards; }
+.dense-queue-row, .waiting-consult, .checks li, .outcome-row, .checked li, .audit-list > div, .consult-line, .roster-row, .upload-history details, .verification-row, .demand-grid li, tbody tr {
+  animation: rise var(--med) var(--ease-out) backwards;
+}
+:is(.dense-queue-row, .waiting-consult, .checks li, .outcome-row, .checked li, .audit-list > div, .consult-line, .roster-row, .demand-grid li, tbody tr):nth-child(2) { animation-delay: calc(var(--step) * 1); }
+:is(.dense-queue-row, .waiting-consult, .checks li, .outcome-row, .checked li, .audit-list > div, .consult-line, .roster-row, .demand-grid li, tbody tr):nth-child(3) { animation-delay: calc(var(--step) * 2); }
+:is(.dense-queue-row, .waiting-consult, .checks li, .outcome-row, .checked li, .audit-list > div, .consult-line, .roster-row, .demand-grid li, tbody tr):nth-child(4) { animation-delay: calc(var(--step) * 3); }
+:is(.dense-queue-row, .waiting-consult, .checks li, .outcome-row, .checked li, .audit-list > div, .consult-line, .roster-row, .demand-grid li, tbody tr):nth-child(5) { animation-delay: calc(var(--step) * 4); }
+:is(.dense-queue-row, .waiting-consult, .checks li, .outcome-row, .checked li, .audit-list > div, .consult-line, .roster-row, .demand-grid li, tbody tr):nth-child(n + 6) { animation-delay: calc(var(--step) * 5); }
+.panel, .tracker, .cell-detail, .gap-panel, .approval > *, .roster-card, .roster-side > * { animation: rise var(--slow) var(--ease-out) backwards; }
+.dossier-card, .cell-detail { animation: slide-in var(--med) var(--ease-out) backwards; }
+.coverage td.cell button { animation: pop var(--med) var(--ease-out) backwards; }
+/* Anything marked .rise lifts into place; --i staggers siblings. Declared after the general entrances so its delay wins. */
+.rise { animation: rise var(--slow) var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * var(--step)); }
+.steps li { transform-origin: left; }
+.steps li::before { content: ""; display: block; height: max(0.22vw, 0.35vh); margin-bottom: var(--s-1); background: currentColor; transform-origin: left; animation: grow-x var(--slow) var(--ease-out) backwards; }
+
+/* Interaction: keys press in, trailing arrows lean the way they point, rows answer the pointer. */
+.btn, .icon-btn, .chip, .kpi, .queue-filters button, .coverage-filters button, .roster-filters button, .approval-list button, .role-picker button, .side-nav a, .dense-queue-row, .roster-row, .waiting-consult, .coverage td.cell button {
+  transition: transform var(--fast) var(--ease-out), background-color var(--fast), color var(--fast), border-color var(--fast), box-shadow var(--fast), opacity var(--fast);
+}
+.btn:active:not(:disabled), .icon-btn:active, .chip:active, .queue-filters button:active, .coverage-filters button:active, .roster-filters button:active, .role-picker button:active {
+  transform: translate(var(--rule-w), var(--rule-w)) scale(.985);
+}
+.btn.primary:active:not(:disabled), .dossier-primary:active:not(:disabled) { box-shadow: 0 0 0 var(--ink-shadow); transform: translate(var(--offset), var(--offset)); }
+.kpi:hover, .chip:hover { transform: translateY(-0.5vh); }
+.kpi i, .btn > span[aria-hidden="true"], .roster-inspector-action span, .roster-alert button span { display: inline-block; transition: transform var(--med) var(--ease-out); }
+.kpi:hover i, .btn:hover > span[aria-hidden="true"], .roster-inspector-action:hover span, .roster-alert button:hover span { transform: translateX(.35em); }
+.dense-queue-row:hover { transform: translateX(.35vw); }
+.coverage td.cell button:hover { transform: scale(1.06); }
+.theme-toggle svg { transition: transform var(--slow) var(--ease-spring); }
+.theme-toggle:hover svg { transform: rotate(-25deg) scale(1.08); }
+
+/* Alarm language: critical things breathe; the live dot rings. */
+.level-chip.critical::before, .critical-mark, .coverage td.cell button.gap strong { animation: breathe 1.8s ease-in-out infinite; }
+
+/* Theme switch: the new theme spreads as a circle from the toggle. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-new(root) { animation: reveal .75s var(--ease-out); }
+@keyframes reveal { from { clip-path: circle(0 at var(--reveal-x, 95vw) var(--reveal-y, 4vh)); } to { clip-path: circle(150vmax at var(--reveal-x, 95vw) var(--reveal-y, 4vh)); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

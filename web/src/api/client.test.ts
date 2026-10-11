@@ -86,3 +86,8 @@ test("media never sends the session token to a foreign host", () => {
   for (const path of ["https://other.example/audio", "//other.example/audio", "/\\other.example/audio"])
     assert.throws(() => apiBlob(path), /Audio must come from this application/);
 });
+
+test("an empty gateway error says the server isn't responding", async () => {
+  globalThis.fetch = async () => new Response("", { status: 502 });
+  await assert.rejects(post("/auth/login", {}), { status: 502, message: "The server isn't responding. Check that the backend is running, then try again." });
+});
