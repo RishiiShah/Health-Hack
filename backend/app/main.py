@@ -390,6 +390,11 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         return {"now": engine.context().now.isoformat(),
                 "items": [engine.offer_view(o) for o in engine.desk.offers(who.physician_id) if o.sent_at is not None]}
 
+    @api.get("/me/shift")
+    def my_shift(request: Request, who: Principal = need("offers.view_own")):
+        """The physician's home screen: their current shift, its hospitals and the consults they own."""
+        return engine_of(request).my_shift(who.physician_id)
+
     @api.post("/me/offers/{offer_id}/{choice}")
     def my_reply(offer_id: str, choice: Literal["accept", "decline"], request: Request, who: Principal = need("offers.respond"),
                  idempotency_key: str | None = Header(None)):

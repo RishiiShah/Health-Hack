@@ -291,6 +291,24 @@ class Engine:
                               + (" and the current surge continuing" if "surge_continues" in check.scenarios else "") + "; every scenario must pass. Service time is today's median busy minutes per consult",
                 "scenarios": runs_view(check, pid)}
 
+    def my_shift(self, physician_id: str) -> dict:
+        """The physician's own screen: the shift they are on now (scheduled, or an accepted split shift), the hospitals it
+        covers and only the consults they own. Nothing about other physicians or patients beyond their own consult rows."""
+        p, ops = self._current()
+        refs, now = p.refs, p.as_of
+        shift = next(((s.start, s.end, refs.credentials.get(physician_id, frozenset())) for s in refs.physicians[physician_id].shifts
+                      if s.start <= now < s.end), None) if refs and physician_id in refs.physicians else None
+        if shift is None:
+            shift = next(((s.start, s.end, s.hospitals) for s in self.desk.accepted() if s.physician_id == physician_id and s.start <= now < s.end), None)
+        names = {h: x.name for h, x in refs.hospitals.items()} if refs else {}
+        mine = sorted((c for c in p.state.consults.values() if c.owner == physician_id and c.stage != "Signed Off"), key=lambda c: c.received_at)
+        return {"name": refs.physicians[physician_id].name if refs and physician_id in refs.physicians else physician_id,
+                "shift_end": shift[1].isoformat() if shift else None,
+                "minutes_to_shift_end": int((shift[1] - now).total_seconds() // 60) if shift else None,
+                "hospitals": [names.get(h, h) for h in sorted(shift[2])] if shift else [],
+                "consults": [{"consult_id": c.consult_id, "hospital_name": names.get(c.hospital_id, c.hospital_id), "consult_type": c.consult_type,
+                              "stage": c.stage, "minutes_in_stage": max(0, int((now - c.entered_at).total_seconds() // 60))} for c in mine]}
+
     def offer_view(self, o):
         refs = self.coordinator.refs
         sent = next((m["body"] for m in self.desk.outbox() if m["offer_id"] == o.id and m["kind"] == "offer"), None)

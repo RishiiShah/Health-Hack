@@ -343,3 +343,22 @@ def test_sample_layout_upload_needs_its_service_date(db_url, monkeypatch):
         assert client.post("/admin/references", json={"files": files}, headers=ADMIN).status_code == 422
         assert client.post("/admin/references", json={"files": files, "service_date": "2026-03-17"}, headers=ADMIN).status_code == 200
         assert client.get("/ready").json()["capabilities"]["detection"] is True
+
+
+@by_pack
+def test_my_shift_shows_a_physician_only_their_own_shift_and_consults(path, db_url):
+    pack, api = app_for(path, db_url)
+    now = pack.time("1820")
+    state = state_at(pack.rows, now)
+    token = lambda pid: {"Authorization": f"Bearer {TEST_AUTH.physician_token(pid, datetime.now(timezone.utc) + timedelta(hours=1))}"}
+    on_shift = next(pid for pid, p in sorted(pack.refs.physicians.items()) if any(s.start <= now < s.end for s in p.shifts)
+                    and any(c.owner == pid and c.stage != "Signed Off" for c in state.consults.values()))
+    with TestClient(api) as client:
+        post_csv(client, raw_rows(path, "inputs/event_stream.csv"))
+        me = client.get("/me/shift", headers=token(on_shift)).json()
+        shift = next(s for s in pack.refs.physicians[on_shift].shifts if s.start <= now < s.end)
+        assert me["minutes_to_shift_end"] == int((shift.end - now).total_seconds() // 60) and at(me["shift_end"]) == shift.end
+        assert {c["consult_id"] for c in me["consults"]} == {c.consult_id for c in state.consults.values() if c.owner == on_shift and c.stage != "Signed Off"}
+        off = client.get("/me/shift", headers=token(next(iter(pack.ops.roster)))).json()
+        assert off["shift_end"] is None and off["hospitals"] == [] and off["consults"] == []
+        assert client.get("/me/shift", headers=COORD).status_code == 403
