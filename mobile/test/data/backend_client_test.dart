@@ -265,6 +265,22 @@ void main() {
         repo.trapCheck('now_gap:G'),
         throwsA(isA<Unavailable>()),
       );
+      s.response('GET /gaps/now_gap:G/trap-check', {
+        ...bundle['trap'],
+        'passed': false,
+        'unknown_demand': ['H'],
+        'reasons': ['trap check unknown: missing hourly demand for H'],
+      });
+      await expectLater(
+        repo.trapCheck('now_gap:G'),
+        throwsA(
+          isA<Unavailable>().having(
+            (e) => e.toString(),
+            'reason',
+            contains('unknown'),
+          ),
+        ),
+      );
     },
   );
 

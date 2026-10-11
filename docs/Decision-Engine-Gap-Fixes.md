@@ -142,3 +142,18 @@ separate from these local results.
 
 Production reference data was not changed. No Render service was deployed or physical-device/real speech
 rehearsal performed; those are the remaining hosting and demonstration tasks.
+
+## Devil's advocate review fixes
+
+The six confirmed adherence gaps are corrected:
+
+1. R3 uses the latest known preceding end from roster, scheduled and accepted shifts. Active accepted shifts also prevent an off-shift offer; future obligations still receive overlap checks.
+2. Physician offer lists, detail and media hide every unsent proposal, rejection and cancellation. Operations can review them; physicians retain access to their own sent offers and outcomes.
+3. Camera evidence requires an online agent. Heartbeat loss restores available/unverified classification while real Synapse sessions, TU status, rings and cooldowns still exclude routing.
+4. Acceptance rechecks eligibility at the reply clock, including two useful hours after expected readiness. An invalid reply is audited and returns 409 without adding coverage; normal expiry remains. An already-sent offer counts once toward the weekly cap.
+5. Missing hourly demand in any scenario makes the full trap verdict unknown. API and queue evidence identify missing hospitals; web labels Unknown and mobile shows the missing-evidence reason. Partial simulations remain inspectable.
+6. The web form uses the candidate's evaluated window and hospital set. Minute rounding preserves duration; separate endpoint dates preserve overnight windows. Selecting a different candidate resets the form, and the server validates edits.
+
+Focused regressions cover the reported failures, ten-hour and two-hour boundaries, the third weekly offer, sent outcomes, camera recovery, partial-hour demand, and midnight rollover. The shared synthetic backend/mobile contract fixtures were updated together. No dependency, optimization policy, capacity or tie-breaker changes were needed.
+
+Verification: Python 3.14.7 **410 backend tests passed**, including local pack checks; **62 web tests passed** and the production build succeeded; **149 mobile tests passed** and static analysis was clean. The updated mobile adapter's eight tests also passed against the final identical contract fixtures. These are local results; hosted and physical-device validation remain separate.

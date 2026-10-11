@@ -665,7 +665,7 @@
                     "key": "weekly_offer_count_below_3",
                     "label": "R8 under 3 offers this week",
                     "passed": true,
-                    "value": "1 sent"
+                    "value": "0 sent"
                   },
                   {
                     "key": "start_not_in_past",
@@ -1362,6 +1362,7 @@
     }
   },
   "trap": {
+    "unknown_demand": [],
     "assumption": "Router rules 1-5 replayed with a usual day's demand; every scenario must pass. Service time is today's median busy minutes per consult",
     "busiest_peer_load": 0,
     "gap_id": "now_gap:G",

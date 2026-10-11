@@ -108,9 +108,14 @@ def evaluate_proposal(proposal: Proposal, refs: Refs, ops: OpsRefs, now: datetim
         ready = max(start, now + timedelta(minutes=r.minutes_to_online))
         useful = end - ready
         shifts = refs.physicians[pid].shifts if pid in refs.physicians else ()
-        on_now = any(s.start <= now < s.end for s in shifts)
-        rest = start - r.last_shift_end if r.last_shift_end else None
         accepted = history.accepted.get(pid, ())
+        on_now = any(s.start <= now < s.end for s in shifts) or any(s <= now < e for s, e in accepted)
+        # Accepted obligations count even if an arrival event has not been observed. Use the
+        # latest known end before this proposal; future shifts are handled by R5 below.
+        prior_ends = [s.end for s in shifts if s.end <= start]
+        prior_ends.extend(e for _, e in accepted if e <= start)
+        prior_ends.extend(e for e in (r.last_shift_end, r.next_shift_end) if e is not None and e <= start)
+        rest = start - max(prior_ends) if prior_ends else None
         accepted_hours = sum((e - s).total_seconds() for s, e in accepted) / 3600
         total = r.hours_last_7d + accepted_hours + nominal.total_seconds() / 3600
         scheduled = {(s.start, s.end) for s in shifts}

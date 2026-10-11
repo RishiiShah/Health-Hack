@@ -140,13 +140,13 @@ class OfferDesk:
     # ---- reads -------------------------------------------------------------------------------------------
     def offers(self, physician_id: str | None = None) -> list[Offer]:
         with self.lock:
-            rows = self.conn.execute("SELECT * FROM offers WHERE %s::text IS NULL OR physician_id=%s ORDER BY id", (physician_id, physician_id)).fetchall()
+            rows = self.conn.execute("SELECT * FROM offers WHERE %s::text IS NULL OR (physician_id=%s AND sent_at IS NOT NULL) ORDER BY id", (physician_id, physician_id)).fetchall()
         return [_row(r) for r in rows]
 
     def offer(self, offer_id: str, physician_id: str | None = None) -> Offer:
         with self.lock:
             r = self.conn.execute("SELECT * FROM offers WHERE id=%s", (offer_id,)).fetchone()
-        if r is None or (physician_id is not None and r["physician_id"] != physician_id):
+        if r is None or (physician_id is not None and (r["physician_id"] != physician_id or r["sent_at"] is None)):
             raise OfferError(404, "not_found", "no such offer")  # another physician's offer is indistinguishable from none
         return _row(r)
 
@@ -182,7 +182,9 @@ class OfferDesk:
         base = self.base_history
         sent = dict(base.sent_7d)
         for o in offers:
-            if o.sent_at and now - timedelta(days=7) <= o.sent_at <= now:
+            # Evaluation adds the current offer once; an already-sent offer under
+            # review must not be added a second time by R8.
+            if o.id != exclude and o.sent_at and now - timedelta(days=7) <= o.sent_at <= now:
                 sent[o.physician_id] = sent.get(o.physician_id, 0) + 1
         accepted = {}
         for o in offers:
@@ -418,6 +420,13 @@ class OfferDesk:
                 cur.execute("INSERT INTO offer_outbox(offer_id,physician_id,at,kind,body) VALUES(%s,%s,%s,'notice',%s)",
                             (offer.id, offer.physician_id, ctx.now, notice(ctx.refs, offer.hospitals, offer.start, offer.end)))
                 return filled.payload()
+            # A reply can arrive before expiry yet leave less than two useful hours after
+            # coming online. Recheck all rules at the reply clock, without counting this
+            # already-sent offer twice against the weekly limit.
+            failure = self._check(ctx, offers, offer.physician_id, offer.hospitals, max(offer.start, ctx.now), offer.end,
+                                  exclude=offer.id, every_hospital=False)
+            if failure:
+                raise OfferError(409, failure["code"], failure["message"])
             accepted = self._move(cur, ctx, offer, "ACCEPTED", actor, "accept", {"need_before": need})
             self._close_unneeded(cur, ctx)
             return accepted.payload()

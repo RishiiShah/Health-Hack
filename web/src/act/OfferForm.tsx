@@ -1,15 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { post } from "../api/client.ts";
-import { clockTime, etTimeOn, nextMinute } from "./time.ts";
+import { clockTime, etTimeOn, headerDate } from "./time.ts";
+import { suggestedOfferWindow } from "./offerWindow.ts";
 import type { Candidate, Gap, Offer } from "./types.ts";
 import "./act.css";
 
 // Coordinator's proposal. Physician and hospitals are fixed; the server validates every rule on submit.
-// A gap already under way starts at the current second, so the suggested start is the next whole minute after both
-// the gap start and the server's clock (`now`); otherwise the HH:MM field would already lie in the past.
+// Use the candidate's evaluated offer window, which can extend beyond the gap.
 export function OfferForm({ gap, candidate, now, onProposed }: { gap: Gap; candidate: Candidate; now: number | null; onProposed: (o: Offer) => void }) {
-  const [start, setStart] = useState(() => clockTime(nextMinute(Math.max(Date.parse(gap.start) - 1, now ?? 0))));
-  const [end, setEnd] = useState(clockTime(gap.end));
+  const [window, setWindow] = useState(() => suggestedOfferWindow(candidate.window, now));
+  const [start, setStart] = useState(() => clockTime(window.start));
+  const [end, setEnd] = useState(() => clockTime(window.end));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -17,16 +18,20 @@ export function OfferForm({ gap, candidate, now, onProposed }: { gap: Gap; candi
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const startAt = etTimeOn(gap.start, start);
+    const submitted = { start: etTimeOn(window.start, start), end: etTimeOn(window.end, end) };
     try {
       onProposed(await post<Offer>("/offers", {
-        gap_id: gap.gap_id, physician_id: candidate.physician_id, start: startAt, end: etTimeOn(gap.end, end),
+        gap_id: gap.gap_id, physician_id: candidate.physician_id, ...submitted, hospitals: candidate.window.hospitals,
       }));
     } catch (e) {
       // The clock keeps running while the form is open: when the chosen start has passed, offer the next minute.
-      const moved = now !== null && Date.parse(startAt) <= now ? clockTime(nextMinute(now)) : null;
-      if (moved) setStart(moved);
-      setError(`${(e as Error).message}${moved ? `. Start moved to ${moved} ET; check it and send again.` : ""}`);
+      const moved = now !== null && Date.parse(submitted.start) <= now ? suggestedOfferWindow(submitted, now) : null;
+      if (moved) {
+        setWindow(moved);
+        setStart(clockTime(moved.start));
+        setEnd(clockTime(moved.end));
+      }
+      setError(`${(e as Error).message}${moved ? `. Window moved to start at ${clockTime(moved.start)} ET; check it and send again.` : ""}`);
     } finally {
       setBusy(false);
     }
@@ -35,9 +40,9 @@ export function OfferForm({ gap, candidate, now, onProposed }: { gap: Gap; candi
   return (
     <form className="offer-form" onSubmit={submit}>
       <label>Physician<input readOnly value={candidate.name} /></label>
-      <label>Hospitals<input readOnly value={gap.hospital_names.join(", ")} /></label>
-      <label>Start (ET)<input type="time" value={start} onChange={(e) => setStart(e.target.value)} required /></label>
-      <label>End (ET)<input type="time" value={end} onChange={(e) => setEnd(e.target.value)} required /></label>
+      <label>Hospitals<input readOnly value={candidate.window.hospitals.map((h) => gap.hospital_names[gap.hospital_ids.indexOf(h)] ?? h).join(", ")} /></label>
+      <label>Start (ET, {headerDate(window.start)})<input type="time" value={start} onChange={(e) => setStart(e.target.value)} required /></label>
+      <label>End (ET, {headerDate(window.end)})<input type="time" value={end} onChange={(e) => setEnd(e.target.value)} required /></label>
       <button className="btn primary" disabled={busy}>Send to clinical lead</button>
       {error && <p className="error" role="alert">{error}</p>}
     </form>

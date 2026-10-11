@@ -45,6 +45,7 @@ export type Candidate = {
   eligible: boolean;
   rank: number | null;
   primary_reason: string | null;
+  window: { start: string; end: string; ready_at: string; hospitals: string[] };
   results: RuleResult[];
   ranking: { gap_hospitals: number; minutes_to_online: number | null; declines_30d: number | null; hours_7d: number | null };
 };
@@ -55,6 +56,7 @@ export type TrapCheck = {
   gap_id: string;
   physician_id: string;
   passed: boolean;
+  unknown_demand?: string[];
   reasons: string[];
   seed_consults: number;
   limited_to: { hospital_id: string; hospital_name: string }[];

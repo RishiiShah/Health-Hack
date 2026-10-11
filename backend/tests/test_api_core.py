@@ -1,4 +1,5 @@
 """Clean-checkout HTTP checks: no challenge CSVs, external speech, or answer keys."""
+from dataclasses import replace
 from datetime import timedelta
 import json
 import pytest
@@ -19,6 +20,26 @@ class SyntheticSpeech:
     def audio(self, text):
         assert 'PATIENT' not in text and 'CONSULT' not in text
         return b'ID3-synthetic'
+
+
+def test_trap_unknown_demand_is_exposed_in_api_and_queue(db_url, tmp_path, monkeypatch):
+    refs, ops, _ = world()
+    ops = replace(ops, baseline={k: v for k, v in ops.baseline.items() if k[0] != 'H'})
+    ops = replace(ops, roster={**ops.roster, 'J': replace(ops.roster['J'], minutes_to_online=0)})
+    monkeypatch.setattr('app.service.observed_service', lambda *args: {'*': 6.5})
+    api = create_app(db_url, FixedClock(START - timedelta(minutes=20)), auth=TEST_AUTH,
+                     references=(refs, ops), history_path=tmp_path/'absent', speech=SyntheticSpeech(), sweep_s=0)
+    with TestClient(api) as c:
+        items = c.get('/snapshot', headers=COORD).json()['queue']['items']
+        item = next(i for i in items if i['fix']['kind'] == 'split_shift')
+        assert item['why']['trap_guard']['unknown_demand'] == ['H']
+        assert 'trap check unknown' in item['fix']['reason']
+        check = c.get(f"/gaps/{item['id']}/trap-check", headers=LEAD).json()
+        assert check['passed'] is False and check['unknown_demand'] == ['H']
+        assert any('unknown' in r and 'H' in r for r in check['reasons'])
+        assert 'Partial demand model' in check['assumption']
+        raw = api.state.engine.trap(api.state.engine.item(item['id']))
+        assert raw['unknown_demand'] == ['H'] and not raw['passed']
 
 
 def test_authenticated_live_ingest_media_reset_and_recovery_without_packs(db_url, tmp_path):
@@ -49,9 +70,15 @@ def test_authenticated_live_ingest_media_reset_and_recovery_without_packs(db_url
         assert offer.status_code == 200, offer.text
         oid = offer.json()['offer_id']
         assert c.post(f'/offers/{oid}/approve', headers=COORD).status_code == 403
-        assert c.get(f'/offers/{oid}/audio', headers=physician).status_code == 409
+        assert c.get('/offers', headers=physician).json()['items'] == []
+        assert c.get(f'/offers/{oid}', headers=physician).status_code == 404
+        assert c.get(f'/offers/{oid}', headers=LEAD).status_code == 200
+        assert c.get(f'/offers/{oid}/audio', headers=physician).status_code == 404
+        assert c.get(f'/offers/{oid}/audio', headers=LEAD).status_code == 409
         sent = c.post(f'/offers/{oid}/approve', headers=LEAD)
         assert sent.status_code == 200, sent.text
+        assert c.get('/offers', headers=physician).json()['items'][0]['offer_id'] == oid
+        assert c.get(f'/offers/{oid}', headers=physician).status_code == 200
         assert c.get(f'/offers/{oid}/audio').status_code == 401
         audio = c.get(f'/offers/{oid}/audio', headers=physician)
         assert audio.status_code == 200 and audio.content == b'ID3-synthetic'

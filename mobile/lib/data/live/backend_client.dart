@@ -165,7 +165,9 @@ class BackendApiClient extends ApiClient {
   }
 
   Json _trap(Json row) {
-    if (row['seed_consults'] == null) {
+    if (row['seed_consults'] == null ||
+        (row['unknown_demand'] is List &&
+            (row['unknown_demand'] as List).isNotEmpty)) {
       throw Unavailable(J(row, 'Trap').strings('reasons').join('; '));
     }
     return {

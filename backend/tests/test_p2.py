@@ -200,6 +200,26 @@ def test_g6_precedence_and_meeting_routability():
     assert physician_view(state, refs(), "P1", at(5)).derived_state == "Video Consult"
 
 
+def test_offline_agent_does_not_leave_stale_camera_exclusion():
+    camera = row("camera", "camera_active", 1, cid=None, pid="P1")
+    lost = row("lost", "agent_heartbeat_lost", 2, cid=None, pid="P1")
+    before = physician_view(replay_rows(camera), refs(), "P1", at(1))
+    assert not before.routable and "external_platform" in before.flags
+    offline = physician_view(replay_rows(camera, lost), refs(), "P1", at(3))
+    assert offline.routable and offline.derived_state == "Available"
+    assert offline.desktop_agent == "Offline" and "unverified" in offline.flags
+    assert "external_platform" not in offline.flags
+    recovered = row("recovered", "camera_active", 4, cid=None, pid="P1")
+    assert not physician_view(replay_rows(camera, lost, recovered), refs(), "P1", at(5)).routable
+
+
+@pytest.mark.parametrize("kind,value", [("incoming_call_started", None), ("video_started", None), ("physician_status_changed", "Temporarily Unavailable")])
+def test_offline_camera_fallback_still_respects_synapse_busy_and_status(kind, value):
+    state = replay_rows(row("receive"), row("camera", "camera_active", 1, cid=None, pid="P1"),
+                        row("busy", kind, 2, pid="P1", value=value), row("lost", "agent_heartbeat_lost", 3, cid=None, pid="P1"))
+    assert not physician_view(state, refs(), "P1", at(4)).routable
+
+
 @pytest.mark.parametrize("day,clock", [(date(2026, 3, 8), "02:30"), (date(2026, 11, 1), "01:30")])
 def test_ambiguous_or_nonexistent_time_only_shifts_are_rejected(day, clock):
     from datetime import time

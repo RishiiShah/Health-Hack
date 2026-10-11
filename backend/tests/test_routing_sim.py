@@ -1,5 +1,7 @@
 """Step 7: routing model [B p3] and split-shift trap check, on small synthetic days (no sample IDs)."""
+from dataclasses import replace
 from datetime import datetime, timedelta
+import pytest
 from zoneinfo import ZoneInfo
 from app.decide.routing_sim import _Doc, _arrivals, demand_pace, observed_service, route_key, simulate, threshold, trap_check
 from app.engine.physician import PhysicianView
@@ -130,6 +132,27 @@ def test_unguarded_joiner_floods_other_hospitals_and_guard_contains_it():
 def test_trap_check_needs_observed_service_time():
     refs, ops, views = trap_day()
     assert trap_check(replay(()), refs, ops, views, et(18), "J", et(18), et(20), {"G"}, {}) is None
+
+
+@pytest.mark.parametrize("missing_hour", [None, 19])
+def test_incomplete_demand_cannot_pass_trap_even_when_partial_constraints_pass(missing_hour):
+    refs, ops, views = trap_day()
+    ops = replace(ops, baseline={k: v for k, v in ops.baseline.items() if k[0] != "O" or (missing_hour is not None and k[2] != missing_hour)})
+    check = trap_check(replay(()), refs, ops, views, et(18), "J", et(18), et(20), {"G"}, {"*": 6.5})
+    assert check.unknown_demand == ("O",) and not check.passed
+    assert all(c.passed for c in check.criteria)  # incomplete data must be distinguished from a failed constraint
+    assert check.scenarios["baseline"][2].sites("J") <= {"G"}
+
+
+def test_missing_demand_is_retained_when_later_surge_scenario_has_a_rate(monkeypatch):
+    import app.decide.routing_sim as sim
+    from app.ops.coverage import Surge
+    refs, ops, views = trap_day()
+    ops = replace(ops, baseline={k: v for k, v in ops.baseline.items() if k[0] != "O"})
+    monkeypatch.setattr(sim, "surges", lambda *args: [Surge("O", 6, 1, et(19))])
+    check = trap_check(replay(()), refs, ops, views, et(18), "J", et(18), et(20), {"G"}, {"*": 6.5})
+    assert "surge_continues" in check.scenarios
+    assert check.unknown_demand == ("O",) and not check.passed
 
 
 def test_temporarily_unavailable_physician_takes_no_simulated_calls():

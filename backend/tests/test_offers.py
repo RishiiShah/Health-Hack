@@ -1,13 +1,14 @@
 """Step 8: offer state machine on a tiny synthetic day [doc 6, edge cases in doc 7]. Needs Postgres (conftest)."""
 import threading
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import psycopg
 import pytest
 from app.act import offers as offers_module
 from app.act.offers import Context, OfferDesk, OfferError
 from app.decide.interventions import decide
+from app.decide.eligibility import OfferHistory, Proposal, evaluate_proposal
 from app.engine.replay import replay
 from app.ops.coverage import SplitShift
 from app.ops.refs import OpsRefs, RosterEntry
@@ -86,6 +87,97 @@ def test_accepted_shift_feeds_back_into_decisions(desk, world):
     # Even without the desk's history, decide() never offers R1 the hours R1 already accepted.
     bare = decide(world.state, world.refs, world.ops, world.now, accepted=desk.accepted())
     assert not [i for i in bare.items if i.fix.kind == "split_shift" and i.fix.physician_id == "R1"]
+
+
+def test_completed_accepted_shift_resets_rest_even_with_stale_roster(desk, world):
+    o = propose(desk)
+    desk.approve(o["id"], "lead")
+    desk.accept(o["id"], "R1")
+    world.state = replay((started("R1", et(18, 30)),))
+    world.now = et(21, 1)
+    assert refusal(lambda: desk.propose("gap:G:again", "R1", world.now, et(23, 31), ("G",), "coordinator")) == (422, "ineligible")
+    assert "rest_at_start_at_least_10h" in desk.audit()[-1]["detail"]["message"]
+    assert len(desk.offers()) == 1
+
+
+@pytest.mark.parametrize("hours,passes", [(9.999, False), (10, True)])
+@pytest.mark.parametrize("source", ["accepted", "reference", "roster_next"])
+def test_rest_uses_latest_known_shift_end_at_ten_hour_boundary(world, hours, passes, source):
+    end = et(21)
+    history = OfferHistory()
+    if source == "accepted":
+        history = OfferHistory(accepted={"R1": ((et(18), end), (end + timedelta(days=1), end + timedelta(days=1, hours=2)))})
+    elif source == "reference":
+        world.refs = Refs(world.refs.hospitals, {**world.refs.physicians, "R1": Physician("R1", (Shift(et(18), end),))}, world.refs.credentials)
+    else:
+        world.ops = replace(world.ops, roster={**world.ops.roster, "R1": replace(world.ops.roster["R1"], next_shift_start=et(18), next_shift_end=end)})
+    start = end + timedelta(hours=hours)
+    c = next(c for c in evaluate_proposal(Proposal(start, start + timedelta(hours=3), ("G",)), world.refs, world.ops, start, history) if c.physician_id == "R1")
+    assert next(r.passed for r in c.rules if r.key == "rest_at_start_at_least_10h") is passes
+
+
+def test_active_accepted_shift_is_not_off_shift(world):
+    history = OfferHistory(accepted={"R1": ((et(18), et(21)),)})
+    c = next(c for c in evaluate_proposal(Proposal(et(22), et(23) + timedelta(hours=2), ("G",)), world.refs, world.ops, et(19), history) if c.physician_id == "R1")
+    assert "off_shift_now" in c.failed
+
+
+@pytest.mark.parametrize("reply_minute,accepted", [(0, True), (9, False)])
+def test_accept_rechecks_useful_duration_at_reply_clock(desk, world, reply_minute, accepted):
+    o = desk.propose("gap:G", "R1", et(18), et(20, 10), ("G",), "coordinator")
+    desk.approve(o["id"], "lead")
+    world.now = et(18, reply_minute)
+    if accepted:
+        assert desk.accept(o["id"], "R1")["state"] == "ACCEPTED"  # exactly 120 useful minutes
+    else:
+        assert refusal(lambda: desk.accept(o["id"], "R1")) == (409, "ineligible")
+        assert desk.accepted() == () and desk.offer(o["id"]).state == "SENT"
+        assert "useful_duration_at_least_2h" in desk.audit()[-1]["detail"]["message"]
+        world.now = et(18, 10)
+        desk.sweep()
+        assert desk.offer(o["id"]).state == "EXPIRED"
+
+
+def test_accept_third_weekly_offer_does_not_count_it_twice(desk, world):
+    desk.base_history = OfferHistory(sent_7d={"R1": 2}, supplied=True)
+    o = propose(desk)
+    assert desk.approve(o["id"], "lead")["state"] == "SENT"
+    assert desk.history(world.now).sent_7d["R1"] == 3
+    assert desk.history(world.now, exclude=o["id"]).sent_7d["R1"] == 2
+    assert desk.accept(o["id"], "R1")["state"] == "ACCEPTED"
+    evidence = desk.audit()[-1]["detail"]["decision"]["candidates"]
+    assert next(c for c in evidence if c["physician_id"] == "R1")["eligible"]
+
+
+@pytest.mark.parametrize("state", ["PROPOSED", "REJECTED", "CANCELLED"])
+def test_physician_reads_hide_every_unsent_state(desk, world, state):
+    o = propose(desk)
+    if state == "REJECTED":
+        desk.reject(o["id"], "lead", "not now")
+    elif state == "CANCELLED":
+        world.ops = replace(world.ops, roster={**world.ops.roster, "R1": replace(world.ops.roster["R1"], opt_in=False)})
+        assert desk.approve(o["id"], "lead")["state"] == "CANCELLED"
+    assert desk.offers("R1") == []
+    assert refusal(lambda: desk.offer(o["id"], "R1")) == (404, "not_found")
+    assert desk.offer(o["id"]).state == state
+
+
+@pytest.mark.parametrize("reply", ["sent", "accept", "decline", "expire", "withdraw"])
+def test_physician_reads_keep_sent_offers_and_their_outcomes(desk, world, reply):
+    o = propose(desk)
+    desk.approve(o["id"], "lead")
+    if reply in {"accept", "decline"}:
+        getattr(desk, reply)(o["id"], "R1")
+    elif reply == "expire":
+        world.now = et(18, 10)
+        desk.sweep()
+    elif reply == "withdraw":
+        other = propose(desk, "R2")
+        desk.approve(other["id"], "lead")
+        desk.accept(other["id"], "R2")
+    assert [x.id for x in desk.offers("R1")] == [o["id"]]
+    assert desk.offer(o["id"], "R1").sent_at is not None
+    assert refusal(lambda: desk.offer(o["id"], "R2")) == (404, "not_found")
 
 
 def test_accepted_arrived_physician_is_operational_and_does_not_fill_two_slots(desk, world):

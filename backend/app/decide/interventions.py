@@ -381,13 +381,15 @@ def _with_trap_guard(item: Item, state, refs, ops, views, now, service, accepted
                     item.fix, item.rank_key, item.candidates)
     failed = [c.key for c in check.criteria if not c.passed]
     setting = f"router setting: restrict {best.physician_id} to {', '.join(sorted(check.joiner.hospitals))} and seed {check.seed} consults"
-    verdict = "trap check passed" if not failed else "trap check failed: " + ", ".join(failed)
+    verdict = ("trap check unknown: missing demand for " + ", ".join(check.unknown_demand) if check.unknown_demand
+               else "trap check failed: " + ", ".join(failed) if failed else "trap check passed")
     guard = {"restrict_to": sorted(check.joiner.hospitals), "seed": check.seed, "passed": check.passed, "trap_shown_unguarded": check.trap_shown,
+             "unknown_demand": list(check.unknown_demand),
              "wait_minutes_removed": dict(check.relief), "unguarded_spill": dict(check.spill), "criteria": [f"{c.key}: {c.value}" for c in check.criteria]}
-    if all(n <= 0 for n in check.relief.values()):
+    if not check.unknown_demand and all(n <= 0 for n in check.relief.values()):
         guard["note"] = "model predicts no shorter waits; the offer meets the coverage requirement, not a routing failure"
     fix = Fix(item.fix.kind, item.fix.approver, item.fix.action, f"{item.fix.reason}; {setting} ({verdict})",
-              (*item.fix.alternatives, f"unguarded join: {'floods other hospitals or out-loads every peer (trap)' if check.trap_shown else 'no trap under modeled demand'}"),
+              (*item.fix.alternatives, f"unguarded join: {'partial demand model; full trap unknown' if check.unknown_demand else 'floods other hospitals or out-loads every peer (trap)' if check.trap_shown else 'no trap under modeled demand'}"),
               item.fix.physician_id)
     return Item(item.id, item.severity, item.what, item.where, {**item.why, "trap_guard": guard}, fix, item.rank_key, item.candidates)
 

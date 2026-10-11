@@ -223,7 +223,7 @@ class TrapCheck:
 
     @property
     def passed(self) -> bool:
-        return all(c.passed for c in self.criteria)
+        return not self.unknown_demand and all(c.passed for c in self.criteria)
 
 
 def guard_seed(views: Mapping[str, PhysicianView], hospitals) -> int:
@@ -257,9 +257,10 @@ def trap_check(state: State, refs: Refs, ops: OpsRefs, views: Mapping[str, Physi
     # load bound measures the low-volume trap under baseline demand only.
     demands = {"baseline": ({}, 1.0), **({"todays_pace": ({}, pace)} if pace is not None and abs(pace - 1) >= PACE_MIN_CHANGE else {}),
                **({"surge_continues": (surge_rate, 1.0)} if surge_rate else {})}
-    scenarios, relief, spill, criteria, trap_shown, unknown = {}, {}, {}, [], False, ()
+    scenarios, relief, spill, criteria, trap_shown, unknown = {}, {}, {}, [], False, set()
     for label, (rates, scale) in demands.items():
-        arrivals, unknown = _arrivals(state, ops, refs, now, window_end, service, rates, scale)
+        arrivals, missing = _arrivals(state, ops, refs, now, window_end, service, rates, scale)
+        unknown.update(missing)
         runs = (simulate("no_joiner", base, arrivals, window_end), simulate("trap", with_joiner(creds, 0), arrivals, window_end),
                 simulate("guarded", with_joiner(hospitals, seed), arrivals, window_end))
         scenarios[label] = runs
@@ -281,4 +282,4 @@ def trap_check(state: State, refs: Refs, ops: OpsRefs, views: Mapping[str, Physi
         if label == "baseline":
             criteria.append(Criterion(f"{label}:joiner_not_above_busiest_peer", c.load(physician_id) <= busiest + PEER_TOLERANCE,
                                        f"{c.load(physician_id)} vs {busiest}"))
-    return TrapCheck(joiner, seed, scenarios, tuple(criteria), trap_shown, relief, spill, unknown, pace)
+    return TrapCheck(joiner, seed, scenarios, tuple(criteria), trap_shown, relief, spill, tuple(sorted(unknown)), pace)

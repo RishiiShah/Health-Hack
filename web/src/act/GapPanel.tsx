@@ -38,7 +38,7 @@ export function GapPanel({ gapId, reloadKey, now, canPropose, onClose, onPropose
       {proposing && gap && (
         <section>
           <h2>Propose an offer</h2>
-          <OfferForm gap={gap} candidate={proposing} now={now} onProposed={(o) => { setProposing(null); onProposed(o); }} />
+          <OfferForm key={`${proposing.physician_id}:${proposing.window.start}:${proposing.window.end}`} gap={gap} candidate={proposing} now={now} onProposed={(o) => { setProposing(null); onProposed(o); }} />
         </section>
       )}
 

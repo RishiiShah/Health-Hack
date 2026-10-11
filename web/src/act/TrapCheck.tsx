@@ -6,11 +6,12 @@ const tone = (v: { count: number; required: number }) => (v.count < v.required ?
 
 // Coverage at the gap hospital without and with the joining physician, as simulated by the server.
 export function TrapCheck({ check, title }: { check: TrapCheckData; title: string }) {
+  const unknown = Boolean(check.unknown_demand?.length);
   return (
     <section className="panel">
       <div className="panel-head">
         <h2>{title}</h2>
-        <span className={`badge ${check.passed ? "green" : "red"}`}>{check.passed ? "Trap check passed" : "Trap check failed"}</span>
+        <span className={`badge ${unknown ? "" : check.passed ? "green" : "red"}`}>{unknown ? "Trap check unknown" : check.passed ? "Trap check passed" : "Trap check failed"}</span>
       </div>
       <div className="table-scroll" tabIndex={0} role="region" aria-label="Scrollable data table"><table className="compare">
         <thead><tr><th />{check.steps.map((s) => <th key={s}>{clockTime(s)}</th>)}</tr></thead>

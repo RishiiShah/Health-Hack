@@ -46,10 +46,10 @@ def physician_view(state: State, refs: Refs, physician_id: str, as_of: datetime,
     elif p.status == "Temporarily Unavailable":
         derived, busy = "Temporarily Unavailable", True
         if owned: flags.add("stranded_consults")
-    elif p.camera_active and p.status != "In Meeting":
+    elif p.agent_online is True and p.camera_active and p.status != "In Meeting":
         derived, busy = "Camera Active, No Session", True
         flags.add("external_platform")
-    elif p.camera_active and p.status == "In Meeting": derived, busy = "Available (meeting)", False
+    elif p.agent_online is True and p.camera_active and p.status == "In Meeting": derived, busy = "Available (meeting)", False
     elif any(c.stage == "Documentation" for c in owned): derived, busy = "Documentation", False
     else: derived, busy = "Available", False
     shift = shift or next((s for s in reference.shifts if s.start <= as_of < s.end), None)

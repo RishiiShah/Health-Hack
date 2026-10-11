@@ -86,6 +86,8 @@ For each on-shift physician with `minutes_to_shift_end <= 60`: open notes = owne
 ### 3.4 Signals [B p3]
 Camera active, no session (BUSY_EXTERNAL) and agent offline (unverified) come from P2 `flags`. Self-reported Available while busy is **not** flagged [B p5].
 
+Camera evidence excludes routing only while the desktop agent is online. After heartbeat loss, stale camera activity no longer implies an external session: the physician is available but unverified unless a Synapse call/video, Temporarily Unavailable status, ring or cooldown independently prevents routing. A fresh camera event restores the online camera classification.
+
 ### 3.5 Overload (G8b, PRD T28)
 
 `config.OverloadPolicy` defaults: Warning at 3 open consults, Critical at 4;
@@ -182,7 +184,7 @@ Candidates are evaluated **per coverage case**: one hospital's hard-gap interval
 |---|---|---|
 | R1 | opt-in = Yes | Yes/No |
 | R2 | credentialed at the case hospital | credentialed gap hospitals |
-| R3 | `start − last_shift_end >= 10 h` | hours rested at start |
+| R3 | `start − latest known preceding shift end >= 10 h` (roster, reference schedule and accepted obligations) | hours rested at start |
 | R4 | `hours_last_7d + accepted split hours this week + (end − start) <= 60` | total |
 | R5 | `[start, end)` does not intersect `[next_shift_start, ∞)` or any accepted shift | conflicting shift |
 | R6 | `end − start >= 2 h` (start already includes time to come online) | net hours |
@@ -257,7 +259,7 @@ Sample at 18:20: CON-2110 and CON-2105 escalate first; CON-2102 hands off to PHY
 ### 5.8 Step 7: routing simulator, trap guard and metrics (implemented)
 `decide/routing_sim.py` models the router [B p3]; it never replaces it.
 - **Service time is measured, not invented:** median busy minutes per consult (incoming calls + video) from today's events (`observed_service`). Dev pack: 6.5 min; sample: 18.3 min. With no observations the trap check is not run and the offer says so.
-- **Demand:** waiting unassigned consults at `now`, then baseline means placed where the expected count crosses each half-integer (deterministic). Second scenario: surging hospitals keep their trailing-60 rate. Missing baseline → that hospital's demand is reported unknown.
+- **Demand:** waiting unassigned consults at `now`, then baseline means placed where the expected count crosses each half-integer (deterministic). Second scenario: surging hospitals keep their trailing-60 rate. Any missing hospital/hour in any scenario makes the full trap verdict **unknown**, with `passed=false` and explicit `unknown_demand`; partial runs remain inspectable. Web shows Unknown; mobile shows the missing-evidence reason rather than pass/fail.
 - **Physicians:** the forecast's supply (on shift + scheduled starters); Temporarily Unavailable stay out [A37]; a session in progress ends after one median service time [A48]; 2-minute cooldown after each simulated call. Initialization preserves a real call's remaining cooldown. An unresolved ring reserves one median service time plus cooldown from `now` [A53]; additional ring duration is not modeled.
 - **Runs per scenario:** (a) no joiner, (b) joiner unrestricted and unseeded (the trap), (c) joiner restricted to the offer hospitals and seeded [A26, peers that are Temporarily Unavailable excluded from the seed].
 - **Pass for (c):** joiner only at offer hospitals; patient wait minutes at the offer hospitals not worse than (a); baseline only: joiner load ≤ busiest peer + 1; every scenario: no peer +2 or more vs (a) [A41].
@@ -308,6 +310,10 @@ Approve and send happen in one command (as the API contract says), but each stil
 
 ### 6.2 Acceptance (the atomic part)
 Inside the accept transaction: re-project coverage with already-accepted joiners **plus this one**. If this joiner reduces any remaining hard-gap minutes at the offered hospitals → ACCEPTED, add the shift, re-run gaps, and WITHDRAW other open offers that no longer reduce anything. If not → ALREADY_FILLED and the physician is told "no longer needed" [A19]. "Remaining need" is derived from the projection, not a counter, so it cannot drift.
+
+Before recording ACCEPTED, recheck all eligibility rules at the reply clock. Expected readiness is `max(start, reply time + minutes_to_online)` and must leave at least two useful hours. The current sent offer counts once toward the weekly cap. An ineligible reply returns 409 with its reason and a durable refusal audit; the offer stays SENT until its normal expiry or withdrawal, with no accepted coverage added.
+
+Physician list, detail and media reads expose only their own offers with a send timestamp, including subsequent outcomes. Unsent proposals, rejections and cancellations remain available to operations roles only. The web proposal form starts from the candidate's evaluated window and hospital set; rounding a live start shifts the end equally, preserving duration and each endpoint's date. The server revalidates edits.
 
 ### 6.3 Timing
 - `expires_at = sent_at + 10 min` on the injected clock, half-open: a reply at exactly `expires_at` is late [A42].

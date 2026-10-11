@@ -170,6 +170,7 @@ class Engine:
             return {"modeled": False, "reason": "no service time observed yet"}
         hospitals = sorted(check.joiner.hospitals)
         return {"modeled": True, "physician_id": best.physician_id, "restrict_to": hospitals, "seed": check.seed, "passed": check.passed,
+                "unknown_demand": list(check.unknown_demand),
                 "trap_shown_unguarded": check.trap_shown, "wait_minutes_removed": dict(check.relief), "unguarded_spill": dict(check.spill),
                 "criteria": [{"key": c.key, "passed": c.passed, "value": c.value} for c in check.criteria],
                 "scenarios": runs_view(check, best.physician_id)}
@@ -310,7 +311,9 @@ class Engine:
         joined = lambda t: best.ready_at <= datetime.fromisoformat(t) < best.end
         peers = sorted({x for x, _ in guarded.routed} - {pid})
         return {"gap_id": gap_id, "physician_id": pid, "passed": check.passed,
-                "reasons": [f"{c.key.split(':', 1)[1].replace('_', ' ')} ({c.key.split(':', 1)[0]}): {c.value}" for c in check.criteria if not c.passed]
+                "unknown_demand": list(check.unknown_demand),
+                "reasons": (["trap check unknown: missing hourly demand for " + ", ".join(check.unknown_demand) + "; simulation results are partial"] if check.unknown_demand else [])
+                           + [f"{c.key.split(':', 1)[1].replace('_', ' ')} ({c.key.split(':', 1)[0]}): {c.value}" for c in check.criteria if not c.passed]
                            or [f"limited to {', '.join(sites)} and seeded at {check.seed}: joiner {guarded.load(pid)} consults, busiest peer "
                                f"{max((guarded.load(x) for x in peers), default=0)}; waits at the gap hospitals "
                                f"{none.wait(sites):g} -> {guarded.wait(sites):g} patient-min",
@@ -320,7 +323,7 @@ class Engine:
                 "with": [{"count": c["count"] + (1 if joined(c["at"]) else 0), "required": c["required"]} for c in cells],
                 "joiner_load": guarded.load(pid), "busiest_peer_load": max((guarded.load(x) for x in peers), default=0),
                 "other_gaps_worsened": guarded.wait(others) > none.wait(others),
-                "assumption": "Router rules 1-5 replayed with a usual day's demand" + (f", today's observed pace ({check.pace:.2f} x usual)" if "todays_pace" in check.scenarios else "")
+                "assumption": ("Partial demand model; full trap verdict unknown. " if check.unknown_demand else "") + "Router rules 1-5 replayed with a usual day's demand" + (f", today's observed pace ({check.pace:.2f} x usual)" if "todays_pace" in check.scenarios else "")
                               + (" and the current surge continuing" if "surge_continues" in check.scenarios else "") + "; every scenario must pass. Service time is today's median busy minutes per consult",
                 "scenarios": runs_view(check, pid)}
 

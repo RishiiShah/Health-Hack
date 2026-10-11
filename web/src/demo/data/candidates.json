@@ -51,6 +51,7 @@
   "candidates": [
     {
       "physician_id": "PHY-009",
+      "window": { "start": "2026-03-17T22:20:00+00:00", "end": "2026-03-18T00:20:00+00:00", "ready_at": "2026-03-17T22:20:00+00:00", "hospitals": ["SYN-005"] },
       "name": "Dr. Grace Okafor",
       "eligible": true,
       "rank": 1,
@@ -106,6 +107,7 @@
     },
     {
       "physician_id": "PHY-010",
+      "window": { "start": "2026-03-17T22:20:00+00:00", "end": "2026-03-18T00:20:00+00:00", "ready_at": "2026-03-17T22:30:00+00:00", "hospitals": [] },
       "name": "Example Physician",
       "eligible": false,
       "rank": null,
