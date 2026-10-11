@@ -118,3 +118,5 @@
   .coverage .cell-detail .btn { margin-top: 16px; }
   .coverage-horizon { font-size: 9px; }
 }
+
+.demand-grid .demand-baseline { display: block; font-size: 12px; line-height: 1.6; color: var(--ink-2); overflow-wrap: anywhere; }

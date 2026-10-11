@@ -123,7 +123,7 @@ Busy (call, video, ringing) does **not** remove coverage; it is transient and ha
 
 `surge(h, t)`: distinct consults first received at h in `(t − 60 min, t]`, counting only consults **already received** (no forecast demand), compared **strictly greater** than `p90(h, ET hour of t)` [B p4, PRD T10]. If p90 = 0, any consult is a surge [A30]. A missing baseline row makes the surge **unknown**, reported as a data-quality finding, never as 0.
 
-Why observed-only for the future: baseline mean is ≤ p90 by construction, so adding forecast demand only creates fractional boundary artefacts. The projected surge ends when the last qualifying consult ages out (F3). A new event during the live test extends it automatically.
+Future surge uplift uses observed receipts only; hourly means describe expected demand, not observed consults or a surge probability. The projected surge ends when qualifying consults age out or a later hour’s p90 no longer qualifies (F3). A new event during the live test extends it automatically. The dashboard integrates hourly means over the same coverage horizon using elapsed UTC minutes with exact partial-minute endpoints, including repeated/skipped DST hours. Missing any baseline hour makes the expected total unknown. These expected arrivals never enter replay or change the strict trailing-60-minute p90 surge rule.
 
 ### 4.3 Timeline and gap classes
 Change points = now, every shift start/end, block boundary, each `received_at + 60 min` at a surging hospital, each scheduled start, each accepted offer start/end, now + 90 min. Between change points every count is constant, so gaps are **exact intervals**, not samples.

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cellText, cellTone, stepLabel } from "./cells.ts";
+import { cellText, cellTone, stepLabel, elapsedMinutes } from "./cells.ts";
 import type { CoverageCell } from "./types.ts";
 
 const cell = (overrides: Partial<CoverageCell>): CoverageCell => ({
@@ -24,4 +24,11 @@ test("tone follows the server status; an incomplete schedule softens a gap", () 
 test("first column is Now, the rest are ET clock times", () => {
   assert.equal(stepLabel("2026-03-17T22:20:00+00:00", 0), "Now");
   assert.equal(stepLabel("2026-03-17T22:30:00+00:00", 1), "18:30");
+});
+
+
+test("exact shift cliffs have elapsed offsets rather than column-index offsets", () => {
+  const start = "2026-03-17T22:20:00Z";
+  assert.equal(elapsedMinutes("2026-03-17T23:00:00Z", start), 40);
+  assert.equal(elapsedMinutes("2026-03-18T00:00:00Z", start), 100);
 });

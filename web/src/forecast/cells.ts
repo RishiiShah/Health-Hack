@@ -14,3 +14,6 @@ export function cellTone(cell: CoverageCell): "gap" | "maybe" | "at" | "above" |
 }
 
 export const stepLabel = (iso: string, index: number) => (index === 0 ? "Now" : clockTime(iso));
+
+// Shift cliffs are interleaved with regular observations; column indices are not durations.
+export const elapsedMinutes = (iso: string, start: string) => Math.round((Date.parse(iso) - Date.parse(start)) / 60000);

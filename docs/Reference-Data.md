@@ -95,3 +95,12 @@ make two different replay histories identical.
 Restart recovery, retained events, authentication, manifest changes, matching
 upload skips and mismatched-version checks are covered by synthetic tests in
 `backend/tests/test_reference_database.py` and `test_upload_references.py`.
+
+
+### Hourly baseline and surge forecast
+
+The official `baseline_hourly_volume.csv` has 288 source rows (12 hospitals × 24 ET hours), with 12 weeks sampled, and expands to 1,440 weekday/day-hour lookup entries. It supplies **no weekend baseline**. `coverage_requirements.csv` supplies staffing blocks; the roster supplies capacity and shift changes. These files are already persisted with the fixed reference kit in the production database; event uploads cannot append to or replace them.
+
+Data → Reference data shows the loaded baseline row count, sampling weeks, staffing block count, roster count and per-hospital weekday coverage. The command center shows observed trailing-60-minute demand against that hour’s p90, its historical mean, and expected arrivals over the same horizon as coverage. Expected arrivals integrate hourly means with partial hours and DST in elapsed UTC time; a missing hour leaves the whole total unknown. Baseline values are finite/nonnegative, weekday/hour keys valid, and ET baseline starts must be whole unzoned hours. Sampling weeks, when supplied, must be positive integers.
+
+A surge remains the problem’s deterministic rule: distinct live consults in the trailing 60 minutes strictly exceed that hour’s p90, adding one required physician. Forecast coverage accounts for scheduled shifts and aging observed receipts. Historical means support expected-demand and intervention stress scenarios; they cannot establish a calibrated probability that a future surge will occur. Additional official weekend/hourly history would be needed for those missing periods; generated scenario packs are not substitutes for the Sevaro references.

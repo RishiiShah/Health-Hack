@@ -34,6 +34,11 @@ assert.ok(process.env.CC_E2E_EMAIL && process.env.CC_E2E_PASSWORD, 'Test account
     const refs = await get('/admin/references');
     assert.equal(refs.manifest.fingerprint, '81602969911fe81fc1d5db5a51595fb5124d07ac5f5e97623a21e1232701d72d');
     assert.equal(refs.event_count, 0, 'Refuse to write into an existing event stream');
+    assert.equal(refs.operational_data.baseline_source_rows, 288);
+    assert.equal(refs.operational_data.baseline_lookup_entries, 1440);
+    assert.deepEqual(refs.operational_data.weeks_sampled, [12]);
+    for (const h of refs.operational_data.hospitals) assert.deepEqual(h.hours_by_weekday, [24,24,24,24,24,0,0]);
+    await page.getByRole('heading', { name: 'Hourly baseline coverage' }).waitFor();
     const initialBatchIds = new Set((await get('/admin/uploads')).items.map(b => b.batch_id));
     const upload = async file => {
       const previous = new Set((await get('/admin/uploads')).items.map(b => b.batch_id));
@@ -63,7 +68,7 @@ assert.ok(process.env.CC_E2E_EMAIL && process.env.CC_E2E_PASSWORD, 'Test account
     assert.equal(report.pending_future, 0);
     const after = await get('/snapshot');
     const currentRefs = await get('/admin/references');
-    for (const key of ['dataset', 'reference_revision', 'manifest', 'hospitals', 'physicians']) assert.deepEqual(currentRefs[key], refs[key]);
+    for (const key of ['dataset', 'reference_revision', 'manifest', 'hospitals', 'physicians', 'operational_data']) assert.deepEqual(currentRefs[key], refs[key]);
     assert.equal(currentRefs.event_count, 1166);
     const consult = after.consults.find(c => c.consult_id === 'CON-J01');
     assert.equal(consult.consult_type, 'Stroke');
@@ -75,8 +80,18 @@ assert.ok(process.env.CC_E2E_EMAIL && process.env.CC_E2E_PASSWORD, 'Test account
       for (const entry of old.history) assert.ok(current.history.some(e => e.stage === entry.stage && e.at === entry.at));
     }
     await page.getByRole('link', { name: 'Command', exact: true }).click();
-    await page.getByRole('heading', { name: 'Ranked queue', exact: true }).waitFor();
-    await page.screenshot({ path: path.join(output, 'decisions-desktop.png'), fullPage: true });
+    await page.getByRole('heading', { name: 'Attention queue', exact: true }).waitFor();
+    assert.equal(after.demand.horizon_end, after.coverage.horizon_end);
+    assert.equal(after.demand.horizon_minutes, 90);
+    assert.equal(after.demand.items.find(h => h.hospital_id === 'SYN-005').trailing_60m, 6);
+    await page.getByRole('heading', { name: 'Demand & hourly baseline' }).scrollIntoViewIfNeeded();
+    await page.getByText(/Expected arrivals over the next 90 minutes/).waitFor();
+    await page.screenshot({ path: path.join(output, 'baseline-desktop.png') });
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+    await page.getByRole('heading', { name: 'Demand & hourly baseline' }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(output, 'baseline-mobile.png') });
+    await page.setViewportSize({ width: 1440, height: 1100 });
     await page.getByRole('link', { name: 'Data', exact: true }).click();
     await page.reload();
     const receipt = page.locator('details').filter({ hasText: 'official-reference-unseen.csv' });

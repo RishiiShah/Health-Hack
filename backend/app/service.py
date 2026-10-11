@@ -18,6 +18,7 @@ from app.ops.coverage import HORIZON, current_coverage, forecast_steps, outlook_
 from app.ops.detect import NOTE_STAGES, UNASSIGNED_STAGES, consult_sla, sla_limit
 from app.ops.refs import ET, OpsRefs, load_ops_refs
 from app.ops.overload import overloads
+from app.ops.demand import expected_arrivals
 from app.references import Refs, load_reference_dir
 
 
@@ -471,6 +472,8 @@ class Engine:
         done = self.interventions.latest()
         offers = self.desk.offers()
         coverage = current_coverage(p.state, p.refs, self.ops, d.views, p.as_of)
+        coverage_display = self.coverage_grid(p, d, coverage)
+        horizon_end = datetime.fromisoformat(coverage_display["horizon_end"])
         open_states = [c for c in p.state.consults.values() if c.stage != "Signed Off"]
         short_now = {c.hospital_id for c in coverage if c.gap}
         overload = overloads(p.state, d.views, p.as_of)
@@ -484,7 +487,7 @@ class Engine:
                              "unassigned_consults": sum(c.stage in UNASSIGNED_STAGES and c.owner == "Unassigned" for c in open_states),
                              "hospitals_short_now": len(short_now),
                              "hospitals_short_in_horizon": len(short_now | {g.hospital_id for g in d.gaps if g.kind == "hard" and g.in_horizon}),
-                             "forecast_horizon_minutes": int((forecast_steps(p.refs, self.ops, p.as_of, self.desk.accepted())[-1]-p.as_of).total_seconds()/60),
+                             "forecast_horizon_minutes": int((horizon_end-p.as_of).total_seconds()/60),
                              "offers_awaiting_approval": sum(o.state == "PROPOSED" for o in offers), "offers_out": sum(o.state == "SENT" for o in offers)},
                 "queue": {"supported": True, "items": [item_payload(n, i, done.get(i.id)) for n, i in enumerate(d.items, 1)]},
                 "physicians": {"supported": True, "items": [{"physician_id": v.physician_id, "name": p.refs.physicians[v.physician_id].name,
@@ -505,7 +508,7 @@ class Engine:
                                                           "causes": list(g.causes)} for g in d.gaps],
                              "surges": [{"hospital_id": s.hospital_id, "count": s.count, "p90": s.p90, "until": s.until.isoformat()} for s in d.surges]},
                 "offers": {"supported": True, "items": [self.offer_view(o) for o in offers]},
-                "coverage": self.coverage_grid(p, d, coverage), "demand": demand_view(p, coverage), "workload": workload_view(p, d),
+                "coverage": coverage_display, "demand": demand_view(p, coverage, self.ops, horizon_end), "workload": workload_view(p, d),
                 "dataset": self.dataset,
                 "pending_approvals": sum(o.state == "PROPOSED" for o in offers) + len(self.interventions.pending())}
 
@@ -533,10 +536,17 @@ def data_quality_view(p):
             "expired_orphans": st.get("expired_orphans", 0), "accepted_events": p.event_count}
 
 
-def demand_view(p, coverage):
-    return {"supported": True, "items": [{"hospital_id": c.hospital_id, "hospital_name": p.refs.hospitals[c.hospital_id].name,
-                                          "trailing_60m": c.trailing_60m, "p90": c.p90,
-                                          "status": "unknown" if c.surge is None else "surge" if c.surge else "normal"} for c in coverage]}
+def demand_view(p, coverage, ops, horizon_end):
+    return {"supported": True, "horizon_end": horizon_end.isoformat(),
+            "horizon_minutes": (horizon_end - p.as_of).total_seconds() / 60,
+            "assumption": "Expected arrivals integrate hourly reference means over the coverage horizon. They are a baseline scenario, not a surge probability or future events. Missing hours remain unknown.",
+            "items": [{"hospital_id": c.hospital_id, "hospital_name": p.refs.hospitals[c.hospital_id].name,
+                       "trailing_60m": c.trailing_60m, "p90": c.p90,
+                       "mean_per_hour": ops.mean(c.hospital_id, p.as_of),
+                       "baseline_hour": ops.local(c.hospital_id, p.as_of).replace(minute=0,second=0,microsecond=0).isoformat(),
+                       "baseline_timezone": ops.zones.get(c.hospital_id, "America/New_York"),
+                       "expected_arrivals": expected_arrivals(ops, c.hospital_id, p.as_of, horizon_end),
+                       "status": "unknown" if c.surge is None else "surge" if c.surge else "normal"} for c in coverage]}
 
 
 def workload_view(p, d):

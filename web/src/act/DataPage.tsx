@@ -26,6 +26,7 @@ export function DataPage({ snapshot, now, onChanged }: { snapshot: Snapshot | nu
           ) : (
             <p className="unavailable">Not available yet: the server doesn't describe the loaded dataset.</p>
           )}
+          {!DEMO && <BaselineInventory revision={snapshot?.revision} />}
           <h2 style={{ fontSize: 15, margin: "4px 0 8px" }}>Checks on the event stream</h2>
           <Checks quality={quality} />
           {!DEMO && <Reset onChanged={onChanged} />}
@@ -205,4 +206,30 @@ function UploadHistory({ revision }: { revision?: unknown }) {
       <button className="btn" onClick={() => downloadReport(batch)}>Download report</button>
     </details>)}
   </section>;
+}
+
+
+type OperationalData = {
+  baseline_source_rows: number; baseline_lookup_entries: number; weeks_sampled: number[];
+  coverage_blocks: number; off_shift_roster_entries: number;
+  hospitals: { hospital_id: string; hospital_name: string; baseline_timezone: string; hours_by_weekday: number[] }[];
+};
+
+function BaselineInventory({ revision }: { revision?: unknown }) {
+  const { data, error } = useApi<{ operational_data: OperationalData | null }>("/admin/references", revision);
+  const baseline = data?.operational_data;
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  if (error) return <p className="error" role="alert">Could not load baseline coverage: {error.message}</p>;
+  if (!data) return <p role="status">Loading baseline coverage…</p>;
+  if (!baseline) return <p className="unavailable">No hourly baseline loaded.</p>;
+  const missingDays = days.filter((_, i) => baseline.hospitals.length > 0 && baseline.hospitals.every(h => h.hours_by_weekday[i] === 0));
+  return <div className="baseline-inventory">
+    <h3>Hourly baseline coverage</h3>
+    <p>{baseline.baseline_source_rows} source rows · {baseline.baseline_lookup_entries} day/hour lookups{baseline.weeks_sampled.length > 0 && ` · ${baseline.weeks_sampled.join(", ")} weeks sampled`}</p>
+    <p>{baseline.coverage_blocks} staffing requirement blocks · {baseline.off_shift_roster_entries} off-shift roster entries. Missing baseline hours stay unknown.</p>
+    {missingDays.length > 0 && <p>No baseline supplied for {missingDays.join(", ")}.</p>}
+    <details><summary>See baseline hours by hospital</summary>
+      <ul>{baseline.hospitals.map(h => <li key={h.hospital_id}><b>{h.hospital_name}</b><p>{days.map((day, i) => `${day}: ${h.hours_by_weekday[i]}/24`).join(" · ")} · {h.baseline_timezone}</p></li>)}</ul>
+    </details>
+  </div>;
 }

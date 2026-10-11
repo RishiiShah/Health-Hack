@@ -112,3 +112,30 @@ def seed(client):
         'files': files(), 'name': 'Fixed reference kit', 'service_date': '2026-04-07'})
     assert response.status_code == 200, response.text
     return client.get('/admin/references', headers=ADMIN).json()
+
+
+
+def test_baseline_inventory_and_forecast_use_persisted_reference_hours(db_url, monkeypatch):
+    with TestClient(hosted(db_url,monkeypatch)) as c:
+        assert c.post('/admin/references',headers=ADMIN,json={'files':files(),'service_date':'2026-04-07'}).status_code == 200
+        status = c.get('/admin/references',headers=ADMIN).json()
+        baseline = status['operational_data']
+        assert baseline['baseline_source_rows'] == 24
+        assert baseline['baseline_lookup_entries'] == 120
+        assert baseline['weeks_sampled'] == [12]
+        assert baseline['hospitals'][0]['hours_by_weekday'] == [24,24,24,24,24,0,0]
+        snap = c.get('/snapshot',headers=COORD).json()
+        demand = snap['demand']
+        assert demand['horizon_end'] == snap['coverage']['horizon_end']
+        item = demand['items'][0]
+        assert item['mean_per_hour'] == 0.5
+        assert item['baseline_timezone'] == 'America/New_York'
+        assert item['expected_arrivals'] == demand['horizon_minutes'] / 60 * 0.5
+        assert item['p90'] == 5 and item['status'] == 'normal'
+        # An unseen receipt changes the live observation, never the historical expectation.
+        assert c.post('/events',headers=ADMIN,json={'event_id':'unseen','event_type':'consult_received','event_time':START.isoformat(),
+                'hospital_id':'H','consult_id':'unseen','consult_type':'Stroke'}).status_code == 200
+        after = c.get('/snapshot',headers=COORD).json()['demand']['items'][0]
+        assert after['trailing_60m'] == 1
+        assert after['expected_arrivals'] == item['expected_arrivals']
+        assert c.get('/admin/references',headers=ADMIN).json()['manifest'] == status['manifest']

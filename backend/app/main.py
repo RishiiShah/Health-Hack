@@ -497,7 +497,8 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
                     "reference_revision": p.reference_revision, "revision": p.revision,
                     "event_count": p.event_count, "hospitals": len(p.refs.hospitals) if p.refs else 0,
                     "physicians": len(p.refs.physicians) if p.refs else 0,
-                    "manifest": reference_manifest(source) if source else None}
+                    "manifest": reference_manifest(source) if source else None,
+                    "operational_data": app.state.engine.ops.inventory({hid: h.name for hid, h in p.refs.hospitals.items()}) if app.state.engine.ops and p.refs else None}
 
     @api.post("/admin/references")
     def upload_references(body: ReferencesRequest, request: Request, who: Principal = need("admin.inject")):

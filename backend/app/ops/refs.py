@@ -5,6 +5,7 @@ Two explicit layouts, chosen by header: the sample (`*_et` columns, ET hours) an
 """
 from dataclasses import dataclass
 from datetime import datetime, time
+from math import isfinite
 from pathlib import Path
 from types import MappingProxyType
 from typing import Mapping
@@ -37,6 +38,18 @@ class OpsRefs:
     roster: Mapping[str, RosterEntry]
     zones: Mapping[str, str] = MappingProxyType({})  # zone the hours of each hospital are expressed in; default ET
 
+    baseline_source_rows: int = 0
+    weeks_sampled: tuple[int, ...] = ()
+
+    def inventory(self, hospital_names):
+        return {"baseline_source_rows": self.baseline_source_rows, "baseline_lookup_entries": len(self.baseline),
+                "weeks_sampled": list(self.weeks_sampled), "coverage_blocks": sum(map(len, self.coverage.values())),
+                "off_shift_roster_entries": len(self.roster),
+                "hospitals": [{"hospital_id": hid, "hospital_name": hospital_names[hid],
+                               "baseline_timezone": self.zones.get(hid, "America/New_York"),
+                               "hours_by_weekday": [sum((hid, day, hour) in self.baseline for hour in range(24)) for day in range(7)]}
+                              for hid in sorted(hospital_names)]}
+
     def local(self, hospital_id: str, at: datetime) -> datetime:
         return utc(at).astimezone(ZoneInfo(self.zones[hospital_id]) if hospital_id in self.zones else ET)
 
@@ -66,6 +79,8 @@ def _span(start, end):
 
 def _clock_minutes(value):
     t = time.fromisoformat(value)
+    if t.tzinfo is not None or t.second or t.microsecond:
+        raise ValueError(f"clock must be an unzoned whole minute: {value}")
     return t.hour * 60 + t.minute
 
 
@@ -78,6 +93,8 @@ def _hour_minutes(value):
 
 def _number(value, kind, label):
     number = kind(value)
+    if not isfinite(number):
+        raise ValueError(f"nonfinite {label}: {value}")
     if number < 0:
         raise ValueError(f"negative {label}: {value}")
     return number
@@ -107,6 +124,7 @@ def load_ops_refs(directory: str | Path, hospital_zones: Mapping[str, str], phys
     """`hospital_zones`: hospital id -> IANA zone from hospitals.csv (used for local-hour layouts)."""
     directory = Path(directory)
     baseline, coverage, roster = {}, {}, {}
+    source_rows, weeks = 0, set()
     pack = "hour_local" in _headers(directory / "baseline_hourly_volume.csv")
 
     def known_hospital(hid):
@@ -115,6 +133,8 @@ def load_ops_refs(directory: str | Path, hospital_zones: Mapping[str, str], phys
         return hid
 
     def add_baseline(hid, day, hour, mean, p90):
+        if not 0 <= day <= 6 or not 0 <= hour <= 23:
+            raise ValueError(f"baseline weekday/hour out of range: {day}/{hour}")
         key = (known_hospital(hid), day, hour)
         if key in baseline:
             raise ValueError(f"duplicate baseline hour: {key}")
@@ -130,6 +150,7 @@ def load_ops_refs(directory: str | Path, hospital_zones: Mapping[str, str], phys
 
     if pack:
         for row in _rows(directory / "baseline_hourly_volume.csv", {"hospital_id", "weekday", "hour_local", "mean_consults", "p90_consults"}):
+            source_rows += 1
             add_baseline(row["hospital_id"], int(row["weekday"]), int(row["hour_local"]), row["mean_consults"], row["p90_consults"])
         for row in _rows(directory / "coverage_requirements.csv", {"hospital_id", "start_hour_local", "end_hour_local", "minimum_available"}):
             add_block(row["hospital_id"], _hour_minutes(row["start_hour_local"]), _hour_minutes(row["end_hour_local"]), row["minimum_available"],
@@ -146,8 +167,17 @@ def load_ops_refs(directory: str | Path, hospital_zones: Mapping[str, str], phys
         for row in _rows(directory / "baseline_hourly_volume.csv", {"hospital_id", "dow_type", "hour_start_et", "mean_consults", "p90_consults"}):
             if row["dow_type"] not in DOW_TYPES:
                 raise ValueError(f"unknown dow_type: {row['dow_type']}")
+            source_rows += 1
+            minute = _clock_minutes(row["hour_start_et"])
+            if minute % 60:
+                raise ValueError(f"baseline must start on a whole hour: {row['hour_start_et']}")
+            if row.get("weeks_sampled"):
+                sample = _number(row["weeks_sampled"], int, "weeks sampled")
+                if sample == 0:
+                    raise ValueError("weeks sampled must be positive")
+                weeks.add(sample)
             for day in DOW_TYPES[row["dow_type"]]:
-                add_baseline(row["hospital_id"], day, _clock_minutes(row["hour_start_et"]) // 60, row["mean_consults"], row["p90_consults"])
+                add_baseline(row["hospital_id"], day, minute // 60, row["mean_consults"], row["p90_consults"])
         for row in _rows(directory / "coverage_requirements.csv", {"hospital_id", "time_block_et", "min_available_credentialed_physicians"}):
             start, end = map(_clock_minutes, row["time_block_et"].split("-"))
             add_block(row["hospital_id"], start, end, row["min_available_credentialed_physicians"], row["time_block_et"])
@@ -160,4 +190,4 @@ def load_ops_refs(directory: str | Path, hospital_zones: Mapping[str, str], phys
                 row["preferred_channel"], _number(row["offers_declined_last_30d"], int, "declines")))
         zones = MappingProxyType({})  # *_et columns: every hospital's hours are ET
 
-    return OpsRefs(MappingProxyType(baseline), MappingProxyType({h: tuple(b) for h, b in coverage.items()}), MappingProxyType(roster), zones)
+    return OpsRefs(MappingProxyType(baseline), MappingProxyType({h: tuple(b) for h, b in coverage.items()}), MappingProxyType(roster), zones, source_rows, tuple(sorted(weeks)))

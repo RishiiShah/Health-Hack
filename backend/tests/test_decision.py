@@ -256,3 +256,44 @@ def test_two_eligible_candidates_rank_by_the_stated_order_and_the_winner_changes
         assert fix.physician_id == "B" and f"chosen over A because B {words}" in fix.reason, (field, fix.reason)
     # A rule failure removes a candidate entirely; ranking never overrides a rule.
     assert offer_for(two_candidates(a={"opt_in": False}, b={"declines_30d": 9})).fix.physician_id == "B"
+
+
+@pytest.mark.parametrize("hour,mean,p90", [
+    ("18:30", "1", "2"), ("18:00:01", "1", "2"), ("18:00+04:00", "1", "2"),
+    ("18:00", "nan", "2"), ("18:00", "1", "inf"),
+])
+def test_baseline_rejects_silent_hour_truncation_and_nonfinite_values(tmp_path, hour, mean, p90):
+    with pytest.raises(ValueError):
+        load(tmp_path, baseline=(f"H,H,weekday,{hour},{mean},{p90},12",))
+
+
+@pytest.mark.parametrize("day,hour", [(7, 18), (0, 24), (-1, 18)])
+def test_local_baseline_rejects_unreachable_keys(tmp_path, day, hour):
+    write(tmp_path)
+    (tmp_path / "baseline_hourly_volume.csv").write_text(
+        f"hospital_id,weekday,hour_local,mean_consults,p90_consults\nH,{day},{hour},1,2\n")
+    (tmp_path / "coverage_requirements.csv").write_text("hospital_id,start_hour_local,end_hour_local,minimum_available\n")
+    (tmp_path / "physicians_off_shift_roster.csv").write_text("physician_id,role,opted_in,last_shift_ended,next_shift_start,next_shift_end,hours_worked_7d,minutes_to_online,preferred_channel,declined_offers_30d\n")
+    with pytest.raises(ValueError, match="out of range"):
+        load_ops_refs(tmp_path, {"H": "America/New_York"}, {"R1"})
+
+
+def test_baseline_expected_arrivals_weights_partial_hours_and_missing_weekends(tmp_path):
+    from app.ops.demand import expected_arrivals
+    ops = load(tmp_path, baseline=("H,H,weekday,18:00,6,9,12", "H,H,weekday,19:00,12,15,12"))
+    assert expected_arrivals(ops, "H", et(7,18,20), et(7,20)) == pytest.approx(16)
+    assert expected_arrivals(ops, "H", et(7,18,20), et(7,20,1)) is None
+    assert expected_arrivals(ops, "H", et(11,18,20), et(11,20)) is None
+    assert expected_arrivals(ops, "H", et(7,18,20), et(7,18,20)) == 0
+
+
+@pytest.mark.parametrize("start,end,hours", [
+    ("2026-11-01T05:30:00+00:00", "2026-11-01T07:30:00+00:00", {1: 6, 2: 12}),
+    ("2026-03-08T06:30:00+00:00", "2026-03-08T07:30:00+00:00", {1: 6, 3: 12}),
+])
+def test_baseline_expected_arrivals_integrates_elapsed_time_across_dst(start, end, hours):
+    from app.ops.demand import expected_arrivals
+    from app.ops.refs import OpsRefs
+    ops = OpsRefs({("H",6,h): (mean,20) for h,mean in hours.items()}, {}, {})
+    expected = 15 if len(hours) == 2 and 2 in hours else 9
+    assert expected_arrivals(ops,"H",datetime.fromisoformat(start),datetime.fromisoformat(end)) == pytest.approx(expected)

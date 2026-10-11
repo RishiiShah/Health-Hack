@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { clockTime } from "../act/time.ts";
-import { cellText, cellTone, stepLabel } from "./cells.ts";
+import { cellText, cellTone, stepLabel, elapsedMinutes } from "./cells.ts";
 import type { Coverage, CoverageCell } from "./types.ts";
 import "./forecast.css";
 
@@ -19,12 +19,13 @@ export function CoverageGrid({ coverage, onFindCover }: { coverage?: Coverage; o
   if (!coverage?.supported || !coverage.steps || !coverage.hospitals) {
     return (
       <section className="panel coverage">
-        <div className="panel-head"><h2>Coverage, next 90 minutes</h2></div>
+        <div className="panel-head"><h2>Coverage forecast</h2></div>
         <p className="unavailable">Not available yet: the server doesn't send the coverage forecast.</p>
       </section>
     );
   }
 
+  const horizon = elapsedMinutes(coverage.steps.at(-1)!, coverage.steps[0]);
   const hospitals = coverage.hospitals;
   const needsAttention = (h: typeof hospitals[number]) => h.nobody_reachable_now || h.cells.some(c => c.status === "gap" || c.status === "unknown" || c.unverified);
   const visible = attentionOnly ? hospitals.filter(needsAttention) : hospitals;
@@ -37,8 +38,8 @@ export function CoverageGrid({ coverage, onFindCover }: { coverage?: Coverage; o
   return (
     <section className="panel coverage">
       <div className="panel-head coverage-heading">
-        <div><span className="coverage-eyebrow">Staffing outlook</span><h2>Coverage, next 90 minutes</h2><p>Compare staffing with the minimum at each hospital. Select a time to review coverage.</p></div>
-        <span className="coverage-horizon">15-minute intervals</span>
+        <div><span className="coverage-eyebrow">Staffing outlook</span><h2>Coverage, next {horizon} minutes</h2><p>Compare staffing with the minimum at each hospital. Select a time to review coverage.</p></div>
+        <span className="coverage-horizon">15-minute observations & shift changes</span>
       </div>
       <div className="coverage-summary">
         <div className={gapsNow ? "summary-risk" : ""}><strong>{gapsNow}</strong><span>Below minimum now<small>Hospitals needing coverage</small></span></div>
@@ -55,9 +56,9 @@ export function CoverageGrid({ coverage, onFindCover }: { coverage?: Coverage; o
       <div className="coverage-workspace">
         <div className="coverage-matrix">
           <p className="coverage-scroll-hint">Scroll across to see all forecast intervals →</p>
-          <div className="table-wrap" tabIndex={0} role="region" aria-label="Hospital coverage over the next 90 minutes">
+          <div className="table-wrap" tabIndex={0} role="region" aria-label={`Hospital coverage over the next ${horizon} minutes`}>
             <table>
-              <thead><tr><th className="hosp">Hospital</th>{coverage.steps.map((at, i) => <th key={at} className={i === 0 ? "current-time" : undefined}>{stepLabel(at, i)}<small>{i === 0 ? "Current" : `+${i * 15} min`}</small></th>)}</tr></thead>
+              <thead><tr><th className="hosp">Hospital</th>{coverage.steps.map((at, i) => <th key={at} className={i === 0 ? "current-time" : undefined}>{stepLabel(at, i)}<small>{i === 0 ? "Current" : `+${elapsedMinutes(at, coverage.steps![0])} min`}</small></th>)}</tr></thead>
               <tbody>
                 {visible.map(h => (
                   <tr key={h.hospital_id}>

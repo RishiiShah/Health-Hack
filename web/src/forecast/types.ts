@@ -22,7 +22,10 @@ export type Coverage = {
 
 export type Demand = {
   supported: boolean;
-  items?: { hospital_id: string; hospital_name: string; trailing_60m: number; p90: number | null; status: "surge" | "normal" | "unknown" }[];
+  horizon_minutes?: number;
+  horizon_end?: string;
+  assumption?: string;
+  items?: { hospital_id: string; hospital_name: string; mean_per_hour?: number | null; baseline_hour?: string; baseline_timezone?: string; expected_arrivals?: number | null; trailing_60m: number; p90: number | null; status: "surge" | "normal" | "unknown" }[];
 };
 
 export type Level = "Critical" | "Warning" | null;

@@ -197,7 +197,7 @@ function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
   const shownQueue = detect?.queue.filter((q) => queueFilter === "All" || q.level === queueFilter) ?? [];
   const item = shownQueue.find((entry) => entry.id === selectedId) ?? shownQueue[0] ?? null;
   return <div className="command-page">
-    <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Operations command center</h1><p className="command-subtitle">Work top to bottom: resolve priority items, check coverage for the next 90 minutes, then follow each offer to its outcome.</p></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
+    <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Operations command center</h1><p className="command-subtitle">Work top to bottom: resolve priority items, check coverage across the forecast horizon, then follow each offer to its outcome.</p></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
     {detect && <HeadlineNumbers headline={detect.headline} />}
     <nav className="command-section-nav" aria-label="Dashboard sections"><span>On this page</span><a href="#command-attention">1. Priority actions</a><a href="#command-forecast">2. Coverage forecast</a><a href="#command-actions">3. Coverage offers</a></nav>
     <section id="command-attention" tabIndex={-1} className="command-section" aria-labelledby="attention-heading">

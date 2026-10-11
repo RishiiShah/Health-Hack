@@ -71,3 +71,14 @@ behavior with the production reference snapshot, not a hosted browser pass.
 After deployment, verify `/ready`, reference fingerprint/revision, and receipt
 persistence across a service restart. Rehearse event ingestion against a separate
 hosted test database so the production day is not altered by test uploads.
+
+
+## Joy merge and hourly baseline audit — 2026-10-11
+
+Merged `origin/web-joy` at `6b4d090`, preserving fixed-reference and append-only event workflows. Verified the official reference fingerprint against production with read-only SQL and against localhost. The hourly baseline is already persisted: 288 source rows, 12 sampling weeks, 1,440 weekday lookups across 12 hospitals; 36 requirement blocks and 6 off-shift roster entries. No weekend rows were supplied.
+
+Added failing regressions before implementation for invalid hourly starts, nonfinite baseline values, invalid local weekday/hour keys, partial-hour expected demand, DST elapsed-time integration, persisted inventory, live-event/reference separation and exact forecast column offsets. The backend now exposes baseline inventory and expected arrivals over the shared display horizon. Joy’s index-based forecast offsets and hardcoded 90-minute heading are corrected. The PRD now matches the observed-receipt surge expiry policy.
+
+Validation: 378 backend tests, 58 web tests, production web build, and Playwright/Chrome with a disposable database seeded from the official production references. Official CSV: 1,163 accepted plus 1 duplicate. Unseen CSV: 3 accepted plus 1 duplicate, 18 consult histories retained, surge count 6, references unchanged, report checksum/download/reload verified. The incompatible development pack held all 125 rows and did not change decisions or references. Computer use confirmed baseline inventory on the normal local app; read-only Playwright verified its actual 100-minute horizon, 19:00 = +40 and 20:00 = +100, and desktop/mobile baseline displays without page overflow.
+
+Removed the four reported accent-border issues and two remaining top accents in the same stylesheet. No detector suppressions added; the final scoped design scan reports no findings. No production writes, source CSV commits, new dependencies, or model inference added. Render browser/deployment verification remains pending as above.
