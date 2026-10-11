@@ -28,25 +28,37 @@ export function DataPage({ snapshot, now, onChanged }: { snapshot: Snapshot | nu
         )}
         {!DEMO && <BaselineInventory revision={snapshot?.revision} />}
       </section>
-      {!DEMO && <StoredKits revision={snapshot?.revision} />}
+      {!DEMO && <StoredKits revision={snapshot?.revision} onChanged={onChanged} />}
       </div>
     </>
   );
 }
 
-function StoredKits({ revision }: { revision?: unknown }) {
+function StoredKits({ revision, onChanged }: { revision?: unknown; onChanged: () => void }) {
   const [reload, setReload] = useState(0);
   const [adding, setAdding] = useState(false);
+  const [switching, setSwitching] = useState<string | null>(null);
+  const [switchError, setSwitchError] = useState<string | null>(null);
   const { data, error } = useApi<{ kits?: StoredKit[] }>("/admin/references", `${revision}:${reload}`);
+  async function activate(kit: StoredKit) {
+    if (!window.confirm(`Switch to ${kit.name}? The event stream, offers and interventions start empty, and the clock pauses at 18:20 on its service date.`)) return;
+    setSwitching(kit.fingerprint); setSwitchError(null);
+    try {
+      await post("/admin/references/activate", { fingerprint: kit.fingerprint });
+      setReload((n) => n + 1); onChanged();
+    } catch (e) { setSwitchError((e as Error).message); } finally { setSwitching(null); }
+  }
   return <section className="panel upload-history" aria-labelledby="kits-heading">
     <div className="panel-head"><h2 id="kits-heading">Stored reference kits</h2><button className="btn primary" onClick={() => setAdding(true)}>Add reference kit<span aria-hidden="true">+</span></button></div>
     <AddKit open={adding} onClose={() => setAdding(false)} onAdded={() => setReload((n) => n + 1)} />
-    <p className="hint">An events CSV whose hospitals and physicians all belong to one of these kits switches to it with a fresh event stream. A stored kit never changes.</p>
+    <p className="hint">Switch to a kit to start a fresh event stream on it, then add its events. A stored kit never changes.</p>
     {error && <p className="error" role="alert">Could not load reference kits: {error.message}</p>}
+    {switchError && <p className="error" role="alert">Could not switch kits: {switchError}</p>}
     {!data && !error && <p role="status">Loading reference kits…</p>}
     {data?.kits && <ul className="checks">{data.kits.map(kit => <li key={kit.fingerprint}>
       <span><b>{kit.name}</b> · {kit.hospitals} hospitals · {kit.physicians} physicians{kit.service_date ? ` · ${kit.service_date}` : ""}</span>
-      <span className={`badge ${kit.active ? "green" : "neutral"}`}>{kit.active ? "Active" : "Stored"}</span>
+      {kit.active ? <span className="badge green">Active</span>
+        : <button className="btn" disabled={switching !== null} onClick={() => void activate(kit)}>{switching === kit.fingerprint ? "Switching…" : "Switch"}</button>}
     </li>)}</ul>}
   </section>;
 }
@@ -83,7 +95,7 @@ function AddKit({ open, onClose, onAdded }: { open: boolean; onClose: () => void
   return <Modal open={open} kicker="Reference data" title="Add a reference kit" onClose={close}>
     {result ? <>
       <p className="notice">{result.unchanged ? "This kit is already stored; nothing changed." : result.activated ? "Kit stored and made active." : "Kit stored beside the active one."} {result.hospitals} hospitals · {result.physicians} physicians.</p>
-      <p className="hint">An events CSV whose hospitals and physicians belong to this kit switches to it with a fresh event stream.</p>
+      <p className="hint">Use Switch in the stored kits list to make it active.</p>
       <div className="modal-actions"><button className="btn primary" onClick={close}>Done</button></div>
     </> : <>
       <p className="hint">Choose all six CSVs at once (they are matched by file name). A stored kit never changes; the first kit must be the official Sevaro kit.</p>
@@ -91,7 +103,7 @@ function AddKit({ open, onClose, onAdded }: { open: boolean; onClose: () => void
       <ul className="modal-list">{KIT_FILES.map((f) => <li key={f}><span className="mono">{f}</span><span className={`badge ${f in files ? "green" : "neutral"}`}>{f in files ? "ready" : "missing"}</span></li>)}</ul>
       <div className="kit-fields">
         <label>Kit name<input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="uploaded references" /></label>
-        <label>Service date<input type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} /><small className="hint">Only for the sample layout, whose shift times have no date.</small></label>
+        <label>Service date<input type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} /><small className="hint">Only for the sample layout, whose shift times have no date. Leave it empty for a kit that is already stored.</small></label>
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="modal-actions">

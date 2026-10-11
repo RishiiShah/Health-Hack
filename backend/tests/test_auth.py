@@ -134,20 +134,3 @@ def test_tokens_expire_and_tampering_is_rejected():
 def test_bad_account_config_fails_at_startup(users, secret):
     with pytest.raises(ValueError):
         Accounts(users, secret)
-
-
-def test_sign_in_resumes_a_paused_replay_clock(db_url, monkeypatch):
-    from dataclasses import replace
-    from app import main
-    from conftest import ADMIN, TEST_AUTH
-    at = "2026-03-17T18:20:00-04:00"
-    with TestClient(create_app(db_url, FixedClock(datetime.fromisoformat(at)), auth=TEST_AUTH, sweep_s=0)) as c:
-        assert c.post("/admin/clock", headers=ADMIN, json={"at": at, "paused": True}).json()["paused"]
-    monkeypatch.setattr(main, "settings", replace(main.settings, reference_dir=None, reference_fingerprint=None))
-    with TestClient(create_app(db_url, auth=Auth(Accounts(USERS, SECRET)), sweep_s=0)) as c:  # restores the saved pause
-        assert c.app.state.clock.mode == "fixed"
-        assert sign_in(c, "lead@example.test").status_code == 200
-        assert c.app.state.clock.mode == "anchored"
-        assert c.app.state.clock.now() >= datetime.fromisoformat(at)
-    with TestClient(create_app(db_url, auth=Auth(Accounts(USERS, SECRET)), sweep_s=0)) as c:  # and the resume was saved
-        assert c.app.state.clock.mode == "anchored"

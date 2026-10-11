@@ -5,7 +5,7 @@ Clients only display what this returns; every level, gap, candidate and fix is c
 from dataclasses import asdict, dataclass, field
 import hashlib
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Lock
@@ -42,6 +42,12 @@ def reference_manifest(source):
 def dataset_label(source):
     return {"name": source["name"], "description": "uploaded reference files", "reference_files": len(source["files"]),
             "fingerprint": reference_manifest(source)["fingerprint"]}
+
+
+def same_files(a: dict, b: dict) -> bool:
+    """The same CSVs, ignoring a byte-order mark, line endings and trailing blank lines (as a browser may save them)."""
+    text = lambda files: {name: body.lstrip("\ufeff").replace("\r\n", "\n").strip() for name, body in files.items()}
+    return text(a) == text(b)
 
 
 def references_from_files(files: dict[str, str], service_date: date | None = None) -> tuple[Refs, OpsRefs]:
@@ -102,6 +108,9 @@ def item_payload(rank, item, intervention=None):
             "candidates": len(item.candidates), "intervention": jsonable(intervention) if intervention else None}
 
 
+KIT_START = time(18, 20)  # Eastern: the sample's as-of time; a switched kit's clock waits here, paused
+
+
 @dataclass
 class Engine:
     """Decisions for the current publication, cached until the revision, the clock second or an offer changes."""
@@ -143,6 +152,27 @@ class Engine:
         if fingerprint not in kits:
             kits[fingerprint] = {"source": source, "hospital_ids": sorted(refs.hospitals), "physician_ids": sorted(refs.physicians)}
             self.coordinator.db.set_metadata("reference_kits", kits)
+
+    def stored_service_date(self, files: dict) -> date | None:
+        """The service date a stored copy of these CSVs was given, so the same kit can be uploaded again without one."""
+        return next((date.fromisoformat(kit["source"]["service_date"]) for _, kit in sorted(self.stored_kits().items())
+                     if kit["source"].get("service_date") and same_files(kit["source"]["files"], files)), None)
+
+    def switch_kit(self, fingerprint: str, actor: str) -> datetime | None:
+        """Make a stored kit active with a fresh, empty stream: offers and interventions start empty. Returns the
+        kit's start time, 18:20 Eastern on its service date (the sample's as-of time), or None for a dated layout."""
+        kit = self.stored_kits().get(fingerprint)
+        if kit is None:
+            raise KeyError(fingerprint)
+        source = kit["source"]
+        day = date.fromisoformat(source["service_date"]) if source.get("service_date") else None
+        with self.desk.lock, self.swap:  # the desk lock first, as in ingest_upload
+            refs, ops = references_from_files(source["files"], day)
+            self.coordinator.ingest_raw([], refs=refs, source=source)
+            self.ops, self.dataset = ops, dataset_label(source)
+            self.desk.reset(actor, self.coordinator.clock.now())
+            self.interventions.reset()
+        return datetime.combine(day, KIT_START, ET) if day else None
 
     def _kit_for(self, hospital_ids: set, physician_ids: set) -> dict | None:
         """The stored kit an events-only file belongs to, or None to append to the active kit. A file that shares any

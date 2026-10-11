@@ -181,3 +181,33 @@ def test_a_restart_does_not_wait_for_another_server_reading_offers(db_url, monke
         other.execute("SELECT * FROM offers")
         with TestClient(hosted(db_url, monkeypatch)) as client:
             assert client.get('/ready').status_code == 200
+
+
+def test_an_admin_switches_to_a_stored_kit_and_its_clock_waits_paused_at_18_20(db_url, monkeypatch):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    with TestClient(hosted(db_url, monkeypatch)) as client:
+        before = seed(client)
+        upload(client, events('H', 'P', 'OLD'))
+        second = store_second(client)['manifest']['fingerprint']
+        switched = client.post('/admin/references/activate', headers=ADMIN, json={'fingerprint': second})
+        assert switched.status_code == 200, switched.text
+        start = datetime(2026, 4, 7, 18, 20, tzinfo=ZoneInfo('America/New_York'))
+        assert switched.json()['paused'] is True and datetime.fromisoformat(switched.json()['now']) == start
+        snap = client.get('/snapshot', headers=COORD).json()
+        assert (snap['dataset']['name'], snap['consults']) == ('Second kit', [])
+        assert client.get('/admin/references', headers=ADMIN).json()['event_count'] == 0
+        # Back to the first kit the same way: its events are not carried over.
+        assert client.post('/admin/references/activate', headers=ADMIN, json={'fingerprint': before['manifest']['fingerprint']}).status_code == 200
+        assert client.get('/snapshot', headers=COORD).json()['consults'] == []
+        assert client.post('/admin/references/activate', headers=ADMIN, json={'fingerprint': 'nope'}).status_code == 404
+
+
+def test_a_stored_kit_uploaded_again_without_a_date_uses_its_stored_date(db_url, monkeypatch):
+    with TestClient(hosted(db_url, monkeypatch)) as client:
+        seed(client)
+        store_second(client)
+        kits = len(client.get('/admin/references', headers=ADMIN).json()['kits'])
+        again = client.post('/admin/references', headers=ADMIN, json={'files': second_kit(), 'name': 'Second kit'})
+        assert again.status_code == 200, again.text
+        assert len(client.get('/admin/references', headers=ADMIN).json()['kits']) == kits

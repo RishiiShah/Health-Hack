@@ -58,6 +58,10 @@ class ClockRequest(BaseModel):
     paused: bool | None = None  # True = fixed at the current time, False = resume running
 
 
+class SwitchKitRequest(BaseModel):
+    fingerprint: str
+
+
 class ReferencesRequest(BaseModel):
     files: dict[str, str]  # the six reference CSVs: file name -> text (REFERENCE_FILES)
     service_date: date | None = None  # only the sample layout needs it: its shift times have no date
@@ -230,10 +234,6 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         if accounts is None:
             raise HTTPException(503, "Account sign-in is not configured on this server (set CC_USERS).")
         token, user, expires = accounts.login(body.email, body.password, body.portal)
-        clock = request.app.state.clock
-        if test_clock is None and clock.mode == "fixed":  # a paused replay runs again from where it stopped once someone signs in
-            request.app.state.clock = AnchoredClock(clock.now())
-            request.app.state.coordinator.set_clock(request.app.state.clock)
         response.headers["Cache-Control"] = "no-store"
         return {"token": token, "expires_at": expires, "user": user.public()}
 
@@ -516,11 +516,12 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         stored beside it. The active kit is never replaced here: an event upload for a stored kit switches to it."""
         if sum(map(len, body.files.values())) > MAX_REFERENCE_CHARS:
             raise HTTPException(413, "reference files exceed the size limit")
+        service_date = body.service_date or request.app.state.engine.stored_service_date(body.files)
         try:
-            refs, ops = references_from_files(body.files, body.service_date)
+            refs, ops = references_from_files(body.files, service_date)
         except (ValueError, KeyError, csv.Error) as exc:  # KeyError includes an unknown time zone
             raise HTTPException(422, f"reference files rejected: {exc}") from None
-        source = {"name": body.name, "service_date": body.service_date.isoformat() if body.service_date else None, "files": body.files}
+        source = {"name": body.name, "service_date": service_date.isoformat() if service_date else None, "files": body.files}
         official = reference_fingerprint and reference_manifest(source)["fingerprint"] == reference_fingerprint
         if reference_fingerprint and not official and request.app.state.coordinator.refs is None:
             raise HTTPException(409, "The first reference kit must be the official Sevaro kit")
@@ -531,6 +532,19 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         return {"activated": not kept, "unchanged": report.get("unchanged", False), "stored": report.get("stored", False),
                 "dataset": request.app.state.engine.dataset, "revision": report["revision"],
                 "hospitals": len(refs.hospitals), "physicians": len(refs.physicians), "manifest": reference_manifest(source)}
+
+    @api.post("/admin/references/activate")
+    def switch_kit(body: SwitchKitRequest, request: Request, who: Principal = need("admin.inject")):
+        """Switch to a stored kit with a fresh stream. The clock waits, paused, at the kit's start until someone resumes it."""
+        app = request.app
+        try:
+            start = app.state.engine.switch_kit(body.fingerprint, who.display_name)
+        except KeyError:
+            raise HTTPException(404, "no stored reference kit with that fingerprint") from None
+        app.state.clock = FixedClock(start or app.state.clock.now())
+        app.state.coordinator.set_clock(app.state.clock)
+        return {"dataset": app.state.engine.dataset, "revision": app.state.coordinator.published.revision,
+                "now": app.state.coordinator.current_publication().as_of.isoformat(), "paused": True}
 
     @api.post("/admin/reset")
     def reset(request: Request, who: Principal = need("admin.inject")):
