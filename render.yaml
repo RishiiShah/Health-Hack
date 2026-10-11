@@ -17,16 +17,9 @@ services:
         sync: false
       - key: CC_CLOCK_MODE
         value: auto
-      - key: CC_COORDINATOR_TOKEN  # demo tokens and the physician-token secret: set in the dashboard, never in Git
-        sync: false
-      - key: CC_LEAD_TOKEN
-        sync: false
-      - key: CC_ADMIN_TOKEN
-        sync: false
-      - key: CC_TOKEN_SECRET
-        sync: false
-      - key: CC_LEAD_NAME
-        sync: false
+      - key: CC_TOKEN_SECRET  # signs physician links; Render generates it
+        generateValue: true
+      # Optional fixed role tokens (CC_COORDINATOR_TOKEN, CC_LEAD_TOKEN, CC_ADMIN_TOKEN) can be added in the dashboard later.
       - key: ELEVENLABS_API_KEY
         sync: false
       - key: ELEVENLABS_VOICE_ID
