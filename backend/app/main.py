@@ -21,7 +21,7 @@ from app.auth import Accounts, Auth, Principal
 from app.clock import AnchoredClock, FixedClock, ServerReceiptClock, make_clock, restore_clock, utc
 from app.config import settings
 from app.coordinator import MutationCoordinator
-from app.db import EventDatabase
+from app.db import EventDatabase, usable_ca
 from app.decide.eligibility import MAX_WEEKLY_OFFERS
 from app.ingest.adapters import FIXTURE_VERSION
 from app.models import EventInput
@@ -108,6 +108,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
     # (a new key) re-encodes at once; only clock-derived fields may lag by <1 s.
     snapshot_cache = [(None, b"")]
     url = database_url or settings.database_url
+    url = usable_ca(url) if url else url  # a laptop CA path falls back to the image bundle
     reference_fingerprint = settings.reference_fingerprint
 
     @asynccontextmanager

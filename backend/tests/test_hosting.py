@@ -52,3 +52,17 @@ def test_local_env_file_fills_only_missing_variables(tmp_path, monkeypatch):
     assert (os.environ["CC_A"], os.environ["CC_B"], os.environ["CC_C"]) == ("plain", "quoted $with$dollars", "double")
     assert os.environ["CC_KEEP"] == "from-environment"
     load_env_file(tmp_path / "missing.env")  # no file (Render, Docker): nothing happens
+
+
+def test_database_url_falls_back_to_the_image_ca_bundle(tmp_path, monkeypatch):
+    from psycopg.conninfo import conninfo_to_dict
+    from app import db
+    bundle = tmp_path / "rds-global-bundle.pem"
+    bundle.write_text("certificate")
+    monkeypatch.setattr(db, "IMAGE_CA", str(bundle))
+    laptop = "postgresql://u:p@db.example:5432/cc?sslmode=verify-full&sslrootcert=/Users/someone/rds-global-bundle.pem"
+    fixed = conninfo_to_dict(db.usable_ca(laptop))
+    assert (fixed["sslrootcert"], fixed["sslmode"], fixed["dbname"]) == (str(bundle), "verify-full", "cc")
+    present = f"postgresql://u:p@db.example/cc?sslrootcert={bundle}"
+    assert db.usable_ca(present) == present  # an existing file is kept as given
+    assert db.usable_ca("postgresql://u:p@db.example/cc?sslrootcert=system").endswith("sslrootcert=system")

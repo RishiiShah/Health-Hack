@@ -1,8 +1,20 @@
 """Single-writer PostgreSQL transactions for accepted, held and rejected events."""
 import json
+from pathlib import Path
 import psycopg
+from psycopg.conninfo import conninfo_to_dict, make_conninfo
 from psycopg.rows import dict_row
 from app.models import Event
+
+IMAGE_CA = "/etc/ssl/certs/rds-global-bundle.pem"  # baked into the Docker image
+
+
+def usable_ca(url: str) -> str:
+    """A database URL copied from a laptop names a CA file that does not exist on the host; use the image's bundle."""
+    root = conninfo_to_dict(url).get("sslrootcert")
+    if root and root != "system" and not Path(root).is_file() and Path(IMAGE_CA).is_file():
+        return make_conninfo(url, sslrootcert=IMAGE_CA)
+    return url
 
 # Serializes schema creation when an old and a new instance start together.
 SCHEMA_LOCK = 7_310_001
