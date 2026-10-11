@@ -111,7 +111,8 @@ export function createDemoServer(localNow: () => number = Date.now) {
     expire();
     const url = new URL(path, "http://demo");
     const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
-    const json = body ? JSON.parse(body) : {};
+    // CSV uploads send plain text; every other body is JSON.
+    const json = body && url.pathname !== "/events/csv" ? JSON.parse(body) : {};
 
     if (method === "POST" && url.pathname === "/auth/login") {
       const user = DEMO_ACCOUNTS.find((a) => a.email === String(json.email).trim().toLowerCase());
@@ -210,11 +211,15 @@ export function createDemoServer(localNow: () => number = Date.now) {
         return record;
       }
       if (url.pathname === "/events" || url.pathname === "/events/csv") {
-        const rows = url.pathname === "/events" ? [json].flat().length : (body ?? "").trim().split("\n").filter((l) => l && !l.startsWith("event_id")).length;
+        const lines = url.pathname === "/events" ? [] : (body ?? "").trim().split("\n").filter((l) => l && !l.startsWith("event_id"));
+        const rows = url.pathname === "/events" ? [json].flat().length : lines.length;
+        const times = lines.map((l) => Date.parse(l.split(",")[1])).filter((t) => !Number.isNaN(t));
         revision += 1;
-        return { accepted: rows, duplicates: 0, conflicts: 0, reordered: 0, late: 0, held_orphans: 0, quarantined: [], revision, pending_future: 0 } satisfies IngestReport;
+        return { accepted: rows, duplicates: 0, conflicts: 0, reordered: 0, late: 0, held_orphans: 0, quarantined: [], revision, pending_future: 0,
+          latest_event_time: times.length ? new Date(Math.max(...times)).toISOString() : null } satisfies IngestReport;
       }
       if (url.pathname === "/admin/clock") {
+        if (json.at) advancedMs += Date.parse(json.at) - now();
         if (json.advance_s) advancedMs += json.advance_s * 1000;
         if (json.paused === true && pausedAt === null) pausedAt = localNow();
         if (json.paused === false && pausedAt !== null) { advancedMs -= localNow() - pausedAt; pausedAt = null; }

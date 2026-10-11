@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from "react";
 import { post } from "../api/client.ts";
-import { clockTime, etTimeOn } from "./time.ts";
+import { clockTime, etTimeOn, nextMinute } from "./time.ts";
 import type { Candidate, Gap, Offer } from "./types.ts";
 import "./act.css";
 
 // Coordinator's proposal. Physician and hospitals are fixed; the server validates every rule on submit.
-export function OfferForm({ gap, candidate, onProposed }: { gap: Gap; candidate: Candidate; onProposed: (o: Offer) => void }) {
-  const [start, setStart] = useState(clockTime(gap.start));
+// A gap already under way starts at the current second, so the suggested start is the next whole minute after both
+// the gap start and the server's clock (`now`); otherwise the HH:MM field would already lie in the past.
+export function OfferForm({ gap, candidate, now, onProposed }: { gap: Gap; candidate: Candidate; now: number | null; onProposed: (o: Offer) => void }) {
+  const [start, setStart] = useState(() => clockTime(nextMinute(Math.max(Date.parse(gap.start) - 1, now ?? 0))));
   const [end, setEnd] = useState(clockTime(gap.end));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -15,12 +17,16 @@ export function OfferForm({ gap, candidate, onProposed }: { gap: Gap; candidate:
     event.preventDefault();
     setBusy(true);
     setError(null);
+    const startAt = etTimeOn(gap.start, start);
     try {
       onProposed(await post<Offer>("/offers", {
-        gap_id: gap.gap_id, physician_id: candidate.physician_id, start: etTimeOn(gap.start, start), end: etTimeOn(gap.end, end),
+        gap_id: gap.gap_id, physician_id: candidate.physician_id, start: startAt, end: etTimeOn(gap.end, end),
       }));
     } catch (e) {
-      setError((e as Error).message);
+      // The clock keeps running while the form is open: when the chosen start has passed, offer the next minute.
+      const moved = now !== null && Date.parse(startAt) <= now ? clockTime(nextMinute(now)) : null;
+      if (moved) setStart(moved);
+      setError(`${(e as Error).message}${moved ? `. Start moved to ${moved} ET; check it and send again.` : ""}`);
     } finally {
       setBusy(false);
     }

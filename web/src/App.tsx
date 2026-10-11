@@ -1,5 +1,5 @@
 // App shell: sign-in gate, Anish's header and pages per role, all fed from the server (or the demo stand-in).
-import { useEffect, useState, type ReactNode } from "react";
+import { Component, useEffect, useState, type ReactNode } from "react";
 import { api, DEMO, post } from "./api/client.ts";
 import { useSnapshot, type Snapshot } from "./api/live.ts";
 import { ApprovalsPage } from "./act/ApprovalsPage.tsx";
@@ -134,7 +134,17 @@ function Header({ session, page, clock, counts = {} }: { session: Session; page:
   </header>;
 }
 
-const Main = ({ children }: { children: ReactNode }) => <main className="workspace-main">{children}</main>;
+// A crash inside one page shows an error there instead of unmounting the whole app; changing page starts afresh.
+class PageBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    return this.state.error
+      ? <p className="error" role="alert">This page couldn't be displayed ({this.state.error.message}). The other pages still work; reload to try again.</p>
+      : this.props.children;
+  }
+}
+const Main = ({ page, children }: { page: string; children: ReactNode }) => <main className="workspace-main"><PageBoundary key={page}>{children}</PageBoundary></main>;
 const Title = ({ eyebrow, title, note }: { eyebrow: string; title: string; note?: string }) =>
   <div className="workspace-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1></div>{note && <span className="mono muted">{note}</span>}</div>;
 const Unavailable = ({ what }: { what: string }) => <p className="unavailable">Not available yet: the server doesn't send {what}.</p>;
@@ -152,7 +162,7 @@ function OperationsApp({ session }: { session: Session }) {
 
   return <div className={`${page === "command" ? "command-shell " : ""}min-h-screen bg-[#FBF9F5] text-slate-900`}>
     <Header session={session} page={page} clock={clock} counts={role === "lead" ? { approvals: Number(s?.pending_approvals ?? 0) } : {}} />
-    <Main>
+    <Main page={page}>
       {live.error && <p className="error" role="status">{s ? "Updates interrupted. Showing the last received snapshot. " : "Can't reach the server: "}{live.error}</p>}
       {page === "command" && s && <CommandPage snapshot={s} detect={detect} now={now} offers={offers.data?.items ?? []} reloadKey={live.receivedAt} refresh={live.refresh} />}
       {page === "consults" && <div className="page detail-page"><Title eyebrow={workspace} title="Consults" note="Level from the server" />{detect ? <><ConsultQueues detect={detect} onReview={showConsult} /><ConsultBoard consults={detect.consults} /></> : <Unavailable what="consults with levels" />}</div>}
@@ -211,7 +221,7 @@ function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
       <div className="command-section-head"><div><span className="section-index">02 · Forecast</span><h2 id="coverage-heading">Where coverage needs support</h2></div><p>Staffing against the minimum at each hospital, with recent demand.</p></div>
       <div className="command-coverage">
       <CoverageGrid coverage={snapshot.coverage as Coverage | undefined} onFindCover={setGapId} />
-      {gapId && <div id="command-cover-action"><GapPanel gapId={gapId} reloadKey={reloadKey} canPropose onClose={() => setGapId(null)} onProposed={() => { setGapId(null); refresh(); }} /></div>}
+      {gapId && <div id="command-cover-action"><GapPanel gapId={gapId} reloadKey={reloadKey} now={now} canPropose onClose={() => setGapId(null)} onProposed={() => { setGapId(null); refresh(); }} /></div>}
       </div>
       <DemandPanel demand={snapshot.demand as Demand | undefined} />
     </section>
@@ -286,7 +296,7 @@ function PhysicianApp({ session }: { session: Session }) {
   const page = useHashPage(PAGES_BY_ROLE.physician);
   return <div className="min-h-screen bg-[#FBF9F5] text-slate-900">
     <Header session={session} page={page} />
-    <Main>
+    <Main page={page}>
       {page === "shift" && <MyShift />}
       {page === "offers" && <OffersPage />}
       {page === "settings" && <div className="page"><Title eyebrow="Physician workspace" title="Settings" note={session.user.name} /><section className="panel"><h2>Notifications</h2><p className="muted">Offers arrive in this app and on your phone. They show the hospital and hours only, never patient details.</p></section></div>}

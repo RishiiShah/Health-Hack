@@ -36,7 +36,10 @@ async function send<T>(path: string, init: RequestInit, token: string | null): P
     if (error instanceof Error && error.name === "TimeoutError") throw new Error("The server took too long to respond. Try again.");
     throw new Error("Can't reach the server. Check your connection and try again.");
   }
-  const body = response.headers.get("Content-Type")?.includes("json") ? await response.json() : await response.text();
+  const type = response.headers.get("Content-Type") ?? "";
+  // A path the backend doesn't serve can come back as the web server's index.html; treat it as the missing route it is.
+  if (response.ok && type.includes("text/html")) throw new ApiError(404, "Not Found");
+  const body = type.includes("json") ? await response.json() : await response.text();
   if (!response.ok) {
     const detail = typeof body === "object" && body && "detail" in body ? body.detail : body;
     const message = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((d) => d.msg).join("; ") : "";

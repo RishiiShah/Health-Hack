@@ -103,3 +103,20 @@ test("demo clock pauses and jumps forward", () => {
   post(server, "/admin/clock", { advance_s: 300 }, LEAD);
   assert.equal(server.now(), start + 300_000);
 });
+
+test("a CSV upload is read as rows, not JSON, and skips the header", () => {
+  const server = createDemoServer();
+  const csv = "event_id,event_time,ingested_at,consult_id,event_type\nT23,2026-03-17T18:25:00-04:00,2026-03-17T18:25:01-04:00,CON-9,consult_received\nT24,2026-03-17T18:26:00-04:00,2026-03-17T18:26:01-04:00,CON-9,triaged\n";
+  const report = server.handle({ method: "POST", path: "/events/csv?advance_clock=true", body: csv, token: COORD }) as { accepted: number };
+  assert.equal(report.accepted, 2);
+});
+
+test("replacing a stream: the report gives its last event and the clock can be set back to it", () => {
+  const server = createDemoServer();
+  const csv = "event_id,event_time,ingested_at,consult_id,event_type\nT1,2026-03-17T17:00:00-04:00,2026-03-17T17:00:01-04:00,CON-9,consult_received\nT2,2026-03-17T17:05:00-04:00,2026-03-17T17:05:01-04:00,CON-9,triaged\n";
+  const report = server.handle({ method: "POST", path: "/events/csv?advance_clock=true", body: csv, token: COORD }) as { latest_event_time: string };
+  assert.equal(report.latest_event_time, "2026-03-17T21:05:00.000Z");
+  post(server, "/admin/clock", { paused: true }, LEAD);
+  post(server, "/admin/clock", { at: report.latest_event_time }, LEAD);
+  assert.equal(server.now(), Date.parse(report.latest_event_time));
+});
