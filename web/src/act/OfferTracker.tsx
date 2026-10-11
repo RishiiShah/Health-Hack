@@ -1,3 +1,4 @@
+import { playAudio } from "../api/client.ts";
 import { offerSteps, stateBadge } from "./offerSteps.ts";
 import { clockTime, countdown } from "./time.ts";
 import type { Offer } from "./types.ts";
@@ -7,7 +8,7 @@ import "./act.css";
 export function OfferTracker({ offer, now }: { offer: Offer; now: number | null }) {
   const badge = stateBadge(offer.state);
   const timeLeft = offer.state === "Sent" && offer.expires_at && now !== null ? countdown(offer.expires_at, now) : null;
-  const nextStep = offer.state === "Proposed" ? "Clinical lead to review and approve" : offer.state === "Sent" ? "Physician to accept or decline" : offer.state === "Approved" ? "Approved offer awaiting delivery" : offer.state === "Accepted" ? "Review updated coverage" : "Offer closed";
+  const nextStep = offer.state === "Proposed" ? "Clinical lead to review and approve" : offer.state === "Sent" ? "Calling the physician · waiting for an answer" : offer.state === "Approved" ? "Approved offer awaiting delivery" : offer.state === "Accepted" ? "Review updated coverage" : "Offer closed";
   return (
     <article className={`tracker tracker-${offer.state.toLowerCase().replaceAll(" ", "-")}`}>
       <div className="panel-head tracker-heading">
@@ -27,7 +28,7 @@ export function OfferTracker({ offer, now }: { offer: Offer; now: number | null 
       {offer.reject_reason && <p className="message">Rejected: {offer.reject_reason}</p>}
       {offer.message && offer.sent_at && (
         <details className="offer-message"><summary>View sent message</summary><p className="message">{offer.message}</p><div className="tracker-actions">
-          {offer.audio_url && <OfferAudio path={offer.audio_url} />}
+          {offer.audio_url && <button className="btn" onClick={() => void playAudio(offer.audio_url!).catch(() => undefined)}>Play message</button>}
           {offer.phone_url && <a href={offer.phone_url} target="_blank" rel="noreferrer">Open the physician's phone view</a>}
         </div></details>
       )}
