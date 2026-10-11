@@ -1,43 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// The same fine ECG-paper grid used behind the web dashboard.
-class CereviaGridPainter extends CustomPainter {
-  const CereviaGridPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = OverlapStyle.background,
-    );
-    final paint = Paint()..strokeWidth = 1;
-    const step = 24.0;
-    for (var column = 0; column * step <= size.width; column++) {
-      paint.color = OverlapStyle.teal.withValues(
-        alpha: column % 5 == 0 ? .085 : .045,
-      );
-      canvas.drawLine(
-        Offset(column * step, 0),
-        Offset(column * step, size.height),
-        paint,
-      );
-    }
-    for (var row = 0; row * step <= size.height; row++) {
-      paint.color = OverlapStyle.teal.withValues(
-        alpha: row % 5 == 0 ? .085 : .045,
-      );
-      canvas.drawLine(
-        Offset(0, row * step),
-        Offset(size.width, row * step),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(CereviaGridPainter oldDelegate) => false;
-}
-
 /// Cerevia tokens shared with web/src/styles/tokens.css.
 abstract final class OverlapStyle {
   static const background = Color(0xFFEDF1F4);
