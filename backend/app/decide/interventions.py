@@ -1,7 +1,7 @@
 """G15/G16: choose the cheapest safe fix per problem, name the approver and rank the queue. Pure."""
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
-from app.decide.eligibility import Candidate, OfferHistory, Proposal, evaluate, evaluate_proposal
+from app.decide.eligibility import Candidate, OfferHistory, Proposal, evaluate, evaluate_proposal, ranked_above
 from app.decide.routing_sim import routing_order, trap_check
 from app.engine.replay import State
 from app.ops.coverage import SIGNAL_BUSY, Gap, Surge, arrival, current_coverage, joiners_now, outlook_end, project, surges
@@ -172,8 +172,10 @@ def _gap_item(gap: Gap, hard: list[Gap], refs, ops, now, history) -> Item:
         best = eligible[0]
         fix = Fix("split_shift", "clinical_lead",
                   f"Offer {best.physician_id} a split shift {best.start.astimezone(ET):%H:%M}-{best.end.astimezone(ET):%H:%M} at {', '.join(best.hospitals)}",
-                  f"passes every rule; covers {best.covered_minutes} gap minutes" + ("; low value" if best.low_value else ""),
-                  ("reassign: does not add capacity", *(f"{c.physician_id}: eligible, ranked lower ({c.covered_minutes} gap min)" for c in eligible[1:]),
+                  f"passes every rule; covers {best.covered_minutes} gap minutes" + ("; low value" if best.low_value else "")
+                  + (f"; chosen over {eligible[1].physician_id} because {best.physician_id} {ranked_above(best, eligible[1], ops, history)}" if len(eligible) > 1 else ""),
+                  ("reassign: does not add capacity", *(f"{c.physician_id}: eligible, ranked lower: {above.physician_id} {ranked_above(above, c, ops, history)}"
+                                                        for above, c in zip(eligible, eligible[1:])),
                    *(f"{c.physician_id}: fails {', '.join(c.failed)}" for c in candidates if not c.eligible)), best.physician_id)
     else:
         fix = Fix("escalate", "clinical_lead", f"Escalate: no off-shift physician may cover {gap.hospital_id} {window}",
@@ -306,8 +308,10 @@ def _merge_offers(items, refs, ops, now, history, gaps):
             continue
         first = group[0]
         hospitals = list(proposal.hospitals)
+        runner = next((c for c in candidates if c.eligible and c.physician_id != pid), None)
         fix = Fix("split_shift", "clinical_lead", f"Offer {pid} a split shift {proposal.start.astimezone(ET):%H:%M}-{proposal.end.astimezone(ET):%H:%M} at {', '.join(hospitals)}",
-                  f"passes every rule for the combined window; covers {best.covered_minutes} gap minutes; ready {best.ready_at.astimezone(ET):%H:%M}",
+                  f"passes every rule for the combined window; covers {best.covered_minutes} gap minutes; ready {best.ready_at.astimezone(ET):%H:%M}"
+                  + (f"; chosen over {runner.physician_id} because {pid} {ranked_above(best, runner, ops, history)}" if runner and candidates.index(best) < candidates.index(runner) else ""),
                   first.fix.alternatives, pid)
         replaced[first.id] = Item(first.id, first.severity, f"{first.what} (+{len(group) - 1} more gap(s) closed by the same offer)", {"hospital_ids": hospitals},
                                   {**first.why, "also": [i.what for i in group[1:]]}, fix, first.rank_key, candidates)

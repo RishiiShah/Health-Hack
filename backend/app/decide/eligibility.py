@@ -134,9 +134,29 @@ def evaluate_proposal(proposal: Proposal, refs: Refs, ops: OpsRefs, now: datetim
             Rule("start_not_in_past", "Start not in the past", start >= now, _hm(start)),
         )
         out.append(Candidate(pid, rules, proposal, ready, sites, int(covered.total_seconds() // 60), bool(gaps) and covered < LOW_VALUE))
-    return sorted(out, key=lambda c: (not c.eligible, -c.covered_minutes, ops.roster[c.physician_id].minutes_to_online,
-                                      ops.roster[c.physician_id].declines_30d, ops.roster[c.physician_id].hours_last_7d,
-                                      history.sent_7d.get(c.physician_id, 0), c.physician_id))
+    return sorted(out, key=lambda c: rank_key(c, ops, history))
+
+
+def rank_key(c: Candidate, ops: OpsRefs, history: OfferHistory) -> tuple:
+    """Eligible first, then covered gap minutes, minutes to online, declines (30 d), hours (7 d), offers this week, ID."""
+    r = ops.roster[c.physician_id]
+    return (not c.eligible, -c.covered_minutes, r.minutes_to_online, r.declines_30d, r.hours_last_7d, history.sent_7d.get(c.physician_id, 0), c.physician_id)
+
+
+def ranked_above(a: Candidate, b: Candidate, ops: OpsRefs, history: OfferHistory) -> str:
+    """Why `a` ranks above `b`, in words: the first step of rank_key where they differ, so it cannot disagree with the order."""
+    ka, kb = rank_key(a, ops, history), rank_key(b, ops, history)
+    step = next(i for i in range(len(ka)) if ka[i] != kb[i])
+    x, y = ka[step], kb[step]
+    return [
+        lambda: "is eligible",
+        lambda: f"covers {y - x} more gap minutes ({-x} vs {-y})",
+        lambda: f"is online {y - x} min sooner ({x} vs {y} min)",
+        lambda: f"declined fewer offers in 30 days ({x} vs {y})",
+        lambda: f"worked fewer hours in the last 7 days ({x:g} vs {y:g} h)",
+        lambda: f"has had fewer offers this week ({x} vs {y})",
+        lambda: "ties on every ranking step; the lower physician ID goes first",
+    ][step]()
 
 
 def evaluate(gap: Gap, hard_gaps: list[Gap], refs: Refs, ops: OpsRefs, now: datetime, history: OfferHistory = OfferHistory()) -> list[Candidate]:

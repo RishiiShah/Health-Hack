@@ -246,9 +246,13 @@ def test_two_eligible_candidates_rank_by_the_stated_order_and_the_winner_changes
     item = offer_for(two_candidates())
     assert item.fix.physician_id == "A" and [c.physician_id for c in item.candidates if c.eligible] == ["A", "B"]
     assert any("B: eligible, ranked lower" in alt for alt in item.fix.alternatives)  # the runner-up is shown, not hidden
-    # Each ranking component, in order, flips the winner on its own [doc 5.2].
-    assert offer_for(two_candidates(a={"minutes_to_online": 30})).fix.physician_id == "B"  # fewer gap minutes covered
-    assert offer_for(two_candidates(a={"declines_30d": 2})).fix.physician_id == "B"
-    assert offer_for(two_candidates(a={"hours_last_7d": 40})).fix.physician_id == "B"
+    assert "chosen over B because A ties on every ranking step; the lower physician ID goes first" in item.fix.reason
+    # Each ranking component, in order, flips the winner on its own [doc 5.2], and the reason names that component.
+    assert offer_for(two_candidates(a={"minutes_to_online": 30})).fix.physician_id == "B"  # here A then fails R6 outright
+    flips = {"declines_30d": (2, "declined fewer offers in 30 days (0 vs 2)"),
+             "hours_last_7d": (40, "worked fewer hours in the last 7 days")}
+    for field, (value, words) in flips.items():
+        fix = offer_for(two_candidates(a={field: value})).fix
+        assert fix.physician_id == "B" and f"chosen over A because B {words}" in fix.reason, (field, fix.reason)
     # A rule failure removes a candidate entirely; ranking never overrides a rule.
     assert offer_for(two_candidates(a={"opt_in": False}, b={"declines_30d": 9})).fix.physician_id == "B"

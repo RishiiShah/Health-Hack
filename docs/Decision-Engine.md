@@ -161,7 +161,7 @@ Candidates are evaluated **per coverage case**: one hospital's hard-gap interval
 
 Rules are evaluated on the natural window and never relaxed. Scheduled night shifts are capacity, not offers [B p6]; Cho therefore shows R5 fail, which is the honest reason.
 
-**Rank eligible candidates** (lexicographic, each component displayed): most hard-gap minutes covered → fewest minutes to online → fewest declines in 30 days → fewest hours in 7 days → fewest offers this week (fairness) → `physician_id`. No weights.
+**Rank eligible candidates** (lexicographic, each component displayed): most hard-gap minutes covered → fewest minutes to online → fewest declines in 30 days → fewest hours in 7 days → fewest offers this week (fairness) → `physician_id`. No weights. The offer's reason names the runner-up and the first step that separates them ("chosen over PHY-435 because PHY-916 covers 10 more gap minutes (540 vs 530)"); every lower-ranked candidate carries the same comparison with the one above it, and `/gaps/{id}/candidates` returns it as `rank_reason`. The text is generated from the same sort key, so it cannot disagree with the order.
 
 **Value floor:** if covered gap minutes < 60 [A39], mark "low value" (the Alvarez/Redwood case). Still eligible; the lead decides.
 

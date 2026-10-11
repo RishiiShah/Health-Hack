@@ -261,6 +261,8 @@ def test_example_offer_goes_to_an_answer_key_eligible_physician_or_escalates(pat
         if i.fix.kind == "split_shift":
             assert i.fix.physician_id in eligible
             assert {c.physician_id for c in i.candidates if c.eligible} >= eligible  # the runner-up is shown too
+            if len([c for c in i.candidates if c.eligible]) > 1:
+                assert "chosen over" in i.fix.reason  # and the reason it lost is stated
         else:
             assert not eligible and i.fix.kind in {"escalate", "watch"}
             if i.fix.kind == "escalate":

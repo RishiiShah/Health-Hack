@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from threading import Lock
 from app.act.interventions import InterventionLog
 from app.act.offers import OPEN, Context, OfferDesk
-from app.decide.eligibility import OfferHistory, Proposal, evaluate, evaluate_proposal, load_offer_history
+from app.decide.eligibility import OfferHistory, Proposal, evaluate, evaluate_proposal, load_offer_history, ranked_above
 from app.decide.interventions import Decisions, decide
 from app.decide.routing_sim import observed_service, trap_check
 from app.ops.coverage import HORIZON, current_coverage, outlook_end, supply, surge_at, _received
@@ -208,6 +208,7 @@ class Engine:
             return None
         p, _ = self.decisions()
         ranked = [c for c in g["candidates"] if c.eligible]
+        history = self.desk.history(p.as_of)
         rules = [{"id": RULE_CODES.get(r.key, r.key), "label": r.label} for r in g["candidates"][0].rules] if g["candidates"] else []
         out = []
         for c in g["candidates"]:
@@ -217,8 +218,12 @@ class Engine:
                         "eligible": c.eligible, "rank": ranked.index(c) + 1 if c.eligible else None,
                         "primary_reason": f"{failed[0].label}: {failed[0].value}" if failed else ("low value: covers under 60 gap minutes" if c.low_value else None),
                         "results": [{"rule": RULE_CODES.get(r.key, r.key), "status": "pass" if r.passed else "fail", "explanation": r.value} for r in c.rules],
-                        "ranking": {"gap_hospitals": len(c.hospitals), "minutes_to_online": roster.minutes_to_online, "declines_30d": roster.declines_30d,
-                                    "hours_7d": roster.hours_last_7d},
+                        "ranking": {"gap_hospitals": len(c.hospitals), "covered_minutes": c.covered_minutes, "minutes_to_online": roster.minutes_to_online,
+                                    "declines_30d": roster.declines_30d, "hours_7d": roster.hours_last_7d, "offers_7d": history.sent_7d.get(c.physician_id, 0)},
+                        # The first ranking step that separates this physician from the one ranked just above (or below, for #1).
+                        "rank_reason": (None if not c.eligible or len(ranked) < 2 else
+                                        f"ranked above {ranked[1].physician_id}: {ranked_above(c, ranked[1], self.ops, history)}" if c is ranked[0] else
+                                        f"ranked below {ranked[ranked.index(c) - 1].physician_id}, who {ranked_above(ranked[ranked.index(c) - 1], c, self.ops, history)}"),
                         "window": {"start": c.start.isoformat(), "end": c.end.isoformat(), "ready_at": c.ready_at.isoformat(), "hospitals": list(c.hospitals)}})
         fix = g["item"].fix if g["item"] else None
         return {"gap": g["view"], "revision": g["revision"], "rules": rules, "candidates": out,
