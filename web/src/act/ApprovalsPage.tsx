@@ -71,7 +71,7 @@ function OfferApproval({ offer, now, reloadKey, onChanged }: { offer: Offer; now
           trap.error && <p className="unavailable">{unavailableText(trap.error, "GET /gaps/{gap_id}/trap-check")}</p>
         )}
 
-        <section className="panel">
+        <section className="panel supporting-slate checked-panel">
           <div className="panel-head"><h2>Who else was checked</h2></div>
           {candidates.data ? (
             <ul className="checked">

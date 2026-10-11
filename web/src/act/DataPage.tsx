@@ -21,7 +21,7 @@ export function DataPage({ snapshot, now, onChanged }: { snapshot: Snapshot | nu
         Load an event stream here and the server recomputes every decision from it.
       </p>
       <div className="data">
-        <section className="panel">
+        <section className="panel supporting-slate data-reference">
           <div className="panel-head"><h2>Reference data</h2></div>
           {dataset ? (
             <div className="dataset"><b>{dataset.name}</b>{dataset.description} · {dataset.reference_files} reference files</div>
@@ -143,7 +143,7 @@ function LoadStream({ snapshot, now, onChanged }: { snapshot: Snapshot | null; n
   }
 
   return (
-    <section className="panel inject">
+    <section className="panel inject working-ivory">
       <div className="panel-head"><h2>Load an event stream</h2></div>
       <div className="queue" role="group" aria-label="How to load">
         <button aria-pressed={mode === "replace"} onClick={() => { setMode("replace"); setPending(null); }}>Replace the stream</button>

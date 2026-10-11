@@ -153,15 +153,17 @@
 }
 .workspace-main .waiting-stack .panel-head { align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .workspace-main .waiting-stack h3 { font-size: 14px; font-weight: 700; color: #F5F3ED; }
-.workspace-main .waiting-stack .panel-note { font-size: 11px; color: #BCC9D2; }
-.waiting-panel {
-  background: #34424F;
-  border: 1px solid #4B5B68;
+.workspace-main .panel.waiting-panel, .panel.waiting-panel, .waiting-panel {
+  background: #34424F !important;
+  border: 1px solid #4B5B68 !important;
   border-radius: 16px;
   padding: 18px 22px;
-  color: #F5F3ED;
+  color: #F5F3ED !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
+.workspace-main .panel.waiting-panel h3, .panel.waiting-panel h3, .waiting-panel h3 { color: #F5F3ED !important; }
+.workspace-main .panel.waiting-panel .panel-note, .panel.waiting-panel .panel-note, .waiting-panel .panel-note { color: #BCC9D2 !important; }
+.workspace-main .panel.waiting-panel .muted, .panel.waiting-panel .muted, .waiting-panel .muted { color: #BCC9D2 !important; }
 .waiting-count {
   display: grid;
   place-items: center;

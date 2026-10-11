@@ -45,8 +45,10 @@
 .footnote { font-size: 13px; color: #526579; margin: 10px 0 0; line-height: 1.6; }
 
 /* Who else was checked */
+.checked-panel { background: #34424F !important; border: 1px solid #4B5B68 !important; border-radius: 16px !important; color: #F5F3ED !important; }
+.checked-panel h2 { color: #F5F3ED !important; }
 .checked { list-style: none; margin: 0; padding: 0; }
-.checked li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #E2DFD8; font-weight: 600; font-size: 15px; color: #101B2B; }
+.checked li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #4B5B68; font-weight: 600; font-size: 15px; color: #F5F3ED; }
 
 /* Candidate table */
 .candidates { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -76,6 +78,14 @@
 /* Data page */
 .data { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
 .data .intro { color: #BCC9D2; max-width: 560px; margin: 8px 0 24px; font-size: 15px; line-height: 1.6; }
+.data-reference { background: #34424F !important; border: 1px solid #4B5B68 !important; border-radius: 16px !important; color: #F5F3ED !important; }
+.data-reference h2 { color: #F5F3ED !important; }
+.data-reference .dataset { border: 1px solid #4B5B68; background: #28333E; color: #F5F3ED; }
+.data-reference .dataset b { color: #F5F3ED; }
+.data-reference .checks li { border-top: 1px solid #4B5B68; color: #F5F3ED; }
+.data-reference .btn { background: #28333E; border: 1px solid #4B5B68; color: #F5F3ED; }
+.data-reference .btn:hover { background: #323F4C; }
+.data-reference .btn.danger { color: #E57373; border-color: #E57373; }
 .dataset { border: 1px solid #B8D8EB; background: #E2ECF3; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; color: #101B2B; }
 .dataset b { display: block; font-size: 15px; color: #101B2B; margin-bottom: 3px; }
 .checks { list-style: none; margin: 0; padding: 0; }

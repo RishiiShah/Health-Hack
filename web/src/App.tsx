@@ -283,9 +283,9 @@ function useAudit(reloadKey: unknown) {
 function AuditPage({ workspace, reloadKey }: { workspace: string; reloadKey: unknown }) {
   const { data, error } = useAudit(reloadKey);
   return <div className="page"><Title eyebrow={workspace} title="Audit" note="Append-only record" />
-    <section className="panel audit-list">
+    <section className="panel supporting-slate audit-list">
       {error && !data ? <p className="unavailable">{unavailableText(error, "GET /audit")}</p>
-        : !data?.items.length ? <p className="unavailable">Nothing recorded yet.</p>
+        : !data?.items.length ? <p className="panel-note">Nothing recorded yet.</p>
           : data.items.slice().reverse().map((row, i) => <div key={i}><span className="mono muted">{clockTimeSeconds(row.at)}</span><b>{row.actor}</b><strong>{row.action}</strong><span>{row.detail}</span></div>)}
     </section>
   </div>;
@@ -301,7 +301,7 @@ function PhysicianApp({ session }: { session: Session }) {
     <Main page={page}>
       {page === "shift" && <MyShift />}
       {page === "offers" && <OffersPage />}
-      {page === "settings" && <div className="page"><Title eyebrow="Physician workspace" title="Settings" note={session.user.name} /><section className="panel"><h2>Notifications</h2><p className="muted">Offers arrive in this app and on your phone. They show the hospital and hours only, never patient details.</p></section></div>}
+      {page === "settings" && <div className="page"><Title eyebrow="Physician workspace" title="Settings" note={session.user.name} /><section className="panel supporting-slate"><h2>Notifications</h2><p className="panel-note">Offers arrive in this app and on your phone. They show the hospital and hours only, never patient details.</p></section></div>}
     </Main>
   </div>;
 }
@@ -312,11 +312,12 @@ function MyShift() {
   const left = data.minutes_to_shift_end;
   return <div className="page physician-page"><Title eyebrow="Physician workspace" title="My shift" note={data.name} />
     <div className="physician-top">
-      <section className="panel shift-clock"><span className="eyebrow">Shift remaining</span><strong>{left === null ? "–" : `${Math.floor(left / 60)} h ${left % 60} min`}</strong><p>{data.shift_end ? `until ${clockTime(data.shift_end)} ET` : "No current shift"}</p></section>
-      <section className="panel"><span className="eyebrow">Hospitals covered</span><h2>{data.hospitals.join(" · ") || "–"}</h2><p className="muted">{data.consults.length} active consults</p></section>
+      <section className="summary-glass shift-clock"><span className="eyebrow">Shift remaining</span><strong>{left === null ? "–" : `${Math.floor(left / 60)} h ${left % 60} min`}</strong><p>{data.shift_end ? `until ${clockTime(data.shift_end)} ET` : "No current shift"}</p></section>
+      <section className="summary-glass physician-hospitals"><span className="eyebrow">Hospitals covered</span><h2>{data.hospitals.join(" · ") || "–"}</h2><p>{data.consults.length} active consults</p></section>
     </div>
-    <section className="panel"><div className="panel-head"><h2>Active consults</h2><span className="badge teal">{left === null ? "Off shift" : "On shift"}</span></div>
-      {data.consults.length ? data.consults.map((c) => <div className="consult-line" key={c.consult_id}><b className="mono">{c.consult_id}</b><span>{c.hospital_name} · {c.consult_type}</span><span className="badge neutral">{c.stage} · {c.minutes_in_stage} min</span></div>) : <p className="muted">No open consults.</p>}
+    <section className={data.consults.length ? "panel working-ivory" : "panel supporting-slate"}>
+      <div className="panel-head"><h2>Active consults</h2><span className="badge teal">{left === null ? "Off shift" : "On shift"}</span></div>
+      {data.consults.length ? data.consults.map((c) => <div className="consult-line" key={c.consult_id}><b className="mono">{c.consult_id}</b><span>{c.hospital_name} · {c.consult_type}</span><span className="badge neutral">{c.stage} · {c.minutes_in_stage} min</span></div>) : <p className="panel-note">No open consults.</p>}
     </section>
   </div>;
 }
