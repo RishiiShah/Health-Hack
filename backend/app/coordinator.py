@@ -232,6 +232,10 @@ class MutationCoordinator:
         stats["rows_received"] += len(rows) + len(rejected)
         candidate = tuple(sorted((*stored, *accepted), key=lambda e: (e.event_time, e.ingested_at, e.event_id)))
         visible_count = bisect_right(candidate, as_of, key=lambda e: e.event_time)
+        accepted_by_id = {e.event_id: e for e in accepted}
+        for result in results:
+            if result["status"] == "accepted":
+                result["pending_future"] = accepted_by_id[result["event_id"]].event_time > as_of
         state = replay(candidate[:visible_count]) if accepted or fresh or visible_count != self._visible_count else self.published.state
         unresolved_history = self._unknown_history(candidate, active_refs) if refs is not None else self._unresolved_history
         ref_revision = self.reference_revision + int(refs is not None and (self.refs is None or refs.payload() != self.refs.payload()))

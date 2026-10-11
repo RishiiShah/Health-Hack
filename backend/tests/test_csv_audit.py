@@ -53,6 +53,7 @@ def test_clock_moves_only_to_accepted_rows_and_commits_with_events(db_url, monke
         report = upload(client, csv_body({'event_id': 'GOOD', 'event_time': good, 'ingested_at': good},
                                         {'event_id': 'BAD', 'event_time': bad, 'ingested_at': bad, 'event_type': 'unsupported_event'})).json()
         assert report['clock_advanced_to'] == good
+        assert report['row_results'][0]['pending_future'] is False
         coord = client.app.state.coordinator
         original = coord.db.commit_batch
         def fail_clock(*args, **kwargs):
@@ -124,6 +125,7 @@ def test_valid_large_date_jump_is_pending_and_duplicate_does_not_advance(db_url,
         body = csv_body({'event_time': future, 'ingested_at': future})
         report = upload(client, body).json()
         assert report['accepted'] == 1 and report['pending_future'] == 1
+        assert report['row_results'][0]['pending_future'] is True
         assert '24 hours' in report['clock_warning']
         assert client.get('/snapshot', headers=COORD).json()['clock']['now'] == START.isoformat()
         repeated = upload(client, body).json()

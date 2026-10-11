@@ -1,26 +1,11 @@
 // What an upload did, at a glance: where every row went, how far the clock moved and what changed on the board.
-import type { Snapshot } from "../api/live.ts";
 import { clockTimeSeconds } from "./time.ts";
 import type { IngestReport } from "./types.ts";
-
-type BoardConsult = { consult_id: string; hospital_id?: string; current_stage?: string; level?: string };
-type Headline = { open_consults?: number; critical?: number };
-export type Board = { now: number | null; consults: Map<string, BoardConsult>; headline: Headline };
-
-export function boardOf(snapshot: Snapshot, now: number | null): Board {
-  const consults = (snapshot.consults as BoardConsult[] | undefined) ?? [];
-  return { now, consults: new Map(consults.map((c) => [c.consult_id, c])), headline: (snapshot.headline as Headline | undefined) ?? {} };
-}
+import { uploadSegments, type Board } from "./uploadSummary.ts";
 
 export function UploadResult({ report, before, after }: { report: IngestReport; before: Board; after: Board }) {
-  const waiting = report.pending_future;
-  const segments: [string, number, string][] = [
-    ["On the board", report.accepted - waiting, "accepted"],
-    ["Waiting for the clock", waiting, "waiting"],
-    ["Duplicates skipped", report.duplicates, "duplicate"],
-    ["Held for missing context", report.held_orphans, "held"],
-    ["Quarantined", report.quarantined.length, "rejected"],
-  ];
+  const segments = uploadSegments(report);
+  const waiting = segments[1][1];
   const total = segments.reduce((sum, [, count]) => sum + count, 0);
 
   const added = [...after.consults.values()].filter((c) => !before.consults.has(c.consult_id));
@@ -58,6 +43,7 @@ export function UploadResult({ report, before, after }: { report: IngestReport; 
 
       <div className="board-delta">
         <span className="kicker">What changed on the board</span>
+        <p className="hint">Board captured after this upload at {after.now !== null ? clockTimeSeconds(after.now) : "an unavailable replay time"}. See the Command page for the current board.</p>
         <div className="delta-tiles">
           {deltas.map(([label, was, now]) => {
             const change = was !== undefined && now !== undefined ? now - was : 0;

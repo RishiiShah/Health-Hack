@@ -3,7 +3,8 @@ import { api, DEMO, post } from "../api/client.ts";
 import type { Snapshot } from "../api/live.ts";
 import { clockTimeSeconds, duration } from "./time.ts";
 import type { DataQuality, IngestReport, UploadBatch } from "./types.ts";
-import { boardOf, UploadResult, type Board } from "./UploadResult.tsx";
+import { UploadResult } from "./UploadResult.tsx";
+import { boardOf, type Board } from "./uploadSummary.ts";
 import { useApi } from "./hooks.ts";
 import "./act.css";
 
@@ -73,6 +74,8 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot; now: numbe
   const [text, setText] = useState("");
   const [report, setReport] = useState<IngestReport | null>(null);
   const [before, setBefore] = useState<Board | null>(null);
+  const [after, setAfter] = useState<Board | null>(null);
+  const [boardError, setBoardError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const paused = Boolean((snapshot.clock as { paused?: boolean } | undefined)?.paused);
@@ -94,12 +97,22 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot; now: numbe
   const send = (body: string | File, filename = typeof body === "string" ? "pasted-events.csv" : body.name) =>
     run(async () => {
       setReport(null);
-      setBefore(boardOf(snapshot, now));
+      setBefore(null);
+      setAfter(null);
+      setBoardError(null);
+      setBefore(boardOf(await api<Snapshot>("/snapshot")));
       const trimmed = typeof body === "string" ? body.trim() : "";
       const result = trimmed.startsWith("[") || trimmed.startsWith("{")
         ? await post<IngestReport>("/events", JSON.parse(trimmed))
         : await api<IngestReport>("/events/csv?advance_clock=true", { method: "POST", body, headers: { "Content-Type": "text/csv", "X-Upload-Filename": encodeURIComponent(filename) } });
       setReport(result);
+      try {
+        const uploaded = await api<Snapshot>("/snapshot");
+        if (uploaded.revision < result.revision) throw new Error("The server returned a board from before this upload");
+        setAfter(boardOf(uploaded));
+      } catch (e) {
+        setBoardError(`Upload saved, but board changes could not be loaded: ${(e as Error).message}. See the Command page for the current board.`);
+      }
     });
 
   async function upload(event: ChangeEvent<HTMLInputElement>) {
@@ -139,7 +152,9 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot; now: numbe
       {report && (
         <div aria-live="polite">
           {report.dataset_switched_to && <p className="report">Switched to <b>{report.dataset_switched_to.name}</b> and started a fresh event stream.</p>}
-          {before && <UploadResult report={report} before={before} after={boardOf(snapshot, now)} />}
+          {before && after && <UploadResult report={report} before={before} after={after} />}
+          {!after && !boardError && <p role="status">Loading board changes after the upload…</p>}
+          {boardError && <p className="error" role="alert">{boardError}</p>}
           {report.quarantined.length > 0 && <p className="report muted">Quarantined: {report.quarantined.map((q) => q.reason).join("; ")}</p>}
           {report.clock_warning && <p className="error" role="alert">{report.clock_warning}</p>}
           <RowResults report={report} />

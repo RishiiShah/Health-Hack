@@ -89,7 +89,7 @@ export type IngestReport = {
   clock_warning?: string;
   batch_id?: string;
   dataset_switched_to?: { name: string; fingerprint: string };
-  row_results?: { row_number: number; event_id: string | null; status: string; reason: string | null; expires_at?: string }[];
+  row_results?: { row_number: number; event_id: string | null; status: string; reason: string | null; expires_at?: string; pending_future?: boolean }[];
 };
 
 export type UploadBatch = {
