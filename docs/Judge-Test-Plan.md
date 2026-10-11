@@ -25,7 +25,7 @@ scenario retains site, wait and peer-harm constraints.
 | Nobody eligible | Escalation with every off-shift physician's failing rule; no offer | validation pack tests |
 | Two eligible physicians / changed winner | Ranked by covered gap minutes → minutes to online → declines → 7-day hours → offers this week → ID; each input flips the winner; runner-up shown | `test_two_eligible_candidates_rank_by_the_stated_order_and_the_winner_changes_with_the_data` |
 | Two doctors accept within a minute | First committed wins, the other is told "already filled" | `test_double_accept…`, `test_concurrent_commands_from_two_instances_serialize` |
-| Full loop through the web UI | Coordinator proposes → lead approves and sends → physician accepts; grid, tracker and audit update | manual run on 2026-10-10 (backend + Joy's web, development pack) |
+| Full loop through the web UI | Coordinator proposes → lead approves/sends → physician accepts and awaits observed arrival → arrival enables routing; schedule and audit update | `web/scripts/workflows.e2e.cjs`, official-kit disposable localhost run on 2026-10-11 |
 | Judge file through the web | `make backend` stack + Joy's Data page: base kit 1,163/1/23/1; pasted judge CSV accepted 3, duplicate 1, clock moved to 18:30, Suncrest surge 6 | manual run on 2026-10-10 |
 | Development pack through computer use and Playwright | File chooser loads 1,709 base events; judge CSV adds 124 and drops 1 duplicate; all 1,709 original events and 147 original consults retained; 16 new consults; unchanged six references; queue matches full replay and contains the new consults in grouped Critical escalations. Repeat upload adds 0 and drops 125 duplicates. | Local isolated browser run on 2026-10-11; production untouched |
 
@@ -42,6 +42,12 @@ The fixed-reference audit also rehearsed the official kit through actual file up
 6. Hosted: the image has no reference CSVs. Production RDS already stores the complete six-file reference kit; connect the backend to that database and verify with `python3 scripts/upload_references.py data --url https://<host> --service-date 2026-03-17 --check`. For a different database, upload first. The database keeps references across restarts; see [Reference Data](Reference-Data.md).
 
 ## Current delivery and remaining rehearsal
+
+The latest [E2E audit and handoffs](E2E-Audit-2026-10-11.md) adds reproducible
+official-kit browser fixtures, attendance/accessible-label regressions, fixed
+hosting probes, truthful prototype copy and a real process-replacement check.
+383 backend, 58 web and 149 mobile tests passed; web/Flutter builds and analysis
+passed. Hosted and physical-device checks remain pending.
 
 - Web Detect components exist and display server queue, consults, physician state and findings. Snapshot polling is serialized, aborts on cleanup and coalesces manual refreshes. No current web transport depends on the unproxied `/ws` route.
 - Web schedule now has a backend route and a matching Vite proxy. Offer audio is fetched with bearer authentication, played through a temporary blob URL and released on completion, stop or navigation. Playback failures are visible; the physician's own offers screen includes playback. The server still restricts offer audio to lead/own physician. Automatic once-per-critical-item announcements remain a planned feature; `VoiceAlerts` supports manual playback and is not mounted on the current command page.

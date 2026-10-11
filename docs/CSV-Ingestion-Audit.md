@@ -31,6 +31,10 @@ reset retains historical event generations and upload receipts.
 
 ## Verification
 
+The counts below describe the initial CSV audit. The latest broader cohort
+passed 383 backend, 58 web and 149 mobile tests plus builds, real browser
+offer/arrival workflows and server replacement. See [E2E audit and handoffs](E2E-Audit-2026-10-11.md).
+
 - Backend: **363 passed**, including protected local packs and the new audit regressions.
 - Web: **46 passed**; TypeScript and production build passed.
 - Computer use and Playwright verified the live Data page using an isolated local

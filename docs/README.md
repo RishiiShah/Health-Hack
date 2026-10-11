@@ -11,7 +11,7 @@ the server's findings, candidates, permissions and outcomes.
 | Implemented endpoints, roles and dependencies | [Boundaries and Contracts](00-Boundaries-and-Contracts.md), `/openapi.json`, API tests |
 | Current mobile adapter versus the larger design contract | [Mobile contract scope](Mobile-App-Contract.md), [mobile README](../mobile/README.md) |
 | Runtime, production database and startup recovery | [Deployment](Deployment.md), [Reference Data](Reference-Data.md) |
-| Completed review fixes and verification limits | [Gap fixes](Decision-Engine-Gap-Fixes.md), [Judge Test Plan](Judge-Test-Plan.md), [CSV audit](CSV-Ingestion-Audit.md) |
+| Completed review fixes and verification limits | [E2E audit and handoffs](E2E-Audit-2026-10-11.md), [Gap fixes](Decision-Engine-Gap-Fixes.md), [Judge Test Plan](Judge-Test-Plan.md), [CSV audit](CSV-Ingestion-Audit.md) |
 
 The backend uses **Python 3.14.7**, FastAPI, one Uvicorn worker and PostgreSQL.
 Production RDS is provisioned in **us-west-2**; a Render application deployment
@@ -56,6 +56,12 @@ shift boundary within 120 minutes, with exact boundary steps. This resolves the
 90-minute horizon.
 
 ## Judging and proposed weekend assumptions
+
+The latest [E2E audit](E2E-Audit-2026-10-11.md) verified real CSV uploads, role
+permissions, the offer/arrival loop and server replacement on disposable
+localhost PostgreSQL. Verification: 383 backend, 58 web and 149 mobile tests,
+web/Flutter builds and clean Flutter analysis. Its three handoffs separate
+delivered behavior from hosted, device, audio and weekend-scenario work.
 
 [Judging review and weekend scenarios](Judging-and-Weekend-Assumptions.md) maps the supplied rubric to evidence and gaps. It proposes a separate read-only weekday-proxy weekend scenario with explicit provenance and acceptance tests. This is a design proposal; official weekend baselines and live surge status remain unknown.
 
