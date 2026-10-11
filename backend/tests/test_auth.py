@@ -72,13 +72,10 @@ def test_malformed_signed_claims_are_rejected_without_server_errors(claims):
     assert auth.verify(f"{body}.{sig}") is None
 
 
-@pytest.mark.parametrize("environment_users", ["", "stale-or-interpolated-accounts"])
-def test_local_config_loads_real_auth_without_disabling_roles(tmp_path, monkeypatch, environment_users):
+def test_environment_accounts_sign_in(monkeypatch):
     from types import SimpleNamespace
     import app.main as main
-    config = tmp_path / "auth.json"
-    config.write_text(json.dumps({"users": json.loads(USERS), "secret": SECRET}))
-    monkeypatch.setattr(main, "settings", SimpleNamespace(users=environment_users, auth_secret="", auth_config=str(config), **NO_TOKENS))
+    monkeypatch.setattr(main, "settings", SimpleNamespace(users=USERS, auth_secret=SECRET, **NO_TOKENS))
     auth = main.auth_from_settings()
     token, _, _ = auth.accounts.login("doc@example.test", "right-password")
     assert auth.identify(token, datetime.now().astimezone()).role == "physician"
@@ -87,8 +84,8 @@ def test_local_config_loads_real_auth_without_disabling_roles(tmp_path, monkeypa
 def test_auth_never_silently_disables_when_config_is_missing(monkeypatch):
     from types import SimpleNamespace
     import app.main as main
-    monkeypatch.setattr(main, "settings", SimpleNamespace(users="", auth_secret="", auth_config=None, **NO_TOKENS))
-    with pytest.raises(RuntimeError, match="make backend"):
+    monkeypatch.setattr(main, "settings", SimpleNamespace(users="", auth_secret="", **NO_TOKENS))
+    with pytest.raises(RuntimeError, match="CC_USERS"):
         main.auth_from_settings()
 
 

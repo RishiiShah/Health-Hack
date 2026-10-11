@@ -12,7 +12,7 @@ Events, holds, quarantine and metrics live in **Amazon RDS for PostgreSQL** (see
 
 These are executable application deployment configurations, not verified hosted application deployments. The RDS instance is in **us-west-2**, and `render.yaml` targets the matching Oregon region. This code uses the database **commandcenter_v2** on that instance: the official Sevaro kit, its 1,163 events with the replay clock paused at 18:20 ET, and the four `test_data` packs stored as switchable kits (see [Reference data](Reference-Data.md)). The older **commandcenter** database on the same instance was written by a different, unpushed backend version with its own tables and reference format; this code cannot read that format, so it is left untouched. Use private access or a TLS and rate-limited gateway for hosted demos; session revocation, refresh, password recovery and login rate limiting are not implemented in the app.
 
-For local development, `make backend` uses the separate `deploy/local.compose.yaml`, creates a local sign-in configuration on first use, and starts Python 3.14.7 plus PostgreSQL with no RDS or host virtual environment requirement. It binds the API to loopback and does not publish a database port. See [local startup](../backend/README.md#simple-local-startup).
+Local development uses the same production database and accounts: `make backend` runs `python -m app` from the backend virtual environment, reading the root `.env`. There is no local Docker stack or local database; only the test suite uses a disposable local PostgreSQL. See the [backend guide](../backend/README.md).
 
 The runtime is pinned to standard CPython 3.14.7 in `backend/Dockerfile` (`python:3.14.7-slim`), CI and `backend/.python-version`. Package metadata allows Python >=3.14.7,<3.15.
 
@@ -83,8 +83,7 @@ Use an Azure Linux VM with Docker Engine and Compose and the same commands. The 
 | `CC_DATABASE_URL` | PostgreSQL URL (RDS in deployment) | local `postgres:postgres@127.0.0.1:5432/postgres` |
 | `CC_USERS` | JSON list of accounts: `email`, `name`, `role` (`coordinator`, `lead` or `physician`), `password_hash` from `python -m app.auth`, and `physician_id` for physicians | needed for web and mobile sign-in; without accounts only the fixed role tokens work, and with neither the server refuses to start |
 | `CC_AUTH_SECRET` | 32+ random characters that sign sign-in tokens (`python3 -c "import secrets; print(secrets.token_urlsafe(32))"`) | required with `CC_USERS` |
-| `CC_AUTH_CONFIG` | Private JSON file with `secret` and `users`; explicit file takes precedence over `CC_USERS` and `CC_AUTH_SECRET` | local Compose mounts the gitignored setup file read-only |
-| `CC_DATA_DIR` | Reference CSVs (hospitals, shifts, off-shift roster, credentials, baseline volume, coverage requirements), sample or scenario-pack layout. Missing: the API runs, `/ready` reports detection unavailable, decision routes return 503. References uploaded with `POST /admin/references` are kept in the database and take precedence; hosted deployments use only the upload | unset (local Compose: the kit's `data/`) |
+| `CC_DATA_DIR` | Reference CSVs (hospitals, shifts, off-shift roster, credentials, baseline volume, coverage requirements), sample or scenario-pack layout. Missing: the API runs, `/ready` reports detection unavailable, decision routes return 503. References uploaded with `POST /admin/references` are kept in the database and take precedence; hosted deployments use only the upload | unset |
 | `CC_CLOCK_MODE` | `auto`, `wall`, `anchored`, `fixed` | `auto` |
 | `CC_CLOCK_FIXED` | Offset-aware fixed/anchor time, when needed | unset |
 | `CC_OFFER_HISTORY` | Offers sent outside this tool (`offer_id, physician_id, sent_at, status`), counted for R7/R8 | unset |

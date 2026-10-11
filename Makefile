@@ -1,19 +1,15 @@
-.PHONY: backend backend-down backend-account backend-test
+.PHONY: backend web backend-test
 
-COMPOSE = docker compose -f deploy/local.compose.yaml
-PYTHON ?= python3
+PYTHON ?= backend/.venv/bin/python
 
-# First run asks for a local account. Later runs reuse its hash and signing key.
+# The API on http://localhost:8000 against the production database and accounts in the root .env. No Docker.
 backend:
-	$(PYTHON) scripts/setup_auth.py
-	$(COMPOSE) up --build
+	cd backend && ../$(PYTHON) -m app
 
-backend-down:
-	$(COMPOSE) down
+# The web app on http://localhost:5173; Vite forwards API calls to the backend above.
+web:
+	cd web && npm run dev
 
-backend-account:
-	$(PYTHON) scripts/setup_auth.py --add-user
-	@echo "Restart the backend to load the account: docker compose -f deploy/local.compose.yaml restart backend"
-
+# Tests use a disposable local PostgreSQL (CC_TEST_DATABASE_URL), never the production database.
 backend-test:
-	$(COMPOSE) run --build --rm -T tests
+	cd backend && ../$(PYTHON) -m pytest -q

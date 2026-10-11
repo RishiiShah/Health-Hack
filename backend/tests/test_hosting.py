@@ -38,3 +38,17 @@ def test_built_web_app_is_served_beside_the_api(db_url, monkeypatch, tmp_path):
         assert "<title>web</title>" in client.get("/").text
         assert client.get("/snapshot", headers=COORD).json()["clock"]
         assert client.get("/ready").json()["ready"] is True
+
+
+def test_local_env_file_fills_only_missing_variables(tmp_path, monkeypatch):
+    from app.__main__ import load_env_file
+    env = tmp_path / ".env"
+    env.write_text("# comment\n\nCC_A=plain\nCC_B='quoted $with$dollars'\nCC_C=\"double\"\nCC_KEEP=from-file\n")
+    monkeypatch.setenv("CC_KEEP", "from-environment")
+    for key in ("CC_A", "CC_B", "CC_C"):
+        monkeypatch.delenv(key, raising=False)
+    load_env_file(env)
+    import os
+    assert (os.environ["CC_A"], os.environ["CC_B"], os.environ["CC_C"]) == ("plain", "quoted $with$dollars", "double")
+    assert os.environ["CC_KEEP"] == "from-environment"
+    load_env_file(tmp_path / "missing.env")  # no file (Render, Docker): nothing happens

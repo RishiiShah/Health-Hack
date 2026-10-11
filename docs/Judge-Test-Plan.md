@@ -32,7 +32,7 @@ scenario retains site, wait and peer-harm constraints.
 The fixed-reference audit also rehearsed the official kit through actual file uploads: 1,163 base events plus 3 accepted unseen events, an unchanged reference fingerprint, Critical CON-J01, retained original history and full replay parity. The development pack's incompatible IDs are held rather than replacing the official references. See [audit and regression instructions](CSV-Ingestion-Audit.md).
 
 ## Demo-day run sheet
-1. `make backend`: it mounts `data/` as `CC_DATA_DIR` and reads the root `.env` (from `.env.example`: service date 2026-03-17, fixed clock at 18:20, ElevenLabs key). Then `cd web && npm ci && npm run dev`.
+1. `make backend`: it runs against the production database with the root `.env` (production URL and accounts, service date 2026-03-17, ElevenLabs key). Then `make web`.
 2. Load the base day: Data page upload of `data/event_stream.csv` (or `POST /events/csv`). Check the data-quality panel shows 1 duplicate, 23 reordered, 1 late, 0 rejected.
 3. Walk the eight demonstrations at 18:20.
 4. Judges' file: upload it on the Data page; a CSV upload advances to its latest newly accepted event within 24 hours (`/events/csv?advance_clock=true`, never backwards) and the report says where the clock moved. Never restart the server.

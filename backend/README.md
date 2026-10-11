@@ -8,23 +8,7 @@ Reference uploads and verification for localhost and Render are documented in
 [Persistent reference data](../docs/Reference-Data.md). Use the upload script's
 `--check` option to verify the same persisted reference version in either environment.
 
-With Docker Desktop running, run this from the repository root:
-
-```sh
-make backend
-```
-
-The first run prompts for your email, name, role and password. The setup helper uses the host's standard-library Python only; the API runs in **Python 3.14.7** inside Docker, independently of an older local virtual environment. It saves salted password hashes and a random signing key in gitignored `backend/.local/auth.json` with mode 0600. It never supplies a default account password or disables authentication. Keep this file private. Subsequent starts reuse it without prompts.
-
-Compose starts a dedicated PostgreSQL 17 service, waits for it to be healthy, and starts the API at `http://localhost:8000` with source reload. The database is not published to the host, so an existing PostgreSQL on ports 5432 or 5433 is unaffected. Compose mounts the kit's `data/` read-only as `CC_DATA_DIR` and passes the gitignored root `.env` (copy `.env.example`: demo clock, ElevenLabs key, optional role tokens) to the API. `PORT=8001 make backend` changes the host API port; use the same `API_URL` when starting Vite. Stop with Ctrl-C or `make backend-down`; the named database volume is preserved.
-
-`make backend-account` adds another account, keeping existing accounts and the signing key. Restart the backend with the command it prints to load the new account. `make backend-test` runs the backend suite using the same pinned Python version and isolated throwaway databases; it needs no sign-in setup and never deletes the application database. Source CSVs are not mounted into the test container, so source-data tests are skipped there.
-
-For the frontend, run `npm run dev` in `web/` (Node 24); its proxy forwards API requests to port 8000 by default. Leave `VITE_DEMO_DATA` unset to use real sign-in. `VITE_DEMO_DATA=1` uses separate in-memory demo accounts instead of this backend.
-
-## Native setup (optional)
-
-For a fresh native environment, install Python 3.14.7, then run from `backend/`:
+The app always runs against the **production database and accounts**, locally too: there is no Docker stack or local database for running it. Install Python 3.14.7, then from `backend/`:
 
 ```sh
 python3.14 -m venv .venv
@@ -32,7 +16,11 @@ python3.14 -m venv .venv
 .venv/bin/python --version  # Expected: Python 3.14.7
 ```
 
-Provide `CC_DATABASE_URL` for your PostgreSQL server and either `CC_USERS` plus `CC_AUTH_SECRET` or `CC_AUTH_CONFIG` pointing to your private local auth JSON. Start with `.venv/bin/python -m app`. For native tests, set `CC_TEST_DATABASE_URL` and run `.venv/bin/python -m pytest -q`. Tests create and drop a throwaway database per test. Verify the interpreter before reusing an existing `.venv`; its presence does not guarantee the correct version.
+Copy `.env.example` to the root `.env` and fill in the production `CC_DATABASE_URL` (RDS, `sslmode=verify-full`, `sslrootcert` pointing at your local copy of the RDS CA bundle), `CC_USERS` and `CC_AUTH_SECRET`. Then run `make backend` from the repository root: `python -m app` reads the root `.env` (real environment variables win) and serves `http://localhost:8000`. Without `CC_DATABASE_URL` the server refuses to start; it never falls back to a local database. Sign in with your production account. Run `make web` for the frontend (Node 24); Vite forwards API requests to port 8000. Leave `VITE_DEMO_DATA` unset to use real sign-in.
+
+The production database has one writer at a time: a local backend and a hosted one both writing to it reload and retry on conflict, but a reader may briefly serve older state. Avoid running both while demonstrating.
+
+Tests never touch production: `make backend-test` runs the suite against a disposable local PostgreSQL at `CC_TEST_DATABASE_URL` (default `postgres:postgres@127.0.0.1:5432`), creating and dropping a database per test, and refuses to run if that URL is the production server.
 
 `backend/.python-version`, CI and the Docker image select 3.14.7. Package metadata accepts patch releases from 3.14.7 through the 3.14 series; later minor versions require validation. Use standard CPython; free-threaded/JIT builds have not been validated. No hosted performance improvement is claimed; recorded local measurements have their stated scope. Recreate an existing 3.12 virtual environment rather than upgrading its interpreter in place.
 
@@ -76,8 +64,6 @@ P2 verification: the full local suite passes 57 tests, including all supplied ph
 
 Organizer-aligned regressions additionally verify other service dates/ID prefixes and a March 17 append without reset. Independent practice datasets use another date and unique prefixes; judging rehearsals remain isolated March 17 extensions. See [P2 handoff](../docs/P2-Backend.md).
 
-### Local account configuration precedence
+### Accounts
 
-`make backend` mounts `backend/.local/auth.json` as `CC_AUTH_CONFIG`. That explicit file takes precedence over `CC_USERS` and `CC_AUTH_SECRET`, so old environment accounts cannot override accounts created by `make backend-account`. Without `CC_AUTH_CONFIG`, deployments continue to use the environment accounts.
-
-If supplying `CC_USERS` in a Compose `.env` file, wrap the entire JSON value in single quotes to preserve the password hashes’ literal `$` separators. [Docker documents single-quoted values as literal](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/).
+Sign-in accounts come only from `CC_USERS` and `CC_AUTH_SECRET`: the same production accounts locally (root `.env`) and on the host. Create a password hash with `python -m app.auth`. In `.env`, wrap the `CC_USERS` JSON in single quotes so the hashes' `$` separators stay literal.

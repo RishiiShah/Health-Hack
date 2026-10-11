@@ -6,6 +6,9 @@ from psycopg.conninfo import make_conninfo
 import pytest
 
 ADMIN_URL = os.getenv("CC_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/postgres")
+# Tests create and drop whole databases: they must never reach the production RDS server.
+if "rds.amazonaws.com" in ADMIN_URL or ADMIN_URL == os.getenv("CC_DATABASE_URL"):
+    raise SystemExit("CC_TEST_DATABASE_URL points at the production database; use a disposable local PostgreSQL.")
 
 
 @pytest.fixture(autouse=True)

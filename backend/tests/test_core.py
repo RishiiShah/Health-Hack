@@ -263,7 +263,7 @@ def test_failed_startup_closes_database(db_url, monkeypatch):
     monkeypatch.setattr(main, "EventDatabase", lambda url: db)
     monkeypatch.setattr(main, "settings", replace(main.settings, clock_mode="fixed", clock_fixed=None))
     with pytest.raises(ValueError, match="fixed clock requires"):
-        with TestClient(create_app()):
+        with TestClient(create_app(db_url)):
             pass
     with pytest.raises(psycopg.OperationalError, match="closed"):
         db.conn.execute("SELECT 1")

@@ -31,7 +31,7 @@ DEFAULT_OVERLOAD = OverloadPolicy()
 class Settings:
     # Runtime references are the supplied Sevaro kit. Only in-process synthetic tests override this field.
     reference_fingerprint: str | None = OFFICIAL_REFERENCE_FINGERPRINT
-    database_url: str = os.getenv("CC_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5432/postgres")
+    database_url: str = os.getenv("CC_DATABASE_URL", "")  # the production RDS database, locally too (root .env)
     clock_mode: str = os.getenv("CC_CLOCK_MODE", "auto")
     clock_fixed: str | None = os.getenv("CC_CLOCK_FIXED")
     late_lag_s: int = int(os.getenv("CC_LATE_LAG_S", str(DEFAULT_LATE_LAG_S)))
@@ -48,7 +48,6 @@ class Settings:
     sweep_s: float = float(os.getenv("CC_SWEEP_S", "5"))  # offer expiry and orphan deadlines; 0 = only on requests
     users: str = os.getenv("CC_USERS", "")  # sign-in accounts: JSON list with PBKDF2 hashes (python -m app.auth)
     auth_secret: str = os.getenv("CC_AUTH_SECRET", "")  # 32+ characters; signs account sign-in tokens
-    auth_config: str | None = os.getenv("CC_AUTH_CONFIG")  # local file {users, secret} written by scripts/setup_auth.py
     web_dir: str | None = os.getenv("CC_WEB_DIR")  # built web app (web/dist), served on the API's origin
 
     def fixed_datetime(self):

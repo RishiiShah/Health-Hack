@@ -58,7 +58,7 @@ Switching to API repositories does not require a second set of dashboard UI.
 ## Test real auth on the connected Android phone
 
 Keep your local backend running at `http://localhost:8000`, with auth configured.
-Use your account created with `python scripts/setup_auth.py`, rather than the
+Use your production account (from `CC_USERS`), rather than the
 mobile demo credentials (unless you explicitly configured those accounts).
 
 With Flutter **3.35.3** and Android platform-tools on your path, from `mobile/`:

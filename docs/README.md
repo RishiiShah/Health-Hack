@@ -22,7 +22,7 @@ Web uses React, Vite and TypeScript, styled with plain CSS (light and dark theme
 ECharts is not installed. The current web snapshot client uses serialized REST
 polling; `/ws` exists on the backend but is not the web client's transport.
 Password accounts determine roles; no login role selector changes permission.
-`CC_AUTH_CONFIG` overrides environment account configuration. Fixed role tokens
+Accounts come from `CC_USERS` and `CC_AUTH_SECRET`. Fixed role tokens
 and signed physician tokens are separate optional demo/API access mechanisms.
 
 The implemented Act loop supports one physician per offer, lead approval,

@@ -75,17 +75,12 @@ class Login(BaseModel):
 
 
 def auth_from_settings() -> Auth:
-    """An explicit auth file takes precedence over environment accounts; neither means refuse to start."""
-    accounts = None
-    if settings.auth_config:
-        config = json.loads(Path(settings.auth_config).read_text())
-        accounts = Accounts(json.dumps(config["users"]), config["secret"])
-    elif settings.users:
-        accounts = Accounts(settings.users, settings.auth_secret)
+    """Accounts come from CC_USERS and CC_AUTH_SECRET (the production accounts, locally too); none means refuse to start."""
+    accounts = Accounts(settings.users, settings.auth_secret) if settings.users else None
     auth = Auth(accounts, settings.coordinator_token, settings.lead_token, settings.admin_token, settings.lead_name, settings.token_secret)
     if not auth.configured:
-        raise RuntimeError("No sign-in configured. Run make backend from the repository root for local setup, "
-                           "or set CC_USERS and CC_AUTH_SECRET (or the CC_*_TOKEN variables).")
+        raise RuntimeError("No sign-in configured. Set CC_USERS and CC_AUTH_SECRET (or the CC_*_TOKEN variables) "
+                           "in the root .env locally or in the host's environment.")
     return auth
 
 
@@ -117,6 +112,8 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
 
     @asynccontextmanager
     async def lifespan(api: FastAPI):
+        if not url:
+            raise RuntimeError("Set CC_DATABASE_URL to the production database (root .env locally, the host's environment when deployed).")
         db = EventDatabase(url)
         task, conns = None, [db.conn]
         try:
