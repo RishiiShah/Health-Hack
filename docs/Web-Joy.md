@@ -54,7 +54,7 @@
 
 ## Demo data
 
-`VITE_DEMO_DATA=1 npm run dev` (or `VITE_DEMO_DATA=1` in `web/.env.local`) answers every API call from `web/src/demo/`, an in-memory stand-in with the design's values. Approve, reject, propose, add events, pause and +5 min all work against it, and the header shows a "Demo data" badge. Without the variable the app calls the real backend and the demo code is left out of the build.
+`VITE_DEMO_DATA=1 npm run dev` (or `VITE_DEMO_DATA=1` in `web/.env.local`) answers every API call from `web/src/demo/`, an in-memory stand-in. Its data in `web/src/demo/data/` was captured from the real backend at 18:20 on the training day (snapshot, the Suncrest gap's candidates and trap check, a proposed offer and its audit), plus Anish's schedule roster with IDs matched to the reference files. Sign in as `coord@demo.sevaro`, `lead@demo.sevaro`, `okafor@demo.sevaro` or `shah@demo.sevaro` with any password. Propose, approve, reject, accept, decline, escalate, add events, pause and +5 min all work, and the header shows a "Demo data" badge. Without the variable the app calls the real backend and the demo code is left out of the build; `web/.env.local` applies to `npm run build` too, so remove it before building for deployment.
 
 ## Response shapes these screens need (proposal for the backend owner)
 
