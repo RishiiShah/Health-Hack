@@ -62,13 +62,13 @@ class Login(BaseModel):
 
 
 def auth_from_settings() -> Auth:
-    """Accounts from CC_USERS (or the local CC_AUTH_CONFIG file) plus the fixed role tokens. Neither: refuse to start."""
+    """An explicit auth file takes precedence over environment accounts; neither means refuse to start."""
     accounts = None
-    if settings.users:
-        accounts = Accounts(settings.users, settings.auth_secret)
-    elif settings.auth_config:
+    if settings.auth_config:
         config = json.loads(Path(settings.auth_config).read_text())
         accounts = Accounts(json.dumps(config["users"]), config["secret"])
+    elif settings.users:
+        accounts = Accounts(settings.users, settings.auth_secret)
     auth = Auth(accounts, settings.coordinator_token, settings.lead_token, settings.admin_token, settings.lead_name, settings.token_secret)
     if not auth.configured:
         raise RuntimeError("No sign-in configured. Run make backend from the repository root for local setup, "
