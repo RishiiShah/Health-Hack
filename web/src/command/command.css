@@ -8,7 +8,7 @@
 .queue-filters { padding: 0 var(--s-3) var(--s-2); border-bottom: thin solid var(--line); }
 .queue-filters button, .coverage-filters button, .roster-filters button {
   display: inline-flex; align-items: center; gap: .6em; padding: .45em .9em; border: thin solid var(--line); border-radius: var(--radius);
-  background: transparent; color: var(--text-2); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+  background: transparent; color: var(--text-2); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase;
 }
 .queue-filters button span, .coverage-filters button span, .roster-filters button span { color: var(--muted); }
 .queue-filters button[aria-pressed="true"], .coverage-filters button[aria-pressed="true"], .roster-filters button[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
@@ -31,7 +31,7 @@
 .dense-queue .empty-state { margin: var(--s-3); }
 
 .dossier-card { position: sticky; top: calc(max(4.4vw, 7vh) + var(--s-3)); display: grid; gap: var(--s-3); border-left: calc(var(--rule-w) * 4) solid var(--accent-text); }
-.dossier-card.severity-critical { border-left-color: var(--signal); box-shadow: var(--offset) var(--offset) 0 color-mix(in srgb, var(--signal) 35%, transparent); }
+.dossier-card.severity-critical { border-left-color: var(--signal); box-shadow: var(--shadow-md); }
 .dossier-card.severity-warning { border-left-color: var(--warning-line); }
 .dossier-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-2); }
 .dossier-head h3 { margin-top: var(--s-1); font-size: var(--t-xl); line-height: 1.25; }
@@ -43,7 +43,7 @@
 .dossier-grid > div:nth-child(3) { animation-delay: calc(var(--step) * 2); }
 .dossier-grid > div:nth-child(4) { animation-delay: calc(var(--step) * 3); }
 .dossier-grid > div:nth-child(5) { animation-delay: calc(var(--step) * 4); }
-.dossier-grid dt { margin-bottom: var(--s-1); color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.dossier-grid dt { margin-bottom: var(--s-1); color: var(--muted); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
 .dossier-grid dd { margin: 0; font-size: var(--t-sm); }
 .dossier-wide { grid-column: 1 / -1; }
 .decision-alternatives { margin-top: var(--s-1); font-size: var(--t-sm); }

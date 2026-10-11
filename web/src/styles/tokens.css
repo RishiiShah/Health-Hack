@@ -16,10 +16,10 @@
   --text: #0F1A27;
   --text-2: #364658;
   --muted: #586777;
-  --accent: #B8D8EB;
-  --accent-hover: #A3CAE1;
-  --on-accent: #0F1A27;
-  --accent-text: #275A7B;
+  --accent: #245E86;
+  --accent-hover: #1C4D6E;
+  --on-accent: #FFFFFF;
+  --accent-text: #245E86;
   --accent-soft: #DFEBF3;
   --signal: #C23A2C;          /* the stroke-alert red: critical only, never large areas */
   --critical: #B4372A;
@@ -29,9 +29,8 @@
   --warning-line: #D6A451;
   --ok: #22704E;
   --ok-soft: #E1F1E8;
-  --ink-shadow: #0F1A27;      /* hard offset shadow */
-  --grid-minor: rgba(39, 90, 123, .045);
-  --grid-major: rgba(39, 90, 123, .085);
+  --shadow-sm: 0 0.1vh 0.25vh rgba(15, 26, 39, .06), 0 0.1vh 0.15vh rgba(15, 26, 39, .04);
+  --shadow-md: 0 0.5vh 1.6vh rgba(15, 26, 39, .08), 0 0.15vh 0.4vh rgba(15, 26, 39, .05);
   --overlay: rgba(15, 26, 39, .55);
 
   /* Type */
@@ -61,7 +60,6 @@
   --focus-w: max(0.14vw, 0.24vh);
   --rule-w: max(0.1vw, 0.16vh);
   --sidebar-w: 16vw;
-  --grid-step: max(2.4vw, 3.8vh);
 
   /* Motion */
   --ease-out: cubic-bezier(.2, .8, .2, 1);
@@ -85,10 +83,10 @@
   --text: #ECF0F3;
   --text-2: #C3CED8;
   --muted: #9AAAB8;
-  --accent: #B8D8EB;
-  --accent-hover: #CDE4F1;
+  --accent: #8EC3E3;
+  --accent-hover: #A9D3EC;
   --on-accent: #0F1A27;
-  --accent-text: #B8D8EB;
+  --accent-text: #9CCBE7;
   --accent-soft: rgba(184, 216, 235, .12);
   --signal: #F2796B;
   --critical: #F49A8F;
@@ -98,8 +96,7 @@
   --warning-line: #D6A451;
   --ok: #7DCFA8;
   --ok-soft: rgba(125, 207, 168, .13);
-  --ink-shadow: rgba(184, 216, 235, .2);
-  --grid-minor: rgba(184, 216, 235, .03);
-  --grid-major: rgba(184, 216, 235, .06);
+  --shadow-sm: 0 0.1vh 0.3vh rgba(0, 0, 0, .25);
+  --shadow-md: 0 0.6vh 2vh rgba(0, 0, 0, .35), 0 0.15vh 0.4vh rgba(0, 0, 0, .2);
   --overlay: rgba(6, 10, 14, .72);
 }

@@ -36,7 +36,6 @@
 .btn:active:not(:disabled), .icon-btn:active, .chip:active, .queue-filters button:active, .coverage-filters button:active, .roster-filters button:active, .role-picker button:active {
   transform: translate(var(--rule-w), var(--rule-w)) scale(.985);
 }
-.btn.primary:active:not(:disabled), .dossier-primary:active:not(:disabled) { box-shadow: 0 0 0 var(--ink-shadow); transform: translate(var(--offset), var(--offset)); }
 .kpi:hover, .chip:hover { transform: translateY(-0.5vh); }
 .kpi i, .btn > span[aria-hidden="true"], .roster-inspector-action span, .roster-alert button span { display: inline-block; transition: transform var(--med) var(--ease-out); }
 .kpi:hover i, .btn:hover > span[aria-hidden="true"], .roster-inspector-action:hover span, .roster-alert button:hover span { transform: translateX(.35em); }

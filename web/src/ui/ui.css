@@ -6,7 +6,7 @@
 .brand-mark i { position: absolute; width: 58%; height: 66%; border-radius: var(--rule-w); transform: skewX(-12deg); }
 .brand-mark i:first-child { left: 0; top: 0; background: var(--accent); }
 .brand-mark i:last-child { right: 0; bottom: 0; background: var(--text); }
-.brand em { color: var(--muted); font: 500 var(--t-xs) var(--font-mono); font-style: normal; letter-spacing: .12em; text-transform: uppercase; }
+.brand em { color: var(--muted); font: 500 var(--t-xs) var(--font-body); font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
 
 /* Page heading: kicker, title and a short note, with an optional aside on the right. */
 .page-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--s-3); margin-bottom: var(--s-4); }
@@ -14,8 +14,8 @@
 .page-head p { margin: var(--s-1) 0 0; max-width: 62ch; color: var(--muted); }
 .page-head-aside { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: flex-end; }
 
-/* Numbered sections, separated by a double rule like a chart's section breaks. */
-.section { margin-top: var(--s-5); padding-top: var(--s-4); border-top: calc(var(--rule-w) * 3) double var(--line-strong); }
+/* Numbered sections, separated by a hairline. */
+.section { margin-top: var(--s-5); padding-top: var(--s-4); border-top: thin solid var(--line); }
 .section-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: var(--s-2); margin-bottom: var(--s-3); }
 .section-head .kicker { margin-bottom: var(--s-1); }
 .section-head p { margin: var(--s-1) 0 0; color: var(--muted); font-size: var(--t-sm); }
@@ -25,26 +25,22 @@
 .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-3); }
 .kpi {
   position: relative; display: grid; grid-template-rows: auto 1fr auto; gap: var(--s-1); min-height: max(9vw, 15vh); padding: var(--s-3) var(--s-3) var(--s-2);
-  border: thin solid var(--line); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); text-decoration: none; overflow: hidden;
+  border: thin solid var(--line); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); text-decoration: none; overflow: hidden; box-shadow: var(--shadow-sm);
 }
-.kpi::after { content: ""; position: absolute; inset: auto 0 0; height: calc(var(--rule-w) * 2); background: var(--line); transform-origin: left; animation: grow-x var(--slow) var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * var(--step) + .2s); }
-.kpi:hover { border-color: var(--line-strong); box-shadow: var(--offset) var(--offset) 0 var(--ink-shadow); }
-.kpi-label { color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.kpi:hover { border-color: var(--line-strong); box-shadow: var(--shadow-md); }
+.kpi-label { color: var(--muted); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
 .kpi-value { align-self: end; font: 760 var(--t-3xl)/1 var(--font-head); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .kpi-value small { margin-left: .1em; color: var(--muted); font-size: 55%; font-weight: 600; }
 .kpi-note { display: flex; justify-content: space-between; gap: var(--s-1); color: var(--muted); font-size: var(--t-sm); }
 .kpi-note i { font-style: normal; color: var(--text-2); }
-.kpi.risk { border-color: color-mix(in srgb, var(--critical) 45%, var(--line)); }
-.kpi.risk::after { background: var(--signal); }
+.kpi.risk { border-color: color-mix(in srgb, var(--critical) 35%, var(--line)); }
 .kpi.risk .kpi-value { color: var(--critical); }
-.kpi.warn::after { background: var(--warning-line); }
 .kpi.warn .kpi-value { color: var(--warning); }
-.kpi.good::after { background: var(--ok); }
 .kpi.good .kpi-value { color: var(--ok); }
 .chip-row { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-top: var(--s-2); }
 .chip {
   display: inline-flex; align-items: center; gap: var(--s-1); padding: var(--s-1) var(--s-2); border: thin solid var(--line); border-radius: var(--radius);
-  background: var(--surface); color: var(--text-2); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .1em; text-transform: uppercase; text-decoration: none;
+  background: var(--surface); color: var(--text-2); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; text-decoration: none;
 }
 .chip b { color: var(--text); font-size: var(--t-sm); font-variant-numeric: tabular-nums; }
 .chip.warn b { color: var(--warning); }

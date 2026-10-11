@@ -18,10 +18,10 @@
 .call-overlay { position: fixed; inset: 0; z-index: 60; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, max(28vw, 42vh)) minmax(0, 1fr); align-items: center; padding: var(--gut); background: var(--overlay); backdrop-filter: blur(1vh); animation: fade var(--med) var(--ease-out); }
 .call-card {
   grid-column: 2; display: grid; gap: var(--s-2); padding: var(--s-5) var(--s-4); border-radius: max(1.8vw, 3vh); background: #0F1A27; color: #ECF0F3;
-  text-align: center; box-shadow: var(--offset) var(--offset) 0 rgba(184, 216, 235, .25); animation: pop var(--slow) var(--ease-spring);
+  text-align: center; box-shadow: var(--shadow-md); animation: pop var(--slow) var(--ease-spring);
 }
 .call-card h2 { color: #ECF0F3; font-size: var(--t-2xl); }
-.call-state { color: #B8D8EB; font: 500 var(--t-xs) var(--font-mono); letter-spacing: .16em; text-transform: uppercase; }
+.call-state { color: #B8D8EB; font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
 .call-sub { margin: 0; color: #AEBBC7; font-size: var(--t-sm); }
 .call-offer { display: grid; gap: .3em; margin-top: var(--s-2); padding: var(--s-3); border-radius: var(--radius-lg); background: rgba(255, 255, 255, .07); }
 .call-offer strong { font-size: var(--t-lg); }
@@ -30,13 +30,13 @@
 .call-message { margin: 0; color: #D3DCE4; font-size: var(--t-sm); animation: fade var(--med) var(--ease-out); }
 .call-note { margin: 0; color: #93A3B2; font-size: var(--t-xs); }
 .call-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-items: center; margin-top: var(--s-3); }
-.call-btn { width: max(4.6vw, 7.6vh); height: max(4.6vw, 7.6vh); border: 0; border-radius: 50%; font: 600 var(--t-xs) var(--font-mono); letter-spacing: .08em; text-transform: uppercase; transition: transform var(--fast) var(--ease-out); }
+.call-btn { width: max(4.6vw, 7.6vh); height: max(4.6vw, 7.6vh); border: 0; border-radius: 50%; font: 600 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; transition: transform var(--fast) var(--ease-out); }
 .call-btn:hover { transform: scale(1.06); }
 .call-btn.decline { background: #C93B2B; color: #fff; }
 .call-btn.answer { position: relative; background: #B8D8EB; color: #0F1A27; }
 .call-btn.answer::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: var(--rule-w) solid #B8D8EB; animation: ring 1.5s var(--ease-out) infinite; }
 .call-replies { display: grid; gap: var(--s-1); margin-top: var(--s-2); }
-.call-replies button { padding: var(--s-2); border: 0; border-radius: var(--radius-lg); font: 600 var(--t-xs) var(--font-mono); letter-spacing: .1em; text-transform: uppercase; animation: rise var(--med) var(--ease-out) backwards; }
+.call-replies button { padding: var(--s-2); border: 0; border-radius: var(--radius-lg); font: 600 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; animation: rise var(--med) var(--ease-out) backwards; }
 .call-replies button:nth-child(2) { animation-delay: calc(var(--step) * 1); }
 .call-replies button:nth-child(3) { animation-delay: calc(var(--step) * 2); }
 .call-replies .accept { background: #B8D8EB; color: #0F1A27; }
@@ -44,5 +44,5 @@
 .call-replies .hang-up { padding: var(--s-1); background: none; color: #93A3B2; text-transform: none; letter-spacing: 0; font-family: var(--font-body); }
 .call-result { display: grid; gap: var(--s-2); margin-top: var(--s-2); }
 .call-result p { margin: 0; padding: var(--s-2); border-radius: var(--radius-lg); background: rgba(255, 255, 255, .07); font-weight: 600; font-size: var(--t-sm); animation: pop var(--med) var(--ease-out); }
-.call-result button { padding: var(--s-2); border: 0; border-radius: var(--radius-lg); background: #ECF0F3; color: #0F1A27; font: 600 var(--t-xs) var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+.call-result button { padding: var(--s-2); border: 0; border-radius: var(--radius-lg); background: #ECF0F3; color: #0F1A27; font: 600 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
 @media (max-width: 50em) { .physician-top { grid-template-columns: minmax(0, 1fr); } .call-overlay { grid-template-columns: minmax(0, 1fr); } .call-card { grid-column: 1; } }

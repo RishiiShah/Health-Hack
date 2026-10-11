@@ -9,11 +9,11 @@
 .auth-pitch h1 { font-size: var(--t-hero); line-height: .98; letter-spacing: -.035em; }
 .auth-pitch h1 em { display: block; color: var(--accent-text); font-style: normal; font-weight: 600; font-size: 52%; letter-spacing: -.02em; margin-top: var(--s-2); }
 .auth-pitch p { margin: 0; max-width: 52ch; color: var(--text-2); font-size: var(--t-lg); }
-.auth-trace { display: flex; align-items: center; gap: var(--s-2); color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+.auth-trace { display: flex; align-items: center; gap: var(--s-2); color: var(--muted); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
 .auth-trace .pulse { width: max(9vw, 14vh); height: max(2.2vw, 3.6vh); }
 .auth-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); margin: 0; padding-top: var(--s-3); border-top: thin solid var(--line); }
 .auth-facts dt { font: 760 var(--t-2xl) var(--font-head); letter-spacing: -.02em; }
-.auth-facts dd { margin: .2em 0 0; color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+.auth-facts dd { margin: .2em 0 0; color: var(--muted); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
 
 .auth-panel { display: grid; grid-template-rows: auto 1fr auto; gap: var(--s-4); padding: var(--s-4) var(--gut); background: var(--surface); }
 .auth-top { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); }
@@ -24,18 +24,18 @@
 .role-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-1); }
 .role-picker button { display: grid; gap: .25em; align-content: start; padding: var(--s-2); border: thin solid var(--line); border-radius: var(--radius); background: var(--surface-2); text-align: left; }
 .role-picker button:hover { border-color: var(--line-strong); }
-.role-picker button[aria-pressed="true"] { border-color: var(--text); background: var(--accent-soft); box-shadow: var(--offset) var(--offset) 0 var(--ink-shadow); }
+.role-picker button[aria-pressed="true"] { border-color: var(--accent-text); background: var(--accent-soft); }
 .role-picker b { font-size: var(--t-sm); }
 .role-picker small { color: var(--muted); font-size: var(--t-xs); line-height: 1.35; }
 .auth-form { display: grid; gap: var(--s-3); }
 .field { display: grid; gap: var(--s-1); }
-.field-label { display: flex; justify-content: space-between; align-items: baseline; color: var(--text-2); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.field-label { display: flex; justify-content: space-between; align-items: baseline; color: var(--text-2); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
 .field-label button { padding: 0; border: 0; background: none; color: var(--accent-text); font: inherit; letter-spacing: .06em; text-transform: none; }
-.field input { width: 100%; min-height: max(3vw, 5vh); font-family: var(--font-mono); }
+.field input { width: 100%; min-height: max(3vw, 5vh); }
 .field-hint, .auth-error { margin: 0; animation: fade var(--med) var(--ease-out); }
 .auth-form .btn.primary { min-height: max(3.2vw, 5.4vh); }
 .auth-demo { display: grid; gap: var(--s-1); padding-top: var(--s-3); border-top: thin solid var(--line); }
-.auth-demo p { margin: 0 0 var(--s-1); color: var(--muted); font: 500 var(--t-xs) var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.auth-demo p { margin: 0 0 var(--s-1); color: var(--muted); font: 500 var(--t-xs) var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
 .auth-demo button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-1); padding: var(--s-2); border: thin solid var(--line); border-radius: var(--radius); background: var(--surface-2); font: var(--t-xs) var(--font-mono); text-align: left; transition: transform var(--fast) var(--ease-out), border-color var(--fast); }
 .auth-demo button:hover { border-color: var(--line-strong); transform: translateX(.35vw); }
 .auth-demo button b { font-family: var(--font-body); color: var(--accent-text); }
