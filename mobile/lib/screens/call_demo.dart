@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/api.dart';
 import '../data/fake/fakes.dart';
-import 'service_session.dart';
+import 'incoming_call_screen.dart';
 import 'shared.dart';
 
-/// Dummy mode: opens the physician app on the fake backend, where the sample
-/// `sent` offer rings as a coverage call. Call from a tap so sound is allowed.
+/// Dummy mode: rings the coverage call for the fake backend's sent offer, as
+/// the web demo does once the lead has approved. Answer speaks the recording.
 void openCallDemo(BuildContext context) {
   final fake = FakeServices(autoAnswer: false);
   fake.services.alerts.enableSound();
-  Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => _CallDemo(fake: fake)));
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => _CallDemo(fake: fake),
+    ),
+  );
 }
 
 class _CallDemo extends StatefulWidget {
@@ -23,14 +27,24 @@ class _CallDemo extends StatefulWidget {
 }
 
 class _CallDemoState extends State<_CallDemo> {
-  Me? _me;
+  Offer? _offer;
 
   @override
   void initState() {
     super.initState();
-    widget.fake.signInAs('okafor').then((me) {
-      if (mounted) setState(() => _me = me);
-    });
+    _load();
+  }
+
+  Future<void> _load() async {
+    final fake = widget.fake;
+    // The fake has no text-to-speech; this is the backend's ElevenLabs voice,
+    // recorded once for the fake's sent offer, so Answer speaks.
+    final audio = await rootBundle.load('assets/offer_call.mp3');
+    fake.offers.audio = audio.buffer.asUint8List();
+    await fake.signInAs('okafor');
+    final offers = await fake.offers.listOffers();
+    final sent = offers.offers.where((o) => o.status == OfferStatus.sent);
+    if (mounted) setState(() => _offer = sent.firstOrNull);
   }
 
   @override
@@ -41,12 +55,8 @@ class _CallDemoState extends State<_CallDemo> {
 
   @override
   Widget build(BuildContext context) {
-    final me = _me;
-    if (me == null) return const LoadingScreen();
-    return ServiceSession(
-      services: widget.fake.services,
-      me: me,
-      onEnded: () => Navigator.of(context).pop(),
-    );
+    final offer = _offer;
+    if (offer == null) return const LoadingScreen();
+    return IncomingCallScreen(services: widget.fake.services, offer: offer);
   }
 }

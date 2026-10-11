@@ -1292,6 +1292,24 @@ class _Shell extends StatefulWidget {
 
 class _ShellState extends State<_Shell> {
   int _page = 0;
+  Timer? _call;
+
+  @override
+  void initState() {
+    super.initState();
+    // Like the web demo: the approved offer rings the physician shortly after sign-in.
+    if (widget.role == DemoRole.physician) {
+      _call = Timer(const Duration(seconds: 3), () {
+        if (mounted) openCallDemo(context);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _call?.cancel();
+    super.dispose();
+  }
 
   Widget _body() {
     final page = _nav[widget.role]![_page];
