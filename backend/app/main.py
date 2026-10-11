@@ -130,7 +130,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
             if refs is not None and source:
                 engine.store_kit(refs, source)  # databases from before stored kits hold only the active one
             conns.append(engine.interventions.conn)
-            engine.desk = OfferDesk(url, engine.context, base_history(history_path or settings.offer_history, clock.now()))
+            engine.desk = OfferDesk(url, engine.context, base_history(history_path or settings.offer_history, clock.now()), shared_log=True)
             api.state.db, api.state.clock, api.state.coordinator, api.state.engine = db, clock, coordinator, engine
             api.state.auth = auth or auth_from_settings()
             api.state.speech = speech or Speech(url)

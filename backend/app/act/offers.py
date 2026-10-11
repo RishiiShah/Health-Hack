@@ -125,8 +125,9 @@ class OfferDesk:
     """Offer commands. `context()` returns the current Context; call it under the ingest coordinator's lock so a
     command sees exactly one revision. `base_history` is the supplied offer history (offers made outside this tool)."""
 
-    def __init__(self, url: str, context: Callable[[], Context], base_history: OfferHistory = OfferHistory()):
-        self.url, self.context, self.base_history = url, context, base_history
+    def __init__(self, url: str, context: Callable[[], Context], base_history: OfferHistory = OfferHistory(), shared_log=False):
+        """`shared_log`: the event log lives in the same database, so a command first checks this server is not behind it."""
+        self.url, self.context, self.base_history, self.shared_log = url, context, base_history, shared_log
         self.lock = RLock()  # one connection is shared by the API's worker threads: one command or read at a time
         self.version = 0  # bumps on every committed command, so cached snapshots know offers changed
         self.conn = self._connect()
@@ -150,9 +151,11 @@ class OfferDesk:
             raise OfferError(404, "not_found", "no such offer")  # another physician's offer is indistinguishable from none
         return _row(r)
 
-    def audit(self, gap_id: str | None = None) -> list[dict]:
+    def audit(self, gap_id: str | None = None, limit: int | None = None) -> list[dict]:
+        """Oldest first; with `limit`, only the newest rows (the log grows by a recommendation pass per decision change)."""
         with self.lock:
-            rows = self.conn.execute("SELECT * FROM offer_audit WHERE %s::text IS NULL OR gap_id=%s ORDER BY id", (gap_id, gap_id)).fetchall()
+            rows = self.conn.execute("SELECT * FROM (SELECT * FROM offer_audit WHERE %s::text IS NULL OR gap_id=%s ORDER BY id DESC LIMIT %s) t ORDER BY id",
+                                     (gap_id, gap_id, limit)).fetchall()
         return [{**r, "detail": json.loads(r["detail"])} for r in rows]
 
     def record_decisions(self, ctx, recommendations):
@@ -223,6 +226,10 @@ class OfferDesk:
                     return response
             ctx = self.context()
             ctx = Context(ctx.state, ctx.refs, ctx.ops, utc(ctx.now), ctx.revision)
+            # Another server sharing the database moved it on (new events, a kit switch, a reset): this one's view is
+            # stale, so it must not judge offers (a stale sweep would cancel offers for hospitals it does not know).
+            if self.shared_log and cur.execute("SELECT value FROM metadata WHERE key='revision'").fetchone()["value"] != str(ctx.revision):
+                raise OfferError(409, "stale_server", "another server changed the shared data; restart this server to reload it")
             try:
                 response = body(cur, ctx)
             except OfferError as exc:

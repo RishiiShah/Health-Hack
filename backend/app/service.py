@@ -429,7 +429,7 @@ class Engine:
 
     def audit_view(self, gap_id):
         items = []
-        for a in self.desk.audit(gap_id):
+        for a in self.desk.audit(gap_id, limit=AUDIT_ROWS):
             d = a["detail"]
             if a["command"].endswith(":refused"):
                 text = d.get("message", "")
@@ -578,6 +578,7 @@ class Engine:
 
 # ---- views in the shapes the web screens render (docs/Web-Joy.md) --------------------------------------------
 STEP = timedelta(minutes=15)
+AUDIT_ROWS = 300  # the newest rows only: the whole log (a recommendation pass per decision change) outgrows a small host's memory
 STATE_LABELS = {"PROPOSED": "Proposed", "APPROVED": "Approved", "REJECTED": "Rejected", "SENT": "Sent", "CANCELLED": "Cancelled",
                 "ACCEPTED": "Accepted", "ALREADY_FILLED": "Already filled", "DECLINED": "Declined", "EXPIRED": "Expired", "WITHDRAWN": "Withdrawn"}
 RULE_CODES = {"off_shift_now": "Off", "opted_in": "R1", "credentialed_at_gap": "R2", "rest_at_start_at_least_10h": "R3",

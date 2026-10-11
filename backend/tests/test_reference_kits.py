@@ -143,3 +143,30 @@ def test_restart_recovers_a_switched_kit_under_the_official_pin(db_url, monkeypa
         snap = client.get('/snapshot', headers=COORD).json()
         assert snap['dataset']['name'] == 'Second kit'
         assert {c['consult_id'] for c in snap['consults']} == {'NEW-C'}
+
+
+def test_a_server_behind_the_shared_database_does_not_judge_offers(db_url, monkeypatch):
+    """Another server committed (new events, a kit switch): this one's sweep must not cancel offers on a stale view."""
+    import psycopg, pytest
+    from app.act.offers import OfferError
+    with TestClient(hosted(db_url, monkeypatch)) as client:
+        seed(client)
+        desk = client.app.state.engine.desk
+        desk.sweep()  # in step with the database: fine
+        with psycopg.connect(db_url, autocommit=True) as other:
+            other.execute("UPDATE metadata SET value=(value::int + 1)::text WHERE key='revision'")
+        with pytest.raises(OfferError) as refused:
+            desk.sweep()
+        assert refused.value.code == 'stale_server'
+
+
+def test_the_audit_view_returns_only_the_newest_rows(db_url, monkeypatch):
+    from app import service
+    monkeypatch.setattr(service, 'AUDIT_ROWS', 2)
+    with TestClient(hosted(db_url, monkeypatch)) as client:
+        seed(client)
+        desk = client.app.state.engine.desk
+        for actor in ('a', 'b', 'c'):
+            desk.reset(actor, START)
+        items = client.get('/audit', headers=COORD).json()['items']
+        assert [i['actor'] for i in items] == ['b', 'c']
