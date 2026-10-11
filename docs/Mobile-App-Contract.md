@@ -19,7 +19,8 @@ reference, rather than a replacement for these mobile payloads.
 - Action business outcomes return HTTP 200. Errors are auth, permission, input,
   unavailable resources, and outages. Every POST/PUT is repeat-safe.
 - Offer expiry is ten minutes after sending, displayed as **Missed**.
-- Polling; no mobile WebSocket, push, Firebase, AI voice calls, or read-aloud audio.
+- Polling; no mobile WebSocket, push, Firebase or AI voice calls. The simulated
+  coverage call plays the server's offer audio; the app never generates speech.
 - Physician opt-out leaves the physician in candidates, failing R1 with
   “Opted out of split shifts”. Real sign-in links and missed-offer penalties deferred.
 
@@ -50,6 +51,7 @@ show consult ID/type, hospital, and stage/status; no names, ages, or symptoms.
 | Physician | GET `/offers/{offer_id}` | Offer |
 | Physician | POST `/offers/{offer_id}/accept`, `/decline`, `/release` | No body → OfferActionResult |
 | Physician | GET `/notifications` | NotificationList |
+| Physician | GET `/offers/{offer_id}/audio` | `audio/mpeg`, own sent offer only. Any other status (503 text-to-speech off, 409 not sent) → show the offer text, no play button |
 | Physician | GET `/me/shift` | MyShift |
 | Physician | GET `/me/schedule?week_start=YYYY-MM-DD` | MySchedule |
 | Lead | GET `/lead/queue` | LeadQueue |
@@ -203,7 +205,7 @@ shows Retry. Another physician's offer returns 404. Business outcomes remain 200
 
 | Data | Cadence |
 | --- | --- |
-| Physician offers + notifications | 5 s with a sent offer; otherwise 15 s |
+| Physician offers + notifications | 3 s (a newly sent offer rings the simulated call) |
 | Physician Me | Start, preference changes, every 60 s |
 | My shift | 30 s while tab open |
 | Physician schedule | Tab opens or week changes |
@@ -249,7 +251,8 @@ Lead approves; two offers arrive; exactly one acceptance wins. Coverage becomes
 
 Backend confirms broadcast replacement, release reopening/notifying lead, and
 supplies the new mobile endpoints. Release appears only in allowed_actions.
-Real accounts/QR issuance and penalties deferred. Audio read-aloud dropped.
+Real accounts/QR issuance and penalties deferred. Offer audio is server-generated
+and played only in the simulated coverage call.
 Auth and deployment excluded from the current screen completion pass.
 
 ## 13. Design additions

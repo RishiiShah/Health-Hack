@@ -239,17 +239,15 @@ void main() {
         expect(feed.offers.value.data!.anySent, isTrue);
 
         polls = 0;
-        async.elapse(const Duration(seconds: 5)); // fast interval while sent
+        async.elapse(const Duration(seconds: 3)); // one poll every 3 s
         expect(polls, 1);
 
         fake.offers.expire('OFF-0007');
-        async.elapse(const Duration(seconds: 5));
+        async.elapse(const Duration(seconds: 3));
         expect(changed, [OfferStatus.expired]);
 
         polls = 0;
-        async.elapse(const Duration(seconds: 5)); // now slow: nothing yet
-        expect(polls, 0);
-        async.elapse(const Duration(seconds: 10));
+        async.elapse(const Duration(seconds: 3)); // same pace with nothing sent
         expect(polls, 1);
 
         browser.hidden = true;

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'call_demo.dart';
 import 'shared.dart';
 import 'theme.dart';
 
@@ -2972,6 +2973,10 @@ class _OfferState extends State<_Offer> {
                     'Audio is read out by the server in live mode',
                   ),
                   child: const Text('▶ Listen to offer'),
+                ),
+                TextButton(
+                  onPressed: () => openCallDemo(context),
+                  child: const Text('Simulate coverage call'),
                 ),
                 Text(
                   'Offer OFF-1900-SUNCREST · Eastern Time',

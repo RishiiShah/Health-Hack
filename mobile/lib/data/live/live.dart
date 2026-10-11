@@ -147,6 +147,8 @@ class LiveOfferRepository implements OfferRepository {
   Future<OfferActionResult> release(String offerId) =>
       retryOnceOnNetwork(() => _c.post('/offers/${_id(offerId)}/release', OfferActionResult.parse));
   @override
+  Future<Uint8List> getOfferAudio(String offerId) => _c.getBytes('/offers/${_id(offerId)}/audio');
+  @override
   Future<NotificationList> notifications() => _c.get('/notifications', NotificationList.parse);
 }
 

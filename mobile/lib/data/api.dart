@@ -53,6 +53,10 @@ abstract class OfferRepository {
   Future<OfferActionResult> accept(String offerId);
   Future<OfferActionResult> decline(String offerId);
   Future<OfferActionResult> release(String offerId);
+
+  /// GET /offers/{id}/audio: the server's spoken offer (MP3). Throws
+  /// [Unavailable] when text-to-speech is off; show the offer text instead.
+  Future<Uint8List> getOfferAudio(String offerId);
   Future<NotificationList> notifications();
 }
 
@@ -144,6 +148,16 @@ abstract class WebAlerts {
   bool get soundEnabled;
   void chime();
   void vibrate();
+
+  /// Loops the chime until [stopSound]. Silent until sound has been enabled.
+  void startRing();
+
+  /// Plays [mp3] once (the spoken offer), replacing any ring. Throws if the
+  /// browser refuses to play it.
+  Future<void> play(Uint8List mp3);
+
+  /// Stops the ring or the spoken offer.
+  void stopSound();
 
   /// "(n) New coverage request" in the tab title; 0 restores the title.
   void setBadge(int count);

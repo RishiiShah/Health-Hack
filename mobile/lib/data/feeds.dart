@@ -7,21 +7,19 @@ import 'platform/browser.dart';
 
 /// Contract section 7. Works against any OfferRepository (live or fake).
 ///
-/// * `/offers` + `/notifications` every 5 s while any offer is `sent`, else 15 s.
+/// * `/offers` + `/notifications` every 3 s, so a newly sent offer rings promptly.
 /// * Stops while the tab is hidden; refreshes immediately when visible.
 /// * A failed poll keeps the last good data and sets `error`; the next success clears it.
 class PollingPhysicianFeed implements PhysicianFeed {
   PollingPhysicianFeed(
     this._repo, {
     Browser? browser,
-    this.fast = const Duration(seconds: 5),
-    this.slow = const Duration(seconds: 15),
+    this.interval = const Duration(seconds: 3),
   }) : _browser = browser ?? sharedBrowser;
 
   final OfferRepository _repo;
   final Browser _browser;
-  final Duration fast;
-  final Duration slow;
+  final Duration interval;
 
   final _offers = ValueNotifier<FeedState<OfferList>>(const FeedState.loading());
   final _notifications = ValueNotifier<FeedState<NotificationList>>(const FeedState.loading());
@@ -88,10 +86,7 @@ class PollingPhysicianFeed implements PhysicianFeed {
   Future<void> _doPoll(int generation) async {
     _timer?.cancel();
     await Future.wait([_loadOffers(generation), _loadNotifications(generation)]);
-    if (_running && generation == _generation && !_browser.hidden) {
-      final anySent = _offers.value.data?.anySent ?? false;
-      _timer = Timer(anySent ? fast : slow, _poll);
-    }
+    if (_running && generation == _generation && !_browser.hidden) _timer = Timer(interval, _poll);
   }
 
   Future<void> _loadOffers(int generation) async {
