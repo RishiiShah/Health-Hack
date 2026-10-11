@@ -61,4 +61,4 @@ export function ThemeToggle() {
 }
 
 export const Brand = ({ tag = true }: { tag?: boolean }) =>
-  <span className="brand"><span className="brand-mark" aria-hidden="true"><i /><i /></span><strong>overlap</strong>{tag && <em>for Sevaro</em>}</span>;
+  <span className="brand"><span className="brand-mark" aria-hidden="true"><i /><i /></span><strong>Cerevia</strong>{tag && <em>for Sevaro</em>}</span>;

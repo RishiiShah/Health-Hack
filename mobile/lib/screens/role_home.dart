@@ -71,7 +71,7 @@ class _RoleHomeState extends State<RoleHome> {
   Widget build(BuildContext context) {
     if (widget.role == 'coordinator' || widget.role == 'admin') {
       return Scaffold(
-        appBar: AppBar(title: const Text('Sevaro'), actions: widget.actions),
+        appBar: AppBar(title: const Text('Cerevia'), actions: widget.actions),
         body: ScreenBody(
           children: [
             Text(
@@ -110,7 +110,7 @@ class _RoleHomeState extends State<RoleHome> {
                   horizontal: 16,
                   vertical: 8,
                 ),
-                decoration: OverlapStyle.panel(radius: 28),
+                decoration: OverlapStyle.panel(radius: 10),
                 child: Wrap(
                   alignment: WrapAlignment.spaceBetween,
                   crossAxisAlignment: WrapCrossAlignment.center,
@@ -137,7 +137,7 @@ class _RoleHomeState extends State<RoleHome> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Container(
                 padding: const EdgeInsets.all(4),
-                decoration: OverlapStyle.panel(radius: 28),
+                decoration: OverlapStyle.panel(radius: 10),
                 child: LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -159,7 +159,11 @@ class _RoleHomeState extends State<RoleHome> {
                                   backgroundColor: _index == index
                                       ? OverlapStyle.ink
                                       : Colors.transparent,
-                                  shape: const StadiumBorder(),
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(6),
+                                    ),
+                                  ),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 12,

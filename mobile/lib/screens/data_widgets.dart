@@ -42,7 +42,7 @@ class DataCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(bottom: 16),
     padding: const EdgeInsets.all(18),
-    decoration: OverlapStyle.panel(color: color ?? Colors.white),
+    decoration: OverlapStyle.panel(color: color ?? OverlapStyle.surface),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: children,

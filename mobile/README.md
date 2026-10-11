@@ -1,4 +1,4 @@
-# Sevaro mobile
+# Cerevia mobile
 
 Flutter phone/web screens, shared data repositories and a debug workflow demo.
 This release checkout includes the team mobile source from `origin/mobile`
@@ -8,12 +8,19 @@ not copied. Current scope and policy differences are in [document authority](../
 
 ## Web design parity
 
-The Flutter presentation follows the Overlap UI on `origin/anish` at `c0f5608`:
-cream canvas, white bordered panels, teal actions, navy pill navigation, and
-the two-bar Overlap mark. `lib/screens/theme.dart` holds the shared visual tokens.
-Sign-in and offer cards keep the web's constrained widths; dashboard content
-expands on larger screens, and navigation scrolls horizontally when needed.
-Schedule bars and coverage cells use the web's semantic status colors.
+The Flutter presentation uses the current Cerevia web design tokens: slate ECG-paper
+canvas, pale bordered surfaces, ice-blue primary actions, compact rectangular
+navigation, and the two-bar Cerevia mark. `lib/screens/theme.dart` owns the
+shared palette, typography, fields and controls for live and demo screens.
+The demo Command page follows the web's Triage → Coverage outlook → Dispatch
+reading order. Headers wrap on phones, wide tables scroll inside their cards,
+and table rows grow to accommodate content. Existing role permissions, data
+sources and approval workflows are unchanged. This update matches the web's
+light palette; Flutter does not yet expose the web's dark-mode toggle.
+
+Responsive regression checks in `test/screens/design_parity_test.dart` cover
+390 × 844 portrait and 844 × 390 landscape layouts, including navigation to
+the dashboard and horizontal scrolling in coverage tables.
 
 Bricolage Grotesque, IBM Plex Sans, and IBM Plex Mono are bundled in
 `assets/fonts/` for offline typography, with their SIL Open Font Licenses.
@@ -124,7 +131,7 @@ flutter build web --release --no-pub --dart-define=API_MODE=fake
 ```
 
 Verified with the existing documented Flutter 3.35.3 / Dart 3.9.2 toolchain:
-`flutter analyze --no-pub` is clean, all 149 tests pass, and
+`flutter analyze --no-pub` is clean, all 166 tests pass, and
 `flutter build web --release --no-pub --dart-define=API_MODE=live --dart-define=API_BASE_URL=https://backend.example`
 succeeds. No packages or lockfile versions changed. This verifies the Flutter web
 build; it does not constitute a physical Android/iOS device test or deployment.

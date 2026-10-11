@@ -1,4 +1,4 @@
-/* Overlap for Sevaro: design tokens.
+/* Cerevia for Sevaro: design tokens.
    Units: lengths are viewport units only (vw, vh, vmin, vmax), proportions use % and fr, hairlines use `thin`.
    Type is clamp(rem floor, viewport size, rem ceiling) so text stays legible on a phone held sideways;
    breakpoints are in em because media queries cannot be measured in viewport units. No px anywhere. */

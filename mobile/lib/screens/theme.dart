@@ -1,39 +1,77 @@
 import 'package:flutter/material.dart';
 
-/// Shared visual tokens from origin/anish's Overlap web UI.
+/// The same fine ECG-paper grid used behind the web dashboard.
+class CereviaGridPainter extends CustomPainter {
+  const CereviaGridPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = OverlapStyle.background,
+    );
+    final paint = Paint()..strokeWidth = 1;
+    const step = 24.0;
+    for (var column = 0; column * step <= size.width; column++) {
+      paint.color = OverlapStyle.teal.withValues(
+        alpha: column % 5 == 0 ? .085 : .045,
+      );
+      canvas.drawLine(
+        Offset(column * step, 0),
+        Offset(column * step, size.height),
+        paint,
+      );
+    }
+    for (var row = 0; row * step <= size.height; row++) {
+      paint.color = OverlapStyle.teal.withValues(
+        alpha: row % 5 == 0 ? .085 : .045,
+      );
+      canvas.drawLine(
+        Offset(0, row * step),
+        Offset(size.width, row * step),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(CereviaGridPainter oldDelegate) => false;
+}
+
+/// Cerevia tokens shared with web/src/styles/tokens.css.
 abstract final class OverlapStyle {
-  static const background = Color(0xFFFBF9F5);
-  static const ink = Color(0xFF161E2E);
-  static const muted = Color(0xFF64748B);
-  static const line = Color(0xFFE2DFD8);
-  static const teal = Color(0xFF0D9488);
-  static const tealDark = Color(0xFF0F766E);
-  static const tealSoft = Color(0xFFD9F7EF);
-  static const red = Color(0xFFB42318);
-  static const redSoft = Color(0xFFFEE2E2);
-  static const amber = Color(0xFF8A5A00);
-  static const amberSoft = Color(0xFFF8E9C9);
-  static const green = Color(0xFF2F6B4F);
-  static const greenSoft = Color(0xFFD9F3E4);
+  static const background = Color(0xFFEDF1F4);
+  static const surface = Color(0xFFFBFCFD);
+  static const surface2 = Color(0xFFF2F5F8);
+  static const accent = Color(0xFFB8D8EB);
+  static const text2 = Color(0xFF364658);
+  static const lineStrong = Color(0xFFB4C1CD);
+  static const ink = Color(0xFF0F1A27);
+  static const muted = Color(0xFF586777);
+  static const line = Color(0xFFD3DCE4);
+  static const teal = Color(0xFF275A7B);
+  static const tealDark = Color(0xFF275A7B);
+  static const tealSoft = Color(0xFFDFEBF3);
+  static const red = Color(0xFFB4372A);
+  static const redSoft = Color(0xFFFBE9E6);
+  static const amber = Color(0xFF855700);
+  static const amberSoft = Color(0xFFFAF0DA);
+  static const green = Color(0xFF22704E);
+  static const greenSoft = Color(0xFFE1F1E8);
   static const mono = 'IBM Plex Mono';
   static const heading = 'Bricolage Grotesque';
 
-  static BoxDecoration panel({
-    Color color = Colors.white,
-    double radius = 16,
-  }) => BoxDecoration(
-    color: color,
-    borderRadius: BorderRadius.circular(radius),
-    border: Border.all(color: line),
-    boxShadow: const [
-      BoxShadow(color: Color(0x0A1E2530), blurRadius: 12, offset: Offset(0, 3)),
-    ],
-  );
+  static BoxDecoration panel({Color color = surface, double radius = 10}) =>
+      BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: line),
+      );
 }
 
 ThemeData sevaroTheme() {
   const colors = ColorScheme.light(
-    primary: OverlapStyle.teal,
+    primary: OverlapStyle.tealDark,
     onPrimary: Colors.white,
     primaryContainer: OverlapStyle.tealSoft,
     onPrimaryContainer: OverlapStyle.tealDark,
@@ -41,7 +79,7 @@ ThemeData sevaroTheme() {
     onSecondary: Colors.white,
     secondaryContainer: OverlapStyle.tealSoft,
     onSecondaryContainer: OverlapStyle.tealDark,
-    surface: Colors.white,
+    surface: OverlapStyle.surface,
     onSurface: OverlapStyle.ink,
     onSurfaceVariant: OverlapStyle.muted,
     outline: OverlapStyle.line,
@@ -64,14 +102,14 @@ ThemeData sevaroTheme() {
         color: OverlapStyle.ink,
       );
   const fieldBorder = OutlineInputBorder(
-    borderRadius: BorderRadius.all(Radius.circular(12)),
+    borderRadius: BorderRadius.all(Radius.circular(6)),
     borderSide: BorderSide(color: OverlapStyle.line),
   );
   final buttonShape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(6),
   );
   return base.copyWith(
-    scaffoldBackgroundColor: OverlapStyle.background,
+    scaffoldBackgroundColor: Colors.transparent,
     textTheme: base.textTheme.copyWith(
       displaySmall: head(base.textTheme.displaySmall, 38, FontWeight.w800),
       headlineLarge: head(base.textTheme.headlineLarge, 32, FontWeight.w800),
@@ -107,22 +145,25 @@ ThemeData sevaroTheme() {
       border: fieldBorder,
       enabledBorder: fieldBorder,
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderRadius: BorderRadius.all(Radius.circular(6)),
         borderSide: BorderSide(color: OverlapStyle.teal, width: 2),
       ),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: OverlapStyle.surface,
       contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: OverlapStyle.tealDark,
-        foregroundColor: Colors.white,
+        backgroundColor: OverlapStyle.accent,
+        foregroundColor: OverlapStyle.ink,
+        side: const BorderSide(color: OverlapStyle.ink),
         minimumSize: const Size(48, 48),
         shape: buttonShape,
         textStyle: const TextStyle(
-          fontFamily: 'IBM Plex Sans',
-          fontWeight: FontWeight.w600,
+          fontFamily: OverlapStyle.mono,
+          fontSize: 12,
+          letterSpacing: 1.1,
+          fontWeight: FontWeight.w500,
         ),
       ),
     ),
@@ -151,10 +192,12 @@ ThemeData sevaroTheme() {
       ),
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: Colors.white,
+      backgroundColor: OverlapStyle.surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
-    bottomSheetTheme: const BottomSheetThemeData(backgroundColor: Colors.white),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: OverlapStyle.surface,
+    ),
   );
 }

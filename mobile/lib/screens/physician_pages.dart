@@ -289,9 +289,9 @@ class ShiftPage extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: switch (consult.level) {
-                      ConsultLevel.critical => const Color(0xFFB42318),
-                      ConsultLevel.warning => const Color(0xFF8A5A00),
-                      ConsultLevel.ok => const Color(0xFF0D9488),
+                      ConsultLevel.critical => const Color(0xFFB4372A),
+                      ConsultLevel.warning => const Color(0xFF855700),
+                      ConsultLevel.ok => const Color(0xFF275A7B),
                     },
                   ),
                 ),

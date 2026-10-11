@@ -37,9 +37,11 @@ class _SevaroAppState extends State<SevaroApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Overlap Command Center',
+    title: 'Cerevia Command Center',
     debugShowCheckedModeBanner: false,
     theme: sevaroTheme(),
+    builder: (context, child) =>
+        CustomPaint(painter: const CereviaGridPainter(), child: child),
     // Dummy mode mirrors the web demo (landing → sign in → role dashboard).
     home:
         widget.home ??

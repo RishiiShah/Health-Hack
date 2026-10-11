@@ -22,7 +22,7 @@ class OverlapBrand extends StatelessWidget {
                   width: 12,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: OverlapStyle.teal,
+                    color: OverlapStyle.accent,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -48,7 +48,7 @@ class OverlapBrand extends StatelessWidget {
       ),
       const SizedBox(width: 8),
       const Text(
-        'overlap',
+        'Cerevia',
         style: TextStyle(
           fontFamily: OverlapStyle.heading,
           fontSize: 18,
@@ -125,7 +125,7 @@ class LoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const Scaffold(
     body: Center(
-      child: CircularProgressIndicator(semanticsLabel: 'Loading Sevaro'),
+      child: CircularProgressIndicator(semanticsLabel: 'Loading Cerevia'),
     ),
   );
 }
@@ -138,7 +138,7 @@ class ErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Sevaro')),
+    appBar: AppBar(title: const Text('Cerevia')),
     body: ScreenBody(
       children: [
         Notice(message, isError: true),
