@@ -167,7 +167,7 @@ function OperationsApp({ session }: { session: Session }) {
       {page === "command" && s && <CommandPage snapshot={s} detect={detect} now={now} offers={offers.data?.items ?? []} reloadKey={live.receivedAt} refresh={live.refresh} />}
       {page === "consults" && <div className="page detail-page"><Title eyebrow={workspace} title="Consults" note="Level from the server" />{detect ? <><ConsultQueues detect={detect} onReview={showConsult} /><ConsultBoard consults={detect.consults} /></> : <Unavailable what="consults with levels" />}</div>}
       {page === "doctors" && <div className="page detail-page"><Title eyebrow={workspace} title="Doctors" note="Self-report beside derived state" />{detect ? <><PhysicianActivity detect={detect} /><div className="forecast-panels"><WorkloadPanel workload={s?.workload as Workload | undefined} /><SignalVerification detect={detect} /></div><PhysicianBoard physicians={detect.physicians} /></> : <Unavailable what="physician state" />}</div>}
-      {page === "schedule" && <SchedulePage />}
+      {page === "schedule" && <SchedulePage reloadKey={live.receivedAt} />}
       {page === "audit" && <AuditPage workspace={workspace} reloadKey={live.receivedAt} />}
       {page === "approvals" && <ApprovalsPage offers={offers.data?.items ?? []} offersError={offers.error && !offers.data ? unavailableText(offers.error, "GET /offers") : null} now={now} reloadKey={live.receivedAt} onChanged={live.refresh} />}
       {page === "data" && <DataPage snapshot={s} now={now} onChanged={live.refresh} />}

@@ -5,6 +5,7 @@ Clients only display what this returns; every level, gap, candidate and fix is c
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from app.act.interventions import InterventionLog
 from app.act.offers import OPEN, Context, OfferDesk
 from app.decide.eligibility import OfferHistory, Proposal, evaluate, evaluate_proposal, load_offer_history
@@ -256,6 +257,66 @@ class Engine:
                 "message": sent, "audio_url": f"/offers/{o.id}/audio" if sent and self.speech_available else None, "phone_url": None,
                 "reject_reason": o.reason if o.state == "REJECTED" else None, "reason": o.reason, "replaces": o.replaces}
 
+    def schedule(self) -> dict:
+        """The day's roster for the Schedule screen, in ET: reference shifts, the off-shift roster's next starts (no end is
+        supplied, so they stay open-ended), live state from the decision views and offers. Clients only display it."""
+        p, d = self.decisions()
+        now, refs = p.as_of, p.refs
+        today = now.astimezone(ET).date()
+        hhmm = lambda t: t.astimezone(ET).strftime("%H:%M")
+        names = lambda ids: ", ".join(refs.hospitals[h].name for h in ids)
+        offers = {}  # each physician's latest open or accepted offer
+        for o in sorted(self.desk.offers(), key=lambda o: o.created_at):
+            if o.state in OPEN_OFFER or o.state == "ACCEPTED":
+                offers[o.physician_id] = o
+        doctors = []
+        for pid in sorted(refs.physicians):
+            phys, v, r, o = refs.physicians[pid], d.views.get(pid), self.ops.roster.get(pid), offers.get(pid)
+            shift = next((s for s in phys.shifts if s.start <= now < s.end), None)
+            creds = sorted(refs.credentials.get(pid, ()), key=lambda h: refs.hospitals[h].name)
+            row = {"id": pid, "name": phys.name, "group": "On shift" if shift else "Off shift", "avatar": initials(phys.name),
+                   "credentialed": f"{len(creds)} hospitals: {names(creds)}" if creds else "No credentialed hospitals",
+                   "workload": f"{r.hours_last_7d:g} h in last 7 days" if r else f"{v.consults_this_shift} consults this shift" if v else "–"}
+            if o is not None and o.state in OPEN_OFFER:
+                row |= {"bar": f"{hhmm(o.start)} to {hhmm(o.end)}", "tone": "offer", "status": f"Offer for {names(o.hospitals)}",
+                        "detail": OPEN_OFFER[o.state]}
+            elif shift:
+                soon = v.minutes_to_shift_end is not None and v.minutes_to_shift_end <= 60
+                row |= {"bar": f"{hhmm(shift.start)} to {hhmm(shift.end)}",
+                        "tone": "unavailable" if "unavailable" in v.exclusion_reasons else "night" if is_night(shift.start) else "day",
+                        "status": v.derived_state + (f" · {v.open_consults} open" if v.open_consults else ""),
+                        "detail": f"Shift ends in {v.minutes_to_shift_end} min" if soon else f"Self-reported: {v.self_reported_status}"}
+            elif o is not None:  # accepted extra shift
+                row |= {"bar": f"{hhmm(o.start)} to {hhmm(o.end)}", "tone": "night" if is_night(o.start) else "day",
+                        "status": f"Covering {names(o.hospitals)}", "detail": "Accepted extra shift"}
+            else:
+                ended = next((s for s in reversed(phys.shifts) if s.end <= now and s.end.astimezone(ET).date() == today), None)
+                nxt = r.next_shift_start if r else None
+                role = r.role if r else "Shift"
+                if nxt is not None and nxt.astimezone(ET).date() == today:
+                    row |= {"bar": f"{role} · from {hhmm(nxt)}", "tone": "night" if role == "Night" or is_night(nxt) else "day",
+                            "status": f"{'Starts' if nxt > now else 'Scheduled from'} {hhmm(nxt)}"}
+                elif ended is not None:
+                    row |= {"bar": f"{hhmm(ended.start)} to {hhmm(ended.end)}", "tone": "off", "status": f"Shift ended {hhmm(ended.end)}"}
+                else:
+                    row |= {"bar": "Off today", "tone": "off",
+                            "status": f"Next shift {nxt.astimezone(ET):%a %H:%M}" if nxt and nxt > now else "No upcoming shift"}
+                row["detail"] = ("Opted into extra shifts" if r.opt_in else "Not opted into extra shifts") if r else "Not on the off-shift roster"
+            doctors.append(row)
+        on = [x["id"] for x in doctors if x["group"] == "On shift"]
+        filters = [{"label": "Everyone", "ids": [x["id"] for x in doctors]}, {"label": "On shift", "ids": on},
+                   {"label": "Off shift", "ids": [x["id"] for x in doctors if x["group"] == "Off shift"]}]
+        # Hospitals short right now: the same now_gap items the coverage grid marks.
+        short = sorted((i.id.split(":", 1)[1] for i in d.items if i.id.startswith("now_gap:")), key=lambda h: refs.hospitals[h].name)
+        filters += [{"label": f"Credentialed at {refs.hospitals[h].name}", "ids": [x["id"] for x in doctors if h in refs.credentials.get(x["id"], ())]}
+                    for h in short]
+        waiting = sorted((o for o in offers.values() if o.state in OPEN_OFFER), key=lambda o: (o.start, o.id))
+        alert = ({"text": f"{names(waiting[0].hospitals)} need cover from {hhmm(waiting[0].start)}. "
+                          f"{refs.physicians[waiting[0].physician_id].name}'s offer: {OPEN_OFFER[waiting[0].state].lower()}.",
+                  "physician_id": waiting[0].physician_id} if waiting else None)
+        day = now.astimezone(ET)
+        return {"date_label": f"{day:%A} {day.day} {day:%B}", "now_label": hhmm(now), "alert": alert, "filters": filters, "doctors": doctors}
+
     def audit_view(self, gap_id):
         items = []
         for a in self.desk.audit(gap_id):
@@ -319,6 +380,18 @@ class Engine:
 
 # ---- views in the shapes the web screens render (docs/Web-Joy.md) --------------------------------------------
 STEP = timedelta(minutes=15)
+ET = ZoneInfo("America/New_York")  # the sample rosters are ET and the screens show ET
+OPEN_OFFER = {"PROPOSED": "Waiting for clinical lead approval", "APPROVED": "Approved, being sent", "SENT": "Sent, waiting for the physician's reply"}
+
+
+def initials(name: str) -> str:
+    words = [w for w in name.replace("Dr.", "").split() if w[:1].isalpha()]
+    return "".join(w[0].upper() for w in words[-2:]) or name[:2].upper()
+
+
+def is_night(at: datetime) -> bool:
+    hour = at.astimezone(ET).hour
+    return hour >= 18 or hour < 6
 STATE_LABELS = {"PROPOSED": "Proposed", "APPROVED": "Approved", "REJECTED": "Rejected", "SENT": "Sent", "CANCELLED": "Cancelled",
                 "ACCEPTED": "Accepted", "ALREADY_FILLED": "Already filled", "DECLINED": "Declined", "EXPIRED": "Expired", "WITHDRAWN": "Withdrawn"}
 RULE_CODES = {"off_shift_now": "Off", "opted_in": "R1", "credentialed_at_gap": "R2", "rest_at_start_at_least_10h": "R3",

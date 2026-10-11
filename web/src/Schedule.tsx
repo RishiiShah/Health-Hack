@@ -7,8 +7,9 @@ export type Doctor = { id: string; name: string; group: "On shift" | "Off shift"
 export type ScheduleData = { date_label: string; now_label: string; alert: { text: string; physician_id: string } | null; filters: { label: string; ids: string[] }[]; doctors: Doctor[] };
 const timeMarks = ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"];
 
-export default function SchedulePage() {
-  const { data, error } = useApi<ScheduleData>("/schedule");
+// Reloads with each live snapshot so offers and status changes show without a page refresh.
+export default function SchedulePage({ reloadKey }: { reloadKey?: unknown }) {
+  const { data, error } = useApi<ScheduleData>("/schedule", reloadKey);
   if (!data) return <div className="page"><h1>Schedule</h1><p className="unavailable">{error ? unavailableText(error, "GET /schedule") : "Loading schedule…"}</p></div>;
   return <Schedule data={data} error={error ? unavailableText(error, "GET /schedule") : null} />;
 }

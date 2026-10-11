@@ -274,6 +274,11 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         except WebSocketDisconnect:
             return
 
+    @api.get("/schedule")
+    def schedule(request: Request, who: Principal = need("ops.view")):
+        """The day's roster for the Schedule screen; the server builds every label and grouping."""
+        return engine_of(request).schedule()
+
     @api.get("/consults/{consult_id}")
     def consult(consult_id: str, request: Request, who: Principal = need("ops.view")):
         c = request.app.state.coordinator.current_publication().state.consults.get(consult_id)
