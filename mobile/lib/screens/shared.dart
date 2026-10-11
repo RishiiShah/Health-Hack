@@ -1,4 +1,64 @@
 import 'package:flutter/material.dart';
+import 'theme.dart';
+
+class OverlapBrand extends StatelessWidget {
+  const OverlapBrand({super.key});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SizedBox(
+        width: 30,
+        height: 26,
+        child: Stack(
+          children: [
+            Positioned(
+              left: 1,
+              top: 3,
+              child: Transform.rotate(
+                angle: .2,
+                child: Container(
+                  width: 12,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: OverlapStyle.teal,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 12,
+              top: 3,
+              child: Transform.rotate(
+                angle: .2,
+                child: Container(
+                  width: 12,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: OverlapStyle.ink,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(width: 8),
+      const Text(
+        'overlap',
+        style: TextStyle(
+          fontFamily: OverlapStyle.heading,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: OverlapStyle.ink,
+        ),
+      ),
+    ],
+  );
+}
 
 class ScreenBody extends StatelessWidget {
   const ScreenBody({super.key, required this.children});
@@ -10,9 +70,9 @@ class ScreenBody extends StatelessWidget {
     child: Align(
       alignment: Alignment.topCenter,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
+          constraints: const BoxConstraints(maxWidth: 1280),
           child: SizedBox(
             width: double.infinity,
             child: Column(
@@ -41,7 +101,10 @@ class Notice extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isError ? colors.errorContainer : colors.secondaryContainer,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(
+            color: isError ? OverlapStyle.redSoft : OverlapStyle.tealSoft,
+          ),
         ),
         child: Text(
           message,

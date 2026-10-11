@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'shared.dart';
+import 'theme.dart';
 
 /// Repository adapters update this widget from the returned offer/outcome,
 /// then return null, or return a mapped error message. No optimistic updates.
@@ -156,118 +157,159 @@ class _OfferDetailScreenState extends State<OfferDetailScreen> {
         appBar: AppBar(title: Text(title)),
         body: ScreenBody(
           children: [
-            if (widget.reconnecting) ...[
-              const Notice('Reconnecting…'),
-              const SizedBox(height: 16),
-            ],
-            if (state == 'sent') ...[
-              const Text('Approved by your clinical lead'),
-              const SizedBox(height: 16),
-              Semantics(
-                label: remaining <= Duration.zero
-                    ? 'Expiring'
-                    : 'Time remaining $countdown',
-                child: ExcludeSemantics(
-                  child: Text(
-                    remaining <= Duration.zero ? 'Expiring…' : countdown,
-                    style: Theme.of(context).textTheme.displaySmall,
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: OverlapStyle.panel().copyWith(
+                    border: const Border(
+                      top: BorderSide(color: OverlapStyle.teal, width: 4),
+                      left: BorderSide(color: OverlapStyle.line),
+                      right: BorderSide(color: OverlapStyle.line),
+                      bottom: BorderSide(color: OverlapStyle.line),
+                    ),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (widget.reconnecting) ...[
+                        const Notice('Reconnecting…'),
+                        const SizedBox(height: 16),
+                      ],
+                      if (state == 'sent') ...[
+                        const Text('Approved by your clinical lead'),
+                        const SizedBox(height: 16),
+                        Semantics(
+                          label: remaining <= Duration.zero
+                              ? 'Expiring'
+                              : 'Time remaining $countdown',
+                          child: ExcludeSemantics(
+                            child: Text(
+                              remaining <= Duration.zero
+                                  ? 'Expiring…'
+                                  : countdown,
+                              style: Theme.of(context).textTheme.displaySmall
+                                  ?.copyWith(
+                                    fontFamily: OverlapStyle.mono,
+                                    color: OverlapStyle.tealDark,
+                                  ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Cover ${widget.hospital} tonight?',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(widget.gapSummary),
+                      ] else ...[
+                        Text(switch (state) {
+                          'accepted' =>
+                            "Confirmed. You're on at ${widget.hospital} tonight.",
+                          'declined' => 'You declined this request.',
+                          'expired' =>
+                            widget.outcome == 'expired'
+                                ? 'Your response arrived after the request expired.'
+                                : 'This request expired at ${widget.expiresAtEt} without a response.',
+                          'filled' =>
+                            'Already filled, thank you. Nothing changed on your schedule.',
+                          'closed' => 'This shift no longer needs coverage.',
+                          'released' =>
+                            "You let your clinical lead know you can't make it.",
+                          _ => '',
+                        }, style: Theme.of(context).textTheme.headlineSmall),
+                      ],
+                      if (state == 'sent' || state == 'accepted') ...[
+                        const SizedBox(height: 24),
+                        _Detail(label: 'Hospital', value: widget.hospital),
+                        _Detail(label: 'Hours (ET)', value: widget.hoursEt),
+                        _Detail(label: 'Sign in by', value: widget.signInByEt),
+                      ],
+                      if (state == 'sent') ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          'Why you',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        for (final reason in widget.whyYou)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text('• $reason'),
+                          ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "No patient details are shared until you accept. Declining doesn't change your schedule.",
+                        ),
+                      ],
+                      if (state == 'accepted') ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          "You'll only be routed ${widget.routingHospitals.join(', ')} consults during these hours.",
+                        ),
+                        if (widget.coverageAfter != null) ...[
+                          const SizedBox(height: 16),
+                          Notice(widget.coverageAfter!),
+                        ],
+                        if (widget.nextSteps.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          Text(
+                            'What happens next',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          for (final step in widget.nextSteps)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(step),
+                            ),
+                        ],
+                      ],
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Notice(_error!, isError: true),
+                      ],
+                      if (_busy) ...[
+                        const SizedBox(height: 16),
+                        const Center(
+                          child: CircularProgressIndicator(
+                            semanticsLabel: 'Sending response',
+                          ),
+                        ),
+                      ],
+                      for (final action in ['accept', 'decline', 'release'])
+                        if (widget.allowedActions.contains(action) &&
+                            (action == 'release'
+                                ? state == 'accepted'
+                                : state == 'sent')) ...[
+                          const SizedBox(height: 12),
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: action == 'accept'
+                                  ? OverlapStyle.tealDark
+                                  : Colors.white,
+                              foregroundColor: action == 'accept'
+                                  ? Colors.white
+                                  : OverlapStyle.red,
+                              disabledForegroundColor: OverlapStyle.muted,
+                            ),
+                            onPressed: _busy || _confirming || !_canAct(action)
+                                ? null
+                                : () => _act(action),
+                            child: Text(switch (action) {
+                              'accept' => "Accept, I'll cover it",
+                              'decline' => 'Not tonight',
+                              _ => "I can't make it after all",
+                            }),
+                          ),
+                        ],
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Cover ${widget.hospital} tonight?',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 12),
-              Text(widget.gapSummary),
-            ] else ...[
-              Text(switch (state) {
-                'accepted' =>
-                  "Confirmed. You're on at ${widget.hospital} tonight.",
-                'declined' => 'You declined this request.',
-                'expired' =>
-                  widget.outcome == 'expired'
-                      ? 'Your response arrived after the request expired.'
-                      : 'This request expired at ${widget.expiresAtEt} without a response.',
-                'filled' =>
-                  'Already filled, thank you. Nothing changed on your schedule.',
-                'closed' => 'This shift no longer needs coverage.',
-                'released' =>
-                  "You let your clinical lead know you can't make it.",
-                _ => '',
-              }, style: Theme.of(context).textTheme.headlineSmall),
-            ],
-            if (state == 'sent' || state == 'accepted') ...[
-              const SizedBox(height: 24),
-              _Detail(label: 'Hospital', value: widget.hospital),
-              _Detail(label: 'Hours (ET)', value: widget.hoursEt),
-              _Detail(label: 'Sign in by', value: widget.signInByEt),
-            ],
-            if (state == 'sent') ...[
-              const SizedBox(height: 16),
-              Text('Why you', style: Theme.of(context).textTheme.titleLarge),
-              for (final reason in widget.whyYou)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text('• $reason'),
-                ),
-              const SizedBox(height: 24),
-              const Text(
-                "No patient details are shared until you accept. Declining doesn't change your schedule.",
-              ),
-            ],
-            if (state == 'accepted') ...[
-              const SizedBox(height: 16),
-              Text(
-                "You'll only be routed ${widget.routingHospitals.join(', ')} consults during these hours.",
-              ),
-              if (widget.coverageAfter != null) ...[
-                const SizedBox(height: 16),
-                Notice(widget.coverageAfter!),
-              ],
-              if (widget.nextSteps.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text(
-                  'What happens next',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                for (final step in widget.nextSteps)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(step),
-                  ),
-              ],
-            ],
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Notice(_error!, isError: true),
-            ],
-            if (_busy) ...[
-              const SizedBox(height: 16),
-              const Center(
-                child: CircularProgressIndicator(
-                  semanticsLabel: 'Sending response',
-                ),
-              ),
-            ],
-            for (final action in ['accept', 'decline', 'release'])
-              if (widget.allowedActions.contains(action) &&
-                  (action == 'release'
-                      ? state == 'accepted'
-                      : state == 'sent')) ...[
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: _busy || _confirming || !_canAct(action)
-                      ? null
-                      : () => _act(action),
-                  child: Text(switch (action) {
-                    'accept' => "Accept, I'll cover it",
-                    'decline' => 'Not tonight',
-                    _ => "I can't make it after all",
-                  }),
-                ),
-              ],
+            ),
           ],
         ),
       );
@@ -287,7 +329,12 @@ class _Detail extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(color: OverlapStyle.muted),
+        ),
         const SizedBox(height: 4),
         Text(value, style: Theme.of(context).textTheme.titleMedium),
       ],

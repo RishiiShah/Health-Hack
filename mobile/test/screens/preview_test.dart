@@ -7,10 +7,8 @@ import 'package:sevaro_mobile/screens/preview/preview_widgets.dart';
 import 'package:sevaro_mobile/screens/sign_in_screen.dart';
 
 void main() {
-  testWidgets('debug app opens previews without signing in', (tester) async {
-    await tester.pumpWidget(const SevaroApp());
-    await tester.tap(find.text('Preview screens'));
-    await tester.pumpAndSettle();
+  testWidgets('developer gallery renders populated screens', (tester) async {
+    await tester.pumpWidget(const SevaroApp(home: PreviewMenu()));
     expect(find.text('Explore Sevaro'), findsOneWidget);
     await tester.tap(find.text('Physician · on shift'));
     await tester.pumpAndSettle();
@@ -21,9 +19,7 @@ void main() {
     expect(find.text('2 of 3 requests this week'), findsOneWidget);
   });
 
-  testWidgets('plain sign-in has no preview access without a callback', (
-    tester,
-  ) async {
+  testWidgets('plain sign-in has no preview access', (tester) async {
     await tester.pumpWidget(const SevaroApp(home: SignInScreen()));
     expect(find.text('Preview screens'), findsNothing);
   });

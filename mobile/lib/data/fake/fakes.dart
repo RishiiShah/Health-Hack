@@ -63,16 +63,23 @@ const _accounts = {
 class FakeServices {
   FakeServices({
     bool ticking = true,
+    DateTime Function()? deviceNow,
     DateTime? startAt,
     Browser? browser,
     WebAlerts? alerts,
     Duration latency = Duration.zero,
     bool autoAnswer = true,
+    bool allowAnyCredentials = false,
   }) {
     final b = browser ?? sharedBrowser;
-    clock = OffsetServerClock(ticking: ticking)..set(startAt ?? kFakeStart);
+    clock = OffsetServerClock(ticking: ticking, deviceNow: deviceNow)
+      ..set(startAt ?? kFakeStart);
     backend = FakeBackend(clock, latency: latency, autoAnswer: autoAnswer);
-    auth = FakeAuthRepository(backend, b);
+    auth = FakeAuthRepository(
+      backend,
+      b,
+      allowAnyCredentials: allowAnyCredentials,
+    );
     offers = FakeOfferRepository(backend);
     shifts = FakeShiftRepository(backend);
     lead = FakeLeadRepository(backend);
@@ -609,7 +616,11 @@ class FakeBackend {
 // ============================================================== repositories
 
 class FakeAuthRepository implements AuthRepository {
-  FakeAuthRepository(this._b, this._browser) {
+  FakeAuthRepository(
+    this._b,
+    this._browser, {
+    this.allowAnyCredentials = false,
+  }) {
     _b.onUnauthorized = () {
       _me.value = null;
       _signedOut.add(null);
@@ -618,6 +629,9 @@ class FakeAuthRepository implements AuthRepository {
 
   final FakeBackend _b;
   final Browser _browser;
+  final bool allowAnyCredentials;
+  Role previewRole = Role.physician;
+  final Map<String, String> _previewTokens = {};
   final _signedOut = StreamController<void>.broadcast();
   final _me = ValueNotifier<Me?>(null);
   bool _urlRead = false;
@@ -625,6 +639,7 @@ class FakeAuthRepository implements AuthRepository {
   static const _key = 'sevaro_token';
 
   String? _emailForToken(String? token) =>
+      _previewTokens[token] ??
       _accounts.entries.where((e) => e.value.$1 == token).firstOrNull?.key;
 
   void _readUrlOnce() {
@@ -667,12 +682,27 @@ class FakeAuthRepository implements AuthRepository {
     final key = email.trim().toLowerCase();
     final account = _accounts[key];
     final r = await _b.respond(() {
+      if (allowAnyCredentials) {
+        if (key.isEmpty || password.isEmpty) {
+          throw const Unauthorized('Enter your email and password.');
+        }
+        final sample = _sample(
+          previewRole == Role.clinicalLead
+              ? 'mobile_me_lead.json'
+              : 'mobile_me_shah.json',
+        );
+        sample['user_id'] = 'dummy-$key';
+        sample['display_name'] = email.trim();
+        _b.mes[key] = sample;
+        return {'token': 'dummy-${previewRole.wire}:$key', 'me': sample};
+      }
       if (account == null || password != 'demo') {
         throw const Unauthorized('Wrong email or password. Demo accounts use the password "demo".');
       }
       return {'token': account.$1, 'me': _b.mes[key]};
     }, LoginResult.parse, needsUser: false);
     _b.user = key;
+    if (allowAnyCredentials) _previewTokens[r.token] = key;
     _browser.writeSession(_key, r.token);
     _me.value = r.me;
     return r.me;

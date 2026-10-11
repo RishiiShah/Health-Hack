@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 
-const previewInk = Color(0xFF172831);
-const previewTeal = Color(0xFF107580);
-const previewGreen = Color(0xFF138B72);
-const previewOrange = Color(0xFFE7764D);
+const previewInk = OverlapStyle.ink;
+const previewTeal = OverlapStyle.teal;
+const previewGreen = OverlapStyle.green;
+const previewOrange = OverlapStyle.amber;
 
 /// Used only by the debug screen gallery. Samples never leave this UI.
 class PreviewSurface extends StatelessWidget {
@@ -62,11 +63,18 @@ class PreviewCard extends StatelessWidget {
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       color: color,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(16),
       border: Border.all(
-        color: accent ?? const Color(0xFFE6E5DF),
+        color: accent ?? OverlapStyle.line,
         width: accent == null ? 1 : 1.5,
       ),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x0A1E2530),
+          blurRadius: 12,
+          offset: Offset(0, 3),
+        ),
+      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -83,11 +91,12 @@ class PreviewPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Align(
     alignment: Alignment.centerLeft,
+    widthFactor: 1,
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
         text,
@@ -144,18 +153,18 @@ class PreviewWeek extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 12),
-      Wrap(
-        spacing: 4,
-        runSpacing: 8,
+      Row(
         children: [
           for (var i = 0; i < 7; i++)
-            SizedBox(
-              width: 48,
+            Expanded(
               child: TextButton(
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   backgroundColor: selectedDay == i + 15
-                      ? previewInk
+                      ? previewTeal
                       : Colors.white,
                   foregroundColor: selectedDay == i + 15
                       ? Colors.white

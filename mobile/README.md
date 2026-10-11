@@ -1,6 +1,48 @@
 # Sevaro mobile
 
-Flutter phone/web screens, shared data repositories and a debug workflow demo.
+Flutter phone/web screens using shared repository interfaces for dummy or API data.
+
+## Web design parity
+
+The Flutter presentation follows the Overlap UI on `origin/anish` at `c0f5608`:
+cream canvas, white bordered panels, teal actions, navy pill navigation, and
+the two-bar Overlap mark. `lib/screens/theme.dart` holds the shared visual tokens.
+Sign-in and offer cards keep the web's constrained widths; dashboard content
+expands on larger screens, and navigation scrolls horizontally when needed.
+Schedule bars and coverage cells use the web's semantic status colors.
+
+Bricolage Grotesque, IBM Plex Sans, and IBM Plex Mono are bundled in
+`assets/fonts/` for offline typography, with their SIL Open Font Licenses.
+No font or UI package was added. Fonts originate from the Google Fonts repository.
+The existing physician and lead workflows, backend role routing, permissions,
+and server-clock behavior remain in place; the web landing page and coordinator
+dashboard are outside the mobile app's existing screen set.
+
+## Compare on your phone with dummy data
+
+From `mobile/`, run:
+
+```powershell
+fvm flutter run -d R5CY70TKP4B --dart-define-from-file=config/fake.json
+```
+
+The app always opens login. In dummy-data mode, enter **any nonempty email
+and password**. Choose **Physician** (default) for consults and schedule, or
+**Clinical lead** for approvals, team schedule and coverage. The entered email
+appears as the sample identity. No predefined account or password is required.
+Sign out from Account to return to login. Live API login continues to verify
+credentials with the backend and use the account's real role.
+
+Dummy data stays in memory, with its clock pinned to 17 March 2026, 18:25 ET
+so the snapshot stays stable while comparing. Restart for a fresh dataset.
+The permissive credential behavior is enabled only on the app's fake service
+instance; the standard fake repositories retain strict fixture authentication
+for contract tests and other uses. Passwords are neither stored nor sent.
+
+`RepositoryAuthGate` signs in through `AuthRepository` and passes the returned
+identity and `AppServices` into `ServiceSession`. The shift, schedule, offer,
+approval, coverage and account widgets are the same ones used by live API mode.
+Switching to API repositories does not require a second set of dashboard UI.
 
 ## Test real auth on the connected Android phone
 
@@ -39,7 +81,7 @@ these separately from mobile Me; it does not invent permissions, shift, preferen
 or count fields that the backend does not supply.
 
 Live login asks for email and password only. The backend account determines the
-role, matching web login; the role selector remains in design previews only.
+role, matching web login; account identity also determines routing in dummy-data mode.
 
 Real login opens the existing dashboard for the role returned by the backend:
 physician gets My shift, Schedule, Offers and Account; lead gets Approvals,
@@ -49,7 +91,7 @@ show errors with Retry, rather than synthetic data. Until `/me` supplies workflo
 metadata, shift status and opt-in stay unknown and action permissions stay empty.
 Live mode does not expose demo account choices or screen previews. **Check
 session** in Account refreshes the authenticated identity using `/auth/me`.
-Without `API_MODE=live`, the existing debug demo/gallery entry remains available.
+Without `API_MODE=live`, login uses the in-memory repositories and opens the same dashboard screens with synthetic data.
 
 ## Checks
 

@@ -1,12 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'theme.dart';
 
 enum TimelineKind {
-  day('Day', Color(0xFF0FAC88)),
-  night('Night', Color(0xFF7B83EF)),
-  away('Away', Color(0xFFFF663C)),
-  offer('Offer', Color(0xFF218FC3));
+  day('Day', Color(0xFFBDE9DF)),
+  night('Night', Color(0xFF1E293B)),
+  away('Away', Color(0xFFEFD6A4)),
+  offer('Offer', OverlapStyle.tealSoft);
 
   const TimelineKind(this.label, this.color);
   final String label;
@@ -74,7 +75,7 @@ class ScheduleTimeline extends StatelessWidget {
               const Icon(
                 Icons.schedule_rounded,
                 size: 18,
-                color: Color(0xFFFF663C),
+                color: Color(0xFFDC2626),
               ),
               Text(
                 '$currentTimeLabel ET',
@@ -140,12 +141,15 @@ class ScheduleTimeline extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: entries[index].kind.color,
-                                  borderRadius: BorderRadius.circular(24),
+                                  borderRadius: BorderRadius.circular(5),
                                   border: entries[index].highlighted
                                       ? Border.all(
-                                          color: const Color(0xFF172831),
+                                          color: const Color(0xFF161E2E),
                                           width: 3,
                                         )
+                                      : entries[index].kind ==
+                                            TimelineKind.offer
+                                      ? Border.all(color: OverlapStyle.teal)
                                       : null,
                                 ),
                                 child: ExcludeSemantics(
@@ -153,8 +157,16 @@ class ScheduleTimeline extends StatelessWidget {
                                     entries[index].name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      fontFamily: OverlapStyle.mono,
+                                      color:
+                                          entries[index].kind ==
+                                              TimelineKind.night
+                                          ? Colors.white
+                                          : entries[index].kind ==
+                                                TimelineKind.away
+                                          ? OverlapStyle.amber
+                                          : OverlapStyle.tealDark,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -190,7 +202,7 @@ class ScheduleTimeline extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             color: (tick - currentHour).abs() < .5
-                                ? const Color(0xFF172831)
+                                ? const Color(0xFF161E2E)
                                 : const Color(0xFF7E8388),
                           ),
                         ),
@@ -263,7 +275,7 @@ class _TimelineGrid extends CustomPainter {
       canvas.save();
       canvas.clipRect(Rect.fromLTRB(left, 0, size.width, size.height));
       final hatch = Paint()
-        ..color = const Color(0xFFEDEDEB)
+        ..color = const Color(0xFFF2F3F2)
         ..strokeWidth = 2;
       for (double x = left - size.height; x < size.width; x += 12) {
         canvas.drawLine(
@@ -289,7 +301,7 @@ class _NowLine extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final x = fraction * size.width;
     final pen = Paint()
-      ..color = const Color(0xFFFF663C)
+      ..color = const Color(0xFFDC2626)
       ..strokeWidth = 2;
     canvas.drawLine(Offset(x, 6), Offset(x, size.height), pen);
     canvas.drawCircle(Offset(x, 5), 5, Paint()..color = Colors.white);
