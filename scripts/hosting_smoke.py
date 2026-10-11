@@ -5,7 +5,6 @@ The seed operation writes synthetic test data. Use only a disposable test databa
 Tokens come from CC_ADMIN_TOKEN (seed) and CC_COORDINATOR_TOKEN (snapshot), the same variables the server reads.
 """
 import argparse
-from datetime import datetime, timezone
 import json
 import os
 import time
@@ -37,19 +36,24 @@ def main():
         if time.monotonic() >= deadline:
             raise SystemExit("Deployment did not become ready within 45 seconds")
         time.sleep(0.5)
-    if args.operation == "seed":
-        at = datetime.now(timezone.utc).isoformat()
+    snapshot = request(url + "/snapshot", token=os.environ.get("CC_COORDINATOR_TOKEN"))
+    existing = next((c for c in snapshot["consults"] if c["consult_id"] == "hosting-smoke-consult"), None)
+    if args.operation == "seed" and existing is None:
+        # A paused rehearsal uses simulation time; wall time can leave the event outside replay.
+        at = snapshot["clock"]["now"]
+        known = sorted(h["hospital_id"] for h in snapshot.get("hospitals", {}).get("items", []))
+        hospital = known[0] if known else "hosting-smoke-hospital"  # storage-only check when decisions are unavailable
         report = request(url + "/events", {
             "event_id":"hosting-smoke-event", "consult_id":"hosting-smoke-consult",
             "event_time":at, "ingested_at":at, "event_type":"consult_received",
-            "hospital_id":"hosting-smoke-hospital", "consult_type":"General Neuro",
+            "hospital_id":hospital, "consult_type":"General Neuro",
         }, os.environ.get("CC_ADMIN_TOKEN"))
         if report["accepted"] != 1:
             raise SystemExit(f"Synthetic event was not accepted: {report}")
     snapshot = request(url + "/snapshot", token=os.environ.get("CC_COORDINATOR_TOKEN"))
     if not any(c["consult_id"] == "hosting-smoke-consult" for c in snapshot["consults"]):
         raise SystemExit("Published snapshot did not contain the committed synthetic event")
-    print(f"PASS: {args.operation}, ready service and persisted consult")
+    print(f"PASS: {args.operation}, ready service and persisted consult; decisions available: {snapshot.get('capabilities', {}).get('detection', False)}")
 
 
 if __name__ == "__main__":

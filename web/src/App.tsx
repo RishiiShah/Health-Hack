@@ -290,7 +290,7 @@ function AuditPage({ workspace, reloadKey }: { workspace: string; reloadKey: unk
   </div>;
 }
 
-type Shift = { name: string; shift_end: string | null; minutes_to_shift_end: number | null; hospitals: string[]; consults: { consult_id: string; hospital_name: string; consult_type: string; stage: string; minutes_in_stage: number }[] };
+type Shift = { on_shift?: boolean; name: string; shift_end: string | null; minutes_to_shift_end: number | null; hospitals: string[]; consults: { consult_id: string; hospital_name: string; consult_type: string; stage: string; minutes_in_stage: number }[] };
 
 function PhysicianApp({ session }: { session: Session }) {
   const page = useHashPage(PAGES_BY_ROLE.physician);
@@ -308,13 +308,14 @@ function MyShift() {
   const { data, error } = useApi<Shift>("/me/shift", undefined, 2000);
   if (!data) return <div className="page"><Title eyebrow="Physician workspace" title="My shift" />{error ? <p className="unavailable">{unavailableText(error, "GET /me/shift")}</p> : <p className="muted">Loading…</p>}</div>;
   const left = data.minutes_to_shift_end;
+  const active = data.on_shift ?? (left !== null);
   return <div className="page physician-page"><Title eyebrow="Physician workspace" title="My shift" note={data.name} />
     {error && <p className="unavailable">Update failed: {error.message}. Retrying; showing the last received shift.</p>}
     <div className="physician-top">
-      <section className="panel shift-clock"><span className="eyebrow">Shift remaining</span><strong>{left === null ? "–" : `${Math.floor(left / 60)} h ${left % 60} min`}</strong><p>{data.shift_end ? `until ${clockTime(data.shift_end)} ET` : "No current shift"}</p></section>
+      <section className="panel shift-clock"><span className="eyebrow">{active ? "Shift remaining" : "Scheduled window"}</span><strong>{left === null ? "–" : `${Math.floor(left / 60)} h ${left % 60} min`}</strong><p>{data.shift_end ? `${active ? "until" : "scheduled until"} ${clockTime(data.shift_end)} ET` : "No current shift"}</p></section>
       <section className="panel"><span className="eyebrow">Hospitals covered</span><h2>{data.hospitals.join(" · ") || "–"}</h2><p className="muted">{data.consults.length} active consults</p></section>
     </div>
-    <section className="panel"><div className="panel-head"><h2>Active consults</h2><span className="badge teal">{left === null ? "Off shift" : "On shift"}</span></div>
+    <section className="panel"><div className="panel-head"><h2>Active consults</h2><span className="badge teal">{active ? "On shift" : data.shift_end ? "Awaiting arrival" : "Off shift"}</span></div>
       {data.consults.length ? data.consults.map((c) => <div className="consult-line" key={c.consult_id}><b className="mono">{c.consult_id}</b><span>{c.hospital_name} · {c.consult_type}</span><span className="badge neutral">{c.stage} · {c.minutes_in_stage} min</span></div>) : <p className="muted">No open consults.</p>}
     </section>
   </div>;

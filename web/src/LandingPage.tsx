@@ -53,7 +53,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           <button onClick={() => scrollTo("overview")} className="bg-white text-slate-900 px-4 py-1.5 rounded-full shadow-sm">Overview</button>
           <button onClick={() => scrollTo("network")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Network</button>
           <button onClick={() => scrollTo("roles")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Workspaces</button>
-          <button onClick={() => scrollTo("safety")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Clinical Proof</button>
+          <button onClick={() => scrollTo("safety")} className="px-3.5 py-1.5 hover:text-slate-900 transition">Prototype Scope</button>
         </div>
 
         <button
@@ -70,11 +70,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         {/* CENTERED HEADLINE */}
         <section className="text-center max-w-3xl mx-auto mb-8 px-4">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold font-heading text-slate-900 tracking-tight leading-[1.08]">
-            Every hospital covered,<br />
-            <span className="font-normal italic font-serif text-teal-700">before</span> the gap opens.
+            Spot coverage gaps,<br />
+            <span className="font-normal italic font-serif text-teal-700">before</span> shifts change.
           </h1>
           <p className="mt-4 text-base md:text-lg text-slate-600 max-w-xl mx-auto leading-relaxed">
-            Autonomous tele-stroke scheduling and cross-timezone coverage across 100+ partner hospitals nationwide.
+            Deterministic coverage planning, ranked alerts, and lead-approved physician offers using the Sevaro challenge kit.
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -96,20 +96,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
         {/* ================= THE LIVING TOPOGRAPHIC US NETWORK MAP (ALWAYS IN MOTION) ================= */}
         <div id="network" className="relative w-full h-[420px] md:h-[min(64vh,720px)] md:min-h-[460px] flex items-center justify-center my-4">
 
-          {/* FLOATING GLASS CARD 1 (SEVARO REAL STAT: <45s) */}
+          {/* Implemented forecast horizon, not a response-time promise. */}
           <div className="anim-float-1 absolute top-4 left-2 md:top-8 md:left-6 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 px-5 py-4 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
-            <div className="text-[11px] font-mono text-slate-500 font-medium">Synapse AI Response</div>
+            <div className="text-[11px] font-mono text-slate-500 font-medium">Coverage forecast</div>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading whitespace-nowrap">&lt;&nbsp;45s</span>
-              <span className="text-xs text-slate-500 font-medium whitespace-nowrap">door-to-neuro</span>
+              <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading whitespace-nowrap">90+</span>
+              <span className="text-xs text-slate-500 font-medium whitespace-nowrap">minutes ahead</span>
             </div>
           </div>
 
-          {/* FLOATING GLASS CARD 2 (SEVARO REAL STAT: 100+) */}
+          {/* Fixed official reference kit size. */}
           <div className="anim-float-2 absolute bottom-6 right-2 md:bottom-12 md:right-8 z-20 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 p-4 md:p-5 flex items-center gap-3.5 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.08)]">
-            <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading">100+</span>
+            <span className="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading">12</span>
             <div className="text-xs font-semibold text-slate-700 leading-snug">
-              Hospitals Served<br />Across the Nation
+              Hospitals in the<br />Official Reference Kit
             </div>
           </div>
 
@@ -117,7 +117,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           <div className="relative w-full h-full flex items-center justify-center">
             <img
               src="/us_network_map.jpg"
-              alt="United States Tele-Stroke Coordination Topology"
+              alt="Illustrative US network map; not the official hospital locations"
               className="w-full h-full object-contain pointer-events-none select-none"
             />
 
@@ -232,7 +232,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   <text x="0" y="5" textAnchor="middle" fontFamily="'IBM Plex Mono'" fontSize="11.5" fontWeight="600">
                     <tspan fill="#F59E0B">ED Stroke Surge</tspan>
                     <tspan fill="#64748B"> · </tspan>
-                    <tspan fill="#2DD4BF">Auto-Balancing</tspan>
+                    <tspan fill="#2DD4BF">Coverage review</tspan>
                   </text>
                 </g>
               </g>
@@ -241,15 +241,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
         </div>
 
+        <p className="text-center text-xs text-slate-600">Illustrative network map; locations and animation are not live hospital data.</p>
+
         {/* ================= 3. TWO WORKSPACES (PREVIEW SHOWCASE) ================= */}
         <section id="roles" className="mt-20 w-full scroll-mt-28 border-t border-slate-200/80 pt-16">
 
           <div className="text-center max-w-xl mx-auto mb-12">
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              Two workspaces, one synchronized schedule
+              One workflow, three operating roles
             </h2>
             <p className="text-sm md:text-base text-slate-600 mt-2.5 leading-relaxed">
-              Coordinators manage national coverage while neurologists accept verified emergency shifts in seconds.
+              Coordinators review coverage gaps, clinical leads approve offers, and physicians reply in their own workspace.
             </p>
           </div>
 
@@ -264,26 +266,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
                   </span>
                   <span className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    LIVE DISPATCH
+                    COVERAGE PLANNING
                   </span>
                 </div>
 
                 <h3 className="text-2xl font-bold text-slate-900 mt-4 tracking-tight">Command Center</h3>
                 <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
-                  Real-time national grid oversight. Triage queue monitoring, predictive shortfall detection, and automated physician dispatch across 100+ partner hospitals.
+                  Review the live consult queue, projected coverage shortfalls, and each candidate's eligibility before proposing an offer for lead approval.
                 </p>
 
                 <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200/70 p-4 space-y-2.5">
                   <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
-                    <span className="text-slate-500 font-mono">Surge Mitigation Target</span>
-                    <span className="text-teal-700 font-bold font-mono">&lt; 45s Response SLA</span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                    <div className="bg-teal-600 h-2 rounded-full w-[82%]" />
+                    <span className="text-slate-500 font-mono">Decision policy</span>
+                    <span className="text-teal-700 font-bold font-mono">Severity first</span>
                   </div>
                   <div className="flex flex-wrap gap-3 items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
-                    <span>Cross-regional pool balancing active</span>
-                    <span className="text-emerald-600 font-bold">100+ Hospitals</span>
+                    <span>Deterministic replay and explanations</span>
+                    <span className="text-emerald-600 font-bold">12 kit hospitals</span>
                   </div>
                 </div>
               </div>
@@ -314,21 +313,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
                 <h3 className="text-2xl font-bold text-slate-900 mt-4 tracking-tight">Mobile & Web Handoff</h3>
                 <p className="text-sm text-slate-600 mt-2.5 leading-relaxed">
-                  Distraction-free emergency shift acceptance. Doctor rest intervals are checked against 8 clinical fatigue rules before alerts reach their phone. Zero patient PHI.
+                  Review and reply to approved shift offers. Eligibility checks use the supplied credentials, availability, rest, hours, and offer limits. Acceptance awaits observed arrival before routing.
                 </p>
 
                 <div className="mt-6 rounded-2xl bg-teal-900/5 border border-teal-800/15 p-4 space-y-2.5">
                   <div className="flex flex-wrap gap-3 items-center justify-between text-xs font-medium">
-                    <span className="text-slate-700 font-medium">Surge Shift Offer · Regional Match</span>
-                    <span className="text-teal-800 font-bold font-mono text-[11px] bg-teal-100/70 px-2 py-0.5 rounded">60m Coverage</span>
+                    <span className="text-slate-700 font-medium">Shift offer workflow</span>
+                    <span className="text-teal-800 font-bold font-mono text-[11px] bg-teal-100/70 px-2 py-0.5 rounded">Lead approved</span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-slate-600 font-mono">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>8 Rest Safeguards Passed · Medical License Active</span>
+                    <span>Eligibility results and decline reasons</span>
                   </div>
                   <div className="pt-1 flex flex-wrap gap-3 items-center justify-between text-[11px]">
-                    <span className="text-slate-500">HIPAA Safe Harbor Compliance</span>
-                    <span className="text-slate-900 font-bold font-mono">100% Verified</span>
+                    <span className="text-slate-500">Routing begins</span>
+                    <span className="text-slate-900 font-bold font-mono">On observed arrival</span>
                   </div>
                 </div>
               </div>
@@ -348,40 +347,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
           </div>
         </section>
 
-        {/* ================= 4. REAL SEVARO CLINICAL PROOF (100% AUTHENTIC METRICS) ================= */}
+        {/* Verified implementation scope; no clinical outcome claims. */}
         <section id="safety" className="mt-20 w-full border-t border-slate-200/80 pt-16">
           <div className="text-center max-w-xl mx-auto mb-10">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Clinical Performance Proof</h2>
-            <p className="text-sm text-slate-600 mt-2">Published real-world outcomes delivered by Sevaro's tele-stroke network.</p>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Challenge Prototype Scope</h2>
+            <p className="text-sm text-slate-600 mt-2">Replays the supplied challenge data and supports reviewed staffing decisions. Clinical outcomes and production compliance have not been validated.</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-            {/* Stat 1: < 45s */}
+            {/* Supplied baseline coverage. */}
             <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
-              <div className="text-2xl font-extrabold font-heading text-slate-900">&lt; 45s</div>
-              <div className="text-xs font-semibold text-slate-800 mt-1">Response Time SLA</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">Powered by Synapse AI</div>
+              <div className="text-2xl font-extrabold font-heading text-slate-900">24 hours</div>
+              <div className="text-xs font-semibold text-slate-800 mt-1">Weekday Baselines</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Weekend data not supplied</div>
             </div>
 
-            {/* Stat 2: 100+ Hospitals */}
+            {/* Fixed reference hospitals. */}
             <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
-              <div className="text-2xl font-extrabold font-heading text-teal-700">100+</div>
-              <div className="text-xs font-semibold text-slate-800 mt-1">Hospitals Served</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">Across Emergency Depts</div>
+              <div className="text-2xl font-extrabold font-heading text-teal-700">12</div>
+              <div className="text-xs font-semibold text-slate-800 mt-1">Reference Hospitals</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Official Sevaro kit</div>
             </div>
 
-            {/* Stat 3: 30% Transfer Reduction */}
+            {/* Fixed reference physicians. */}
             <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
-              <div className="text-2xl font-extrabold font-heading text-slate-900">30%</div>
-              <div className="text-xs font-semibold text-slate-800 mt-1">Transfer Reduction</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">Avoiding Unnecessary Moves</div>
+              <div className="text-2xl font-extrabold font-heading text-slate-900">14</div>
+              <div className="text-xs font-semibold text-slate-800 mt-1">Reference Physicians</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Supplied roster and credentials</div>
             </div>
 
-            {/* Stat 4: 20% Reduced Length of Stay */}
+            {/* Observed arrivals gate routing. */}
             <div className="bg-white rounded-2xl border border-slate-200/80 p-5 text-center shadow-sm">
-              <div className="text-2xl font-extrabold font-heading text-emerald-600">20%</div>
-              <div className="text-xs font-semibold text-slate-800 mt-1">Reduced Length of Stay</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">Rapid Acute Intervention</div>
+              <div className="text-2xl font-extrabold font-heading text-emerald-600">3 roles</div>
+              <div className="text-xs font-semibold text-slate-800 mt-1">Reviewed Offer Loop</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Coordinator · Lead · Physician</div>
             </div>
           </div>
         </section>
@@ -390,7 +389,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGoToSignIn }) => {
 
       {/* Footer */}
       <footer className="border-t border-slate-200/80 pt-8 pb-12 text-center text-xs text-slate-400 font-mono">
-        © 2026 Overlap Systems · Sevaro Tele-Stroke Challenge · Autonomous Clinical Coordination
+        © 2026 Overlap Systems · Sevaro Tele-Stroke Challenge · Decision Support Prototype
       </footer>
     </div>
   );
