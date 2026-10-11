@@ -21,7 +21,7 @@ from app.coordinator import MutationCoordinator
 from app.db import EventDatabase
 from app.ingest.adapters import FIXTURE_VERSION
 from app.models import EventInput
-from app.service import Engine, base_history, jsonable, load_references
+from app.service import Engine, base_history, jsonable, load_references, stored_operations
 from app.tts import Speech
 
 log = logging.getLogger(__name__)
@@ -109,6 +109,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
             events = db.events()
             clock = test_clock or make_clock(settings.clock_mode, settings.fixed_datetime(), max((e.event_time for e in events), default=None))
             refs, ops = references or startup_references()
+            ops = stored_operations(db, ops)  # the database copy is authoritative once stored
             coordinator = MutationCoordinator(db, clock, settings.late_lag_s, refs=refs, orphan_hold_s=settings.orphan_hold_s)
             engine = Engine(coordinator, ops, None, InterventionLog(url), dataset_of(settings.reference_dir if references is None else None))
             conns.append(engine.interventions.conn)
@@ -139,7 +140,7 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         directory = settings.reference_dir
         if not directory or not (Path(directory) / "hospitals.csv").exists():
             # Loud, not fatal: /ready reports detection unavailable and decision routes answer 503.
-            log.warning("no reference files at CC_DATA_DIR=%r; decisions are unavailable until they are provided", directory)
+            log.warning("no reference files at CC_DATA_DIR=%r; using the copies in the database, if any", directory)
             return None, None
         return load_references(directory, date.fromisoformat(settings.service_date) if settings.service_date else None)
 

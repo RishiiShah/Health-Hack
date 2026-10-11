@@ -37,6 +37,25 @@ class OpsRefs:
     roster: Mapping[str, RosterEntry]
     zones: Mapping[str, str] = MappingProxyType({})  # zone the hours of each hospital are expressed in; default ET
 
+    def payload(self) -> dict:
+        """JSON form kept in the database beside the reference tables."""
+        when = lambda t: t.isoformat() if t else None
+        return {"baseline": sorted([h, day, hour, mean, p90] for (h, day, hour), (mean, p90) in self.baseline.items()),
+                "coverage": {h: [list(b) for b in blocks] for h, blocks in sorted(self.coverage.items())},
+                "roster": {pid: {"role": r.role, "opt_in": r.opt_in, "last_shift_end": when(r.last_shift_end), "next_shift_start": when(r.next_shift_start),
+                                 "next_shift_end": when(r.next_shift_end), "hours_last_7d": r.hours_last_7d, "minutes_to_online": r.minutes_to_online,
+                                 "channel": r.channel, "declines_30d": r.declines_30d} for pid, r in sorted(self.roster.items())},
+                "zones": dict(sorted(self.zones.items()))}
+
+    @classmethod
+    def from_payload(cls, payload: dict) -> "OpsRefs":
+        when = lambda t: datetime.fromisoformat(t) if t else None
+        times = ("last_shift_end", "next_shift_start", "next_shift_end")
+        return cls(MappingProxyType({(h, day, hour): (mean, p90) for h, day, hour, mean, p90 in payload["baseline"]}),
+                   MappingProxyType({h: tuple(tuple(b) for b in blocks) for h, blocks in payload["coverage"].items()}),
+                   MappingProxyType({pid: RosterEntry(**{**r, **{k: when(r[k]) for k in times}}) for pid, r in payload["roster"].items()}),
+                   MappingProxyType(dict(payload["zones"])))
+
     def local(self, hospital_id: str, at: datetime) -> datetime:
         return utc(at).astimezone(ZoneInfo(self.zones[hospital_id]) if hospital_id in self.zones else ET)
 

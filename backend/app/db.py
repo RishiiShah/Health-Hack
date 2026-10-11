@@ -42,6 +42,12 @@ class EventDatabase:
         row = self.conn.execute("SELECT value FROM metadata WHERE key=%s", (key,)).fetchone()
         return json.loads(row["value"]) if row else default
 
+    def store_once(self, key, value):
+        """Store `value` under `key` unless something is already stored (first writer wins); return what is stored."""
+        if self.conn.broken: self.conn = self._connect()
+        self.conn.execute("INSERT INTO metadata VALUES(%s,%s) ON CONFLICT(key) DO NOTHING", (key, json.dumps(value, sort_keys=True)))
+        return self.metadata(key)
+
     @property
     def revision(self): return self.metadata("revision", 0)
 

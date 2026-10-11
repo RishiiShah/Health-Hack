@@ -22,6 +22,18 @@ def load_references(directory: str | Path, service_date: date | None = None) -> 
     return refs, load_ops_refs(directory, {h: x.timezone for h, x in refs.hospitals.items()}, set(refs.physicians))
 
 
+def stored_operations(db, ops: OpsRefs | None) -> OpsRefs | None:
+    """Operational references (demand baselines, coverage minimums, the off-shift roster) live in the database beside the
+    reference tables: the first start stores the files, later starts use the stored copy, so the server also runs without
+    the files. Changed files are refused, as for the reference tables; a new database takes new files."""
+    saved = db.metadata("operations_references") if ops is None else db.store_once("operations_references", {"payload": ops.payload()})
+    if saved is None:
+        return None
+    if ops is not None and saved["payload"] != ops.payload():
+        raise ValueError("operational reference files differ from the copy in the database; start a new database to change them")
+    return OpsRefs.from_payload(saved["payload"])
+
+
 def base_history(path: str | Path | None, now: datetime) -> OfferHistory:
     return load_offer_history(path, now) if path and Path(path).exists() else OfferHistory()
 
