@@ -253,7 +253,8 @@ def trap_check(state: State, refs: Refs, ops: OpsRefs, views: Mapping[str, Physi
 
     surge_rate = {s.hospital_id: float(s.count) for s in surges(state, refs, ops, now)}
     pace = demand_pace(state, refs, ops, now)
-    # Every scenario must pass: the usual day, today's observed pace [A51] and a surge that keeps going.
+    # Site, wait and peer-harm constraints apply to every scenario. The A41 joiner
+    # load bound measures the low-volume trap under baseline demand only.
     demands = {"baseline": ({}, 1.0), **({"todays_pace": ({}, pace)} if pace is not None and abs(pace - 1) >= PACE_MIN_CHANGE else {}),
                **({"surge_continues": (surge_rate, 1.0)} if surge_rate else {})}
     scenarios, relief, spill, criteria, trap_shown, unknown = {}, {}, {}, [], False, ()
@@ -275,7 +276,9 @@ def trap_check(state: State, refs: Refs, ops: OpsRefs, views: Mapping[str, Physi
             Criterion(f"{label}:joiner_only_at_gap_hospitals", not outside_c, ", ".join(outside_c) or "gap hospitals only"),
             Criterion(f"{label}:gap_wait_not_worse", c.wait(hospitals) <= a.wait(hospitals),
                       f"{a.wait(hospitals):g} -> {c.wait(hospitals):g} patient-min, delayed {a.delayed(hospitals)} -> {c.delayed(hospitals)}"),
-            Criterion(f"{label}:joiner_not_above_busiest_peer", c.load(physician_id) <= busiest + PEER_TOLERANCE, f"{c.load(physician_id)} vs {busiest}"),
             Criterion(f"{label}:peers_within_tolerance", not rises, ", ".join(f"{p} +{n}" for p, n in sorted(rises.items())) or f"none above +{PEER_TOLERANCE}"),
         ]
+        if label == "baseline":
+            criteria.append(Criterion(f"{label}:joiner_not_above_busiest_peer", c.load(physician_id) <= busiest + PEER_TOLERANCE,
+                                       f"{c.load(physician_id)} vs {busiest}"))
     return TrapCheck(joiner, seed, scenarios, tuple(criteria), trap_shown, relief, spill, unknown, pace)

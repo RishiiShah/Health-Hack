@@ -56,6 +56,12 @@ jobs:
         with:
           python-version: "3.14.7"
       - run: pip install -e '.[test]'
+      - name: Verify the independent practice-data generator
+        working-directory: .
+        run: python -m unittest discover scripts/synth -v
+      - name: Generate the five public rehearsal datasets
+        working-directory: .
+        run: python scripts/synth/generate.py --suite --out data/synthetic
       # Protected packs remain local. Synthetic API/auth/offer/recovery tests run in this checkout.
       - run: pytest -ra
   container:

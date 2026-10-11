@@ -114,8 +114,9 @@ def _consult_fix(f: Finding, views, refs, ops, now, reserved=()) -> Fix:
             free = next(v for v in routable if v.physician_id != t.physician_id)
             return Fix(verb, "coordinator", f"{verb.title()} {f.consult_id} to {t.physician_id} when their {busy} ends; if it cannot wait, {free.physician_id} is free now",
                        f"{t.physician_id} is first under the modeled routing order ({t.consults_this_shift} consults this shift) and only briefly busy; "
-                       f"{free.physician_id} ({free.consults_this_shift} consults) can take it immediately",
-                       (f"{free.physician_id}: free now", *(f"{v.physician_id}: also routable, later in routing order" for v in routable[1:3] if v is not free)),
+                       f"{free.physician_id} ({free.consults_this_shift} consults) can take it immediately; "
+                       "fallbacks are alternatives, not reserved capacity: choose one assignment and refresh before acting on another recommendation",
+                       (f"{free.physician_id}: free now; alternative, capacity not reserved", *(f"{v.physician_id}: also routable, later in routing order" for v in routable[1:3] if v is not free)),
                        t.physician_id)
         return Fix(verb, "coordinator", f"{verb.title()} {f.consult_id} to {t.physician_id}",
                    later + (f"; shift ends in {t.minutes_to_shift_end} min, nobody staying is free" if t.physician_id in leaving else ""),

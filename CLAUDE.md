@@ -25,7 +25,7 @@
 - Backend: `cd backend && pytest` (needs Postgres: `docker run -d --name cc-pg -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:5432:5432 postgres:17`)
 - Web: `cd web && npm run gen:api && npm test && npm run build`
 - Mobile: `cd mobile && flutter test && flutter build web`
-- Synthetic API/contract checks run with the backend suite without private CSVs. `scripts/synth/generate.py` and the generator unittest command are planned but undelivered; see `docs/Synthetic-Data-Krish.md`. Do not run those nonexistent commands or report generator validation as passed.
+- Synthetic: `python -m unittest discover scripts/synth -v`, then `python scripts/synth/generate.py --suite --out data/synthetic`. See `scripts/synth/README.md` for snapshots, DST, append rehearsal and validation. Generated CSVs stay ignored; the public backend suite compares replay with authored snapshots.
 
 ## Before pushing
 - Run the tests for your area. If you touched `backend/`, run the backend tests too.

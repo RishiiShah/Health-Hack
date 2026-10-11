@@ -50,8 +50,8 @@ undelivered generator is not replaced by a claim that manual synthetic fixtures
 provide every planned generator dataset. The G15 policy discrepancy, A41 surge
 criterion and fallback-reservation policy remain explicit decisions.
 
-The new CI jobs have been verified locally in the stated environments. Their
-GitHub execution requires committing/pushing this cohort; the public clean
+The third cohort was committed and pushed as **e343a30**. The new CI jobs were
+verified locally in the stated environments; the public clean
 checkout intentionally cannot run the protected source/pack checks. Real
 ElevenLabs playback, native devices, cross-origin hosting and Render deployment
 remain separate checks.
@@ -77,9 +77,9 @@ remain separate checks.
 
 The current official-kit API check at 18:20 passes for the engine's selected
 bundle (SYN-005/SYN-008/SYN-010, seed 12). This differs from the original handoff's
-single-site scenario; it does not settle the separate A41 policy question. The
-peer-load criterion still applies to every scenario. Pack agreement and local
-tests do not establish clinical outcomes or deployed performance.
+single-site scenario. A41 was subsequently resolved by explicit user choice in
+the fourth cohort below. Pack agreement and local tests do not establish
+clinical outcomes or deployed performance.
 
 ## Mobile scope and checkout
 
@@ -97,12 +97,48 @@ an explicit capability message or a disabled/absent control. Unknown staffing an
 rank fields remain unknown; missing trap evidence never becomes a passing verdict.
 Offer activity is derived from sent records, without stored read receipts.
 
-Backend/web changes are in the existing `rishi` working tree. Mobile changes are
-in the attached managed checkout based on `origin/mobile`:
-`/Users/rishi/.codex/worktrees/mobile-api-compatibility/Health Hack`. Its older
-backend files were not merged into the decision-engine checkout. Review the
-`mobile/` changes there alongside the backend changes here. The mobile README
-documents the adapter and repeatable contract-fixture update procedure.
+Mobile source and the adapter are now integrated in the main `rishi` checkout.
+The original managed mobile worktree is preserved; its older backend/web files
+were not merged. Checkpoint **e343a30** includes the verified mobile delivery.
 
-Changes remain uncommitted and unpushed. The broader review's items 11–18 remain
-pending. No service was deployed or physical phone build tested.
+## Fourth cohort: generator and approved policies
+
+- **15 completed:** `scripts/synth` now supplies all five rehearsal datasets,
+  eleven operational scenarios, all 20 event types, independently authored
+  snapshots, DST, live append, one eligible roster candidate plus each R1–R8
+  rejection, and 10×/100× replay volume. Generated CSVs remain ignored.
+  The sample-format roster history extensions are explicitly backed by
+  `support/offer_history.csv`. See [generator instructions](../scripts/synth/README.md).
+- **16 completed:** queue titles show consult IDs first plus hospital names,
+  combined gap names and physician names, including off-shift physicians.
+  Advice and alternatives resolve whole known IDs to names; unknown IDs and
+  action payloads remain intact. Watch rows say Watch; current gaps say No
+  consult waiting. Watch dossiers show What to watch and do not promote a
+  Find cover action. Duplicate explanatory phrases are displayed once.
+  Server item IDs, severity, order and ranks are preserved.
+- **17 resolved:** Rishi approved the joiner-versus-busiest-peer bound under
+  baseline demand only. Site restrictions, non-worsening gap wait and the
+  +1 peer tolerance still apply to every modeled demand scenario. A regression
+  exercises concentrated legitimate surge load above the busiest peer.
+- **18 resolved:** Rishi chose fallbacks as unreserved alternatives. Primary
+  reservations remain; the server explains that a coordinator must choose one
+  assignment and refresh before acting on another recommendation. A regression
+  checks that a fallback may also be another item's primary.
+- **G15 reconciled:** Rishi approved lexicographic priority with severity first.
+  The PRD and implementation specification now share the complete stable key;
+  former weighted numeric examples are superseded. Display scores are ordinal.
+  No measured latency improvement or global optimality is claimed.
+
+Fourth-cohort verification: **348 backend tests passed**, including all four
+local packs; **45 web tests passed** and the production build passed;
+**9 generator tests passed** locally. A source-only checkout passed **180 backend
+tests**, explicitly skipping **36** protected-data cases; its generator run
+passed **8** checks and skipped the private-source header comparison. Final
+append/scaled snapshot regressions also pass in that checkout. Native browser
+checks verified names and watch controls at desktop and 390×844, with no
+horizontal page overflow. The mobile source/contract bundle is unchanged from
+the **149-test** checkpoint. GitHub execution of the new generator stage is
+separate from these local results.
+
+Production reference data was not changed. No Render service was deployed or physical-device/real speech
+rehearsal performed; those are the remaining hosting and demonstration tasks.

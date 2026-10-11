@@ -24,7 +24,7 @@ export function describeWhy(why: Row): string {
   if (num(why.minutes_to_shift_end) !== null) parts.push(`shift ends in ${why.minutes_to_shift_end} min`);
   if (Array.isArray(why.windows)) parts.push(list(why.windows).join("; "));
   parts.push(...list(why.causes), ...list(why.free_elsewhere), ...list(why.also));
-  return parts.join(". ");
+  return [...new Set(parts.filter(Boolean))].join(". ");
 }
 
 export function detectFromSnapshot(snapshot: Row): DetectSnapshot | null {
@@ -32,21 +32,30 @@ export function detectFromSnapshot(snapshot: Row): DetectSnapshot | null {
   const physicians = snapshot.physicians as Section | undefined;
   if (!queue?.supported || !physicians?.supported) return null;
   const hospitals = Object.fromEntries(((snapshot.hospitals as Section)?.items ?? []).map((h) => [h.hospital_id, String(h.name)]));
-  const names = Object.fromEntries(((snapshot.workload as Section)?.items ?? []).map((w) => [w.physician_id, String(w.name)]));
+  const names = Object.fromEntries([...(physicians.items ?? []), ...((snapshot.workload as Section)?.items ?? [])]
+    .filter((p) => str(p.name)).map((p) => [p.physician_id, String(p.name)]));
   const name = (id: unknown) => names[String(id)] ?? String(id);
+  // Replace whole identifiers only; keep unknown identifiers and command IDs intact.
+  const displayNames = (value: unknown) => String(value ?? "").replace(
+    /[A-Za-z0-9_-]+/g, (word) => names[word] ?? hospitals[word] ?? word,
+  );
 
   const items: QueueItem[] = (queue.items ?? []).map((item) => {
     const where = (item.where ?? {}) as Row;
     const fix = (item.fix ?? {}) as Row;
     const hospital = str(where.hospital_id) ? hospitals[String(where.hospital_id)] ?? String(where.hospital_id) : null;
-    const label = str(where.consult_id) ?? (str(where.physician_id) ? name(where.physician_id) : null) ?? hospital ?? String(item.id);
+    const sites = list(where.hospital_ids).map((h) => hospitals[h] ?? h);
+    const label = str(where.consult_id)
+      ? `${where.consult_id}${hospital ? ` · ${hospital}` : ""}`
+      : (str(where.physician_id) ? name(where.physician_id) : null) ?? hospital ?? (sites.length ? sites.join(", ") : String(item.what));
     return {
       id: String(item.id), label, kind: String(item.id).split(":")[0], level: String(item.severity), rank: Number(item.rank),
-      reason: String(item.what),
+      reason: displayNames(item.what),
+      watchOnly: fix.kind === "watch",
       where: [hospital, str(where.consult_id), str(where.physician_id) ? name(where.physician_id) : null,
         ...list(where.hospital_ids).map((h) => hospitals[h] ?? h)].filter(Boolean).join(" · "),
-      why: describeWhy((item.why ?? {}) as Row),
-      fix: String(fix.action ?? ""), fixKind: String(fix.kind ?? ""), fixReason: String(fix.reason ?? ""), alternatives: list(fix.alternatives),
+      why: displayNames(describeWhy((item.why ?? {}) as Row)),
+      fix: displayNames(fix.action), fixKind: String(fix.kind ?? ""), fixReason: displayNames(fix.reason), alternatives: list(fix.alternatives).map(displayNames),
       approver: APPROVERS[String(fix.approver)] ?? String(fix.approver ?? ""),
       physicianId: str(fix.physician_id),
     };

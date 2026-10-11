@@ -1,6 +1,6 @@
 // Display shapes for the detect screens, filled from the server snapshot by fromSnapshot.ts.
 export type QueueItem = {
-  id: string; label: string; kind: string; level: string; rank: number; reason: string;
+  id: string; label: string; kind: string; level: string; rank: number; reason: string; watchOnly: boolean;
   where: string; why: string; fix: string; fixKind: string; fixReason: string; alternatives: string[]; approver: string; physicianId: string | null;
 };
 export type Consult = { id: string; hospital: string; type: string; stage: string; minutesInStage: number; minutesSinceReceived: number; level: string; limit: string };

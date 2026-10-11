@@ -138,3 +138,22 @@ def test_temporarily_unavailable_physician_takes_no_simulated_calls():
     check = trap_check(replay(()), refs, ops, views, et(18), "J", et(18), et(20), {"G"}, {"*": 6.5})
     assert all(run.load("P1") == 0 for run in check.scenarios["baseline"])
     assert check.seed == 7  # an unavailable peer's low count does not lower the joiner's seed
+
+
+def test_peer_load_bound_applies_only_to_baseline_but_all_scenarios_keep_other_constraints(monkeypatch):
+    """A concentrated forecast surge can legitimately make the joiner busier than peers."""
+    import app.decide.routing_sim as sim
+    from app.ops.coverage import Surge
+    refs, ops, views = trap_day()
+    views["P1"] = view("P1", 10, {"G", "O"}, state="Temporarily Unavailable")
+    monkeypatch.setattr(sim, "surges", lambda *args: [Surge("G", 40, 4, et(19))])
+    monkeypatch.setattr(sim, "demand_pace", lambda *args: 2.0)
+    check = trap_check(replay(()), refs, ops, views, et(18), "J", et(18), et(20), {"G"}, {"*": 1.0})
+    assert set(check.scenarios) == {"baseline", "todays_pace", "surge_continues"}
+    keys = {c.key for c in check.criteria}
+    assert {k for k in keys if k.endswith(":joiner_not_above_busiest_peer")} == {"baseline:joiner_not_above_busiest_peer"}
+    for scenario in check.scenarios:
+        assert {f"{scenario}:{key}" for key in ("joiner_only_at_gap_hospitals", "gap_wait_not_worse", "peers_within_tolerance")} <= keys
+    guarded = check.scenarios["surge_continues"][2]
+    assert guarded.load("J") > max(guarded.load("P1"), guarded.load("P2")) + 1
+    assert check.passed

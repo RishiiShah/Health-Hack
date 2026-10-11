@@ -2,9 +2,10 @@
 
 Current implementation, policy differences and historical document labels are
 indexed in [document authority](README.md). Protected-pack results are local
-verification; clean CI uses synthetic API worlds. The current queue has
-lexicographic ordering, so PRD G15 weighted numeric scores remain an explicit
-acceptance difference rather than a passed claim.
+verification; clean CI uses synthetic API worlds and generated replay fixtures.
+The approved G15 policy is severity-first lexicographic ordering with an ordinal
+score. A41 compares joiner load with peers under baseline demand only; every
+scenario retains site, wait and peer-harm constraints.
 
 ## What the judges will do (handbook Chapter 4, brief "What Teams Must Demonstrate" #8)
 - **One CSV** in exactly the `event_stream.csv` format: `event_id, event_time, ingested_at, consult_id, event_type, physician_id, hospital_id, description`.
@@ -40,5 +41,5 @@ acceptance difference rather than a passed claim.
 - Web Detect components exist and display server queue, consults, physician state and findings. Snapshot polling is serialized, aborts on cleanup and coalesces manual refreshes. No current web transport depends on the unproxied `/ws` route.
 - Web schedule now has a backend route and a matching Vite proxy. Offer audio is fetched with bearer authentication, played through a temporary blob URL and released on completion, stop or navigation. Playback failures are visible; the physician's own offers screen includes playback. The server still restricts offer audio to lead/own physician. Automatic once-per-critical-item announcements remain a planned feature; `VoiceAlerts` supports manual playback and is not mounted on the current command page.
 - Mobile live mode uses `BackendApiClient` for supported existing backend routes and DTOs. Broadcasts, mobile schedule/preferences/release remain outside the agreed live integration. Fake/design workflow tests do not establish those production capabilities.
-- Backend, web and mobile source now share this checkout. CI builds/tests the public synthetic worlds; protected scenario packs remain uncommitted and require a separate local run. The specified `scripts/synth` generator is undelivered.
+- Backend, web and mobile source now share this checkout. CI builds/tests the public synthetic worlds; protected scenario packs remain uncommitted and require a separate local run. The standard-library `scripts/synth` generator now supplies five independent rehearsal datasets; CI verifies authored snapshots against backend replay. See `scripts/synth/README.md`.
 - Render deployment, cross-origin gateway configuration, physical-device checks and real speech-provider playback remain separate rehearsal work. The synthetic audio tests validate auth and lifecycle without invoking ElevenLabs or claiming production audio quality.

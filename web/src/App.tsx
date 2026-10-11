@@ -184,7 +184,7 @@ function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
         {detect ? <div className="dense-queue">{detect.queue.map((entry) => (
           <button className={`dense-queue-row ${entry.id === item?.id ? "active" : ""}`} key={entry.id} onClick={() => setSelectedId(entry.id)}>
             <b className="queue-rank">{String(entry.rank).padStart(2, "0")}</b>
-            <span className="queue-label"><strong>{entry.label}</strong><small>{entry.reason}</small></span>
+            <span className="queue-label"><strong>{entry.watchOnly ? "Watch · " : ""}{entry.label}</strong><small>{entry.watchOnly && entry.kind === "now_gap" ? "No consult waiting · " : ""}{entry.reason}</small></span>
             <span className={`level-chip ${entry.level.toLowerCase()}`}>{entry.level}</span>
           </button>
         ))}</div> : <Unavailable what="the attention queue" />}
@@ -233,13 +233,13 @@ function Dossier({ item, total, onFindCover, onDone }: { item: QueueItem; total:
     <div className="dossier-grid">
       <div><b>Where</b><p>{item.where || "–"}</p></div>
       <div><b>Why it matters</b><p>{item.why || "–"}</p></div>
-      <div><b>Suggested fix</b><p>{item.fix}</p></div>
+      <div><b>{item.watchOnly ? "What to watch" : "Suggested fix"}</b><p>{item.fix}</p></div>
       <div><b>Who approves</b><p>{item.approver}</p></div>
       {(item.fixReason || item.alternatives.length > 0) && <div className="dossier-wide"><b>Why this fix</b><p>{item.fixReason}</p>{item.alternatives.length > 0 && <ul>{item.alternatives.map((a) => <li key={a}>{a}</li>)}</ul>}</div>}
     </div>
     <div className="dossier-actions">
       {canReassign && <button className="btn dossier-primary" onClick={() => intervene("reassign")}>{item.fixKind === "handoff" ? "Record handoff" : "Reassign"}</button>}
-      {isGap && <button className="btn dossier-primary" onClick={() => onFindCover(item.id)}>Find cover</button>}
+      {isGap && !item.watchOnly && <button className="btn dossier-primary" onClick={() => onFindCover(item.id)}>Find cover</button>}
       {item.approver !== "Automatic" && <button className={`btn ${item.fixKind === "escalate" ? "dossier-primary" : "dossier-secondary"}`} onClick={() => intervene("escalate")}>Escalate to clinical lead</button>}
     </div>
     {message && <p className="muted" role="status">{message}</p>}

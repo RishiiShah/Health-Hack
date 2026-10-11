@@ -32,21 +32,23 @@ reassignments; it does not drive Sevaro's production router. Mobile live mode
 adapts these existing workflows. Broadcasts, mobile schedule screens, preference
 editing, release and stored read receipts remain unimplemented design features.
 
-## Policy differences are explicit
+## Approved decision policies
 
-PRD G15 describes weighted attention scoring. The current backend orders by the
-lexicographic key in Decision Engine §5.5: severity, horizon, ownerless, stroke,
-repeat contacts, age, affected count, stable ID. Its displayed `score` is ordinal,
-not the PRD's weighted score. This documentation update does **not** approve a
-ranking-policy change or claim numeric G15 parity. The PRD's score examples are
-requirements under review, rather than assertions that the current UI produces
-them. Tests of this implementation establish its documented ordering.
+The approved G15 attention policy is lexicographic: severity, horizon,
+ownerless, stroke, repeat contacts, age, affected count, stable ID. The display
+`score` is ordinal. Severity is a hard priority; additive bonuses cannot move a
+Warning above a Critical. Rishi approved retaining this behavior after reviewing
+the alternatives. The PRD and Decision Engine §5.5 now specify the same key.
+This policy choice is not a measured speed improvement or an optimization proof.
 
 PRD G18's shorthand candidate order is expanded by the implemented gap-minute,
 arrival, declines, hours, weekly-offer and ID key. G19 includes explicit seeds,
 peer tolerance and multiple demand scenarios in Decision Engine §5.3–5.4.
-Changing A41's surge-load criterion or reserving fallback recommendations needs
-a separate explicit policy decision. Neither was changed during these cohorts.
+Rishi approved A41's joiner-versus-peer load bound for **baseline demand only**.
+Site restrictions, non-worsening gap wait and peer-load tolerance apply to every
+scenario. Fallback physicians remain alternatives, not reserved capacity;
+coordinators choose one assignment and refresh before acting on another item.
+Primary recommendations retain the existing reservations.
 
 The displayed forecast extends at least 90 minutes through the last complete
 shift boundary within 120 minutes, with exact boundary steps. This resolves the
@@ -62,12 +64,14 @@ not current runtime instructions. Web and mobile owner task lists describe
 planned acceptance targets; their status banners identify current delivery
 differences. Use the live mobile adapter scope ahead of v1.1 design-only routes.
 
-`Synthetic-Data-Krish.md` is an **undelivered generator specification**.
-Inspection of every currently fetched remote branch found no `scripts/synth`
-implementation. The generator command in that specification is not runnable.
-CI instead runs hand-authored synthetic API worlds and contract fixtures without
-the protected CSVs. This does not claim generator delivery or private-pack
-acceptance. Source data, answer keys, databases and credentials stay uncommitted.
+`Synthetic-Data-Krish.md` records the generator specification and delivery
+scope. `scripts/synth` now generates five reproducible rehearsal datasets, all
+20 event types, authored expected snapshots, DST and live append cases, R1–R8
+rejections, and 10×/100× workloads. CI verifies the standard-library generator
+and public backend replay parity. See [generator instructions](../scripts/synth/README.md).
+Generated data, protected source/answer keys, databases and credentials stay
+uncommitted. The live rehearsal uses an independent namespace in a disposable
+database; it does not modify or extend the official files.
 
 The release checkout now contains backend, web and mobile source together.
 Run backend tests, web tests/build, and Flutter analysis/tests/web builds from

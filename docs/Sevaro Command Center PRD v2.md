@@ -11,11 +11,11 @@ Web/mobile source now shares one checkout; hosted application/device verificatio
 is separate from local tests and builds. Tailwind is installed for the landing
 page; ECharts is not installed.
 
-**Open policy discrepancy:** G15's weighted score and numeric example values
-below are requirements under review. The current backend uses the documented
-lexicographic ordering and ordinal display score in Decision Engine §5.5.
-This status note does not approve changing either policy or claim weighted-score
-acceptance. G18/G19 implementation assumptions are detailed in Decision Engine.
+**Approved policy alignment:** G15 retains deterministic lexicographic ranking
+with severity first and an ordinal display score. Rishi approved this choice,
+A41's baseline-only joiner load bound and fallbacks as unreserved alternatives.
+G18/G19 implementation assumptions are detailed in Decision Engine. These
+choices do not claim measured performance improvement or global optimality.
 Forecast display uses the last complete shift boundary within 120 minutes;
 the routing simulator remains 90 minutes. Missing schedule ends remain unknown.
 
@@ -241,9 +241,9 @@ Projected cells represent potential scheduled coverage: they assume current call
 
 **G14 Signal conflicts.** Camera active with no session and not In Meeting; agent heartbeat lost; status Available while derived busy for 30+ min (info).
 
-**G15 Attention queue.** Score = level (Critical 100, Warning 50, Info 10) + 30 if stroke + 10 per routing failure (max 30) + for projected gaps 30 x (1 minus minutes to gap / 90). Ties: oldest first. Gap now or within 60 min = Critical; 60 to 90 min = Warning. Stuck stroke consult = Critical, others Warning. Overload (G8b) uses its own level. Each item carries a plain-language reason.
+**G15 Attention queue.** Rank lexicographically by severity (Critical > Warning > Info), display horizon before outlook, ownerless before owned, Stroke before General Neuro, repeat contacts before none, oldest first contact (projected gaps: soonest start), most affected, then stable ID. Severity is a hard priority; no additive weights are used. `score` is an ordinal display value, not a numeric urgency formula. Gap and consult severity come from the documented detectors; ranking does not change them. Each item carries a plain-language reason.
 
-The stroke bonus applies to consult items with supplied type Stroke; hospital gaps receive no inferred stroke bonus. Keep numeric scores unrounded for sorting and display two decimals when fractional. Use stable item IDs, group duplicate reasons for the same entity, choose the highest severity, and break equal score/age by stable ID. Schedule-incomplete gaps carry an uncertainty label. A hypothetical confirmed gap 40 minutes away scores 116.67, not 147. G15 orders attention; it does not reserve physician capacity.
+Use stable item IDs, merge duplicate reasons for the same entity, and choose the highest severity. Schedule-incomplete gaps carry an uncertainty label. The stroke priority applies only to supplied consult type, with no inferred stroke classification for hospital gaps. G15 orders attention; primary recommendations reserve their selected physician, while fallback alternatives remain unreserved. Choose one assignment and refresh before acting on another item. Rishi approved this policy; former weighted numeric examples are superseded.
 
 ## Dashboard
 
@@ -253,7 +253,7 @@ Every value is written by one gate. If a number looks wrong, check the gate besi
 
 | Panel | Shows | Gate | Expected at 18:20 |
 | --- | --- | --- | --- |
-| Attention queue | Rank, score, reason, uncertainty | G15 | CON-2105 scores 160; remaining order derived from rules, not a hardcoded second item |
+| Attention queue | Rank, score, reason, uncertainty | G15 | Severity-first lexicographic order; ordinal score; stable IDs and explained priorities |
 | Consult board | Stage, minutes in stage, timer colour | G5, G9 | 18 open; CON-2102 imaging 26 min (Critical) |
 | Stuck consults | Unassigned, stranded, routing failures, exclusions | G11, G7 | CON-2105 (3 failures), CON-2114 (1), CON-2110 stranded |
 | Physician board | Derived state vs self-reported, agent, confidence, routable, reason | G6, G7 | PHY-001 camera, no session; PHY-007 agent offline and excluded while ringing |
@@ -288,7 +288,7 @@ Started only if core tests T1–T12, T23–T28 and consistency checks pass at H2
 | G16 Cheapest fix | Try in order: reassign to a routable credentialed physician; escalate a Critical stroke item; show scheduled coverage that closes the gap; else build a split-shift offer |
 | G17 Eligibility | Test every off-shift physician on R1 opt-in, R2 credentialed at a gap hospital, R3 10 h rest, R4 7-day hours + offer at most 60, R5 no overlap, R6 2 h minimum and can come online, R7 one open offer, R8 under 3 offers in 7 days. Keep every result |
 | G18 Rank | Most gap hospitals, fewest minutes to online, fewest declines in 30 days, fewest hours in 7 days |
-| G19 Trap guard | Joiner routable only at gap hospitals; seeded at lowest peer count at the gap hospital; simulate 90 min of baseline demand with and without; pass if gap closes, no other gap worsens, joiner load at most busiest peer |
+| G19 Trap guard | Joiner restricted to offered gap hospitals; seed max(day threshold + 1, least-loaded eligible peer). Simulate baseline, observed pace and sustained surge. Every scenario: gap wait not worse and no peer gains over 1 consult. Baseline only: joiner load at most busiest peer + 1 [A41] |
 | G20 Approval | Only the clinical lead approves (from web or phone), enforced server side by role permissions. No auto path |
 | G21 Pre-send check | Re-check R1 to R8 and gap; message holds hospital, hours, start only; lock offer slot; 10-min timer |
 | G22 Response | Accept with gap open = Accepted (one transaction). Accept after fill = Already filled. Decline or 10-min timeout = next candidate |

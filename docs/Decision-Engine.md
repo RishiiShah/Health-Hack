@@ -208,13 +208,13 @@ Deterministic discrete-event replay over the horizon:
 - Routing: rules 1-5 of [B p3] exactly, ties by least-recent answer then `physician_id`.
 - Runs: (a) no joiner, (b) joiner unrestricted and unseeded (the trap), (c) joiner restricted and seeded.
 - Output per run: calls per physician per hospital, joiner share, failed routes per hospital, peer load change.
-- Pass for (c): joiner gets calls only at gap hospitals, failed routes at gap hospitals do not increase vs (a), joiner load ≤ busiest peer, and no peer's load rises by more than 1 consult vs (a) [A41].
+- Pass for (c): joiner gets calls only at gap hospitals, failed routes at gap hospitals do not increase vs (a), under baseline demand only, joiner load ≤ busiest peer + 1; under every scenario, no peer's load rises by more than 1 consult vs (a) [A41].
 
 ### 5.5 Queue ranking [H ch2 #6]
-**Current implementation policy:** PRD G15 still describes weighted numeric
-scores. This section documents the implemented ordering, and its display score
-is ordinal. No weighted-score parity or change to the PRD policy is claimed;
-see [document authority](README.md#policy-differences-are-explicit).
+**Approved policy:** Rishi selected the existing lexicographic key for G15.
+Severity is a hard priority; additive bonuses cannot outrank it. The PRD now
+uses the same key. Display `score` is ordinal and is not used for ordering.
+The policy is deterministic; no speed improvement or global optimality is claimed.
 
 Lexicographic, every component shown as a reason, no weights:
 1. Severity (Critical > Warning > Info)
@@ -229,6 +229,8 @@ Lexicographic, every component shown as a reason, no weights:
 Items sharing a root cause (e.g. a Suncrest surge, its unassigned consult, its at-risk gap, two leaving physicians' notes) are grouped under one **incident** with the top-ranked item as its headline, to limit alert overload [H ch7].
 
 Each item exposes: `what`, `where {hospital, consult, physician}`, `why {age, limit, level, worsens_at}`, `fix {kind, approver, reason, alternatives_rejected[]}` [H ch4].
+
+Fallbacks are mutually exclusive advice, not reserved capacity. A free-now fallback may also be another item's primary recommendation. Choose one assignment, refresh state, then reassess; primary reservations stay unchanged. Rishi approved this capacity policy.
 
 ### 5.6 Rules tightened after running the sample (steps 3-6 implemented)
 - **One item per consult or physician.** Findings about the same subject merge; the most severe level wins and the others are listed under `also`. Note-overdue items fold into the owner's shift-end notes item.
@@ -258,9 +260,9 @@ Sample at 18:20: CON-2110 and CON-2105 escalate first; CON-2102 hands off to PHY
 - **Demand:** waiting unassigned consults at `now`, then baseline means placed where the expected count crosses each half-integer (deterministic). Second scenario: surging hospitals keep their trailing-60 rate. Missing baseline → that hospital's demand is reported unknown.
 - **Physicians:** the forecast's supply (on shift + scheduled starters); Temporarily Unavailable stay out [A37]; a session in progress ends after one median service time [A48]; 2-minute cooldown after each simulated call. Initialization preserves a real call's remaining cooldown. An unresolved ring reserves one median service time plus cooldown from `now` [A53]; additional ring duration is not modeled.
 - **Runs per scenario:** (a) no joiner, (b) joiner unrestricted and unseeded (the trap), (c) joiner restricted to the offer hospitals and seeded [A26, peers that are Temporarily Unavailable excluded from the seed].
-- **Pass for (c):** joiner only at offer hospitals; patient wait minutes at the offer hospitals not worse than (a); joiner load ≤ busiest peer + 1; no peer +2 or more vs (a) [A41].
+- **Pass for (c):** joiner only at offer hospitals; patient wait minutes at the offer hospitals not worse than (a); baseline only: joiner load ≤ busiest peer + 1; every scenario: no peer +2 or more vs (a) [A41].
 - Every split-shift item carries `why.trap_guard` (restriction, seed, verdict, wait minutes removed, unguarded spill) and the reason names the router setting. A failed check is shown to the lead, never hidden; the offer still needs approval.
-- Dev pack 18:20: PHY-809 restricted to SYN-146/SYN-864, seed 17: wait at those hospitals 320 → 90 patient-min (no joiner → guarded); unguarded the joiner takes 6 consults at SYN-229/SYN-555, which the offer never named. Sample 18:20: the PHY-009 offer fails `joiner_not_above_busiest_peer` only under a sustained Suncrest surge (10 vs 8), shown as a warning.
+- Dev pack 18:20: PHY-809 restricted to SYN-146/SYN-864, seed 17: wait at those hospitals 320 → 90 patient-min (no joiner → guarded); unguarded the joiner takes 6 consults at SYN-229/SYN-555, which the offer never named. Historical sample 18:20: the PHY-009 offer failed the former all-scenario peer bound under a sustained Suncrest surge (10 vs 8). The approved policy now limits that bound to baseline demand; site, wait and peer-harm constraints remain in every scenario.
 
 **Decision rules changed by the clock sweep** (the sweep runs `decide` every 5 min 18:20-22:20 with live events):
 - **Free soon, not absent:** when nobody credentialed is routable but one is in a call/video or the 2-minute cooldown, the consult is queued for them ("when their video consult ends", lead notified if Critical) instead of escalated [A49]. This removed most assign↔escalate flip-flops.
@@ -416,7 +418,7 @@ Steps 1-7 are pure functions and can be tested without the database. Step 8 need
 | A38 | Scheduled starter is late if no `shift_started` by start + 5 min | Matches routing retry cadence |
 | A39 | Offer covering < 60 gap minutes is "low value" (still eligible) | Informs the lead without bending R6 |
 | A40 | Simulator service time = today's median busy minutes per consult (incoming calls + video); waiting consults use their type's median, simulated arrivals the overall median | Derived from the data, not invented |
-| A41 | Trap tolerance: no peer gains more than 1 consult, and the joiner carries at most 1 more than the busiest peer | Counts are discrete; one consult is tie-order noise |
+| A41 | Every demand scenario: no peer gains more than 1 consult. Baseline demand only: the joiner carries at most 1 more than the busiest peer | Rishi approved baseline-only trap load comparison; legitimate concentrated surge can make the joiner busier. Site and wait constraints still apply to every scenario |
 | A42 | Reply at exactly `expires_at` is late | Half-open window |
 | A43 | Offer commands refuse a rewound clock | Keeps the audit monotone |
 | A44 | Withdrawal/"already filled" notices are covered by the offer's approval | They respond to an approved offer |

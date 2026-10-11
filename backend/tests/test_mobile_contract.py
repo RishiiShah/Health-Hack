@@ -53,6 +53,8 @@ def test_mobile_backend_payload_contract(db_url, tmp_path):
         bundle["candidates"] = get("/gaps/now_gap:G/candidates")
         bundle["trap"] = get("/gaps/now_gap:G/trap-check")
         bundle["interventions"] = get("/interventions?state=pending")
+        assert {p["physician_id"]: p["name"] for p in get("/snapshot")["physicians"]["items"]} == {
+            pid: physician.name for pid, physician in refs.physicians.items()}
         bundle["snapshot_coverage"] = {k: get("/snapshot")[k] for k in ("clock", "coverage")}
         assert bundle["candidates"]["candidates"][0]["eligible"] is True
         assert bundle["trap"]["seed_consults"] is not None

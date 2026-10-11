@@ -1,4 +1,12 @@
-> **Document status:** Planned and undelivered generator specification. No scripts/synth implementation exists in any currently fetched remote branch; commands below are acceptance targets, not working release commands. See [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md).
+> **Document status:** Delivered standard-library generator specification. See [generator instructions](../scripts/synth/README.md), [current document authority](README.md) and [gap fixes](Decision-Engine-Gap-Fixes.md). The acceptance list below is retained; the delivery notes explain format extensions and verification scope.
+
+### Delivery notes
+
+- `scripts/synth` generates all five named datasets and all 20 event types, with independently authored consult/physician snapshots and scenario outcomes. `--scale 10/100` repeats consult lifecycles with unique IDs; the 36 roster-startup signals stay fixed.
+- Nine core CSVs retain the supplied column contract. Credential matrix hospital columns use the generated IDs, as required by the independent namespace. `splitshift` explicitly adds the three planned roster columns; `support/offer_history.csv` provides R7/R8 history in the existing backend-supported format. The sample reference loader does not consume those history columns by itself.
+- `live-0317` is a self-contained synthetic March 17 base plus a separate `live_test_events.csv` append. It exercises T23–T27 semantics with independent IDs and references, in a disposable database. It does not reproduce the kit-specific trailing counts or modify the official source day.
+- The DST preset uses service date October 31, snapshot November 1 at 06:20 ET, and offset-bearing events across the repeated hour. All time-only shift endpoints remain unambiguous; weekend baseline is intentionally absent.
+- The read-only validator passes on generated datasets and original files. Public backend tests compare all snapshot columns, all R1–R8 outcomes, key detector findings, trap spill and append transitions. Private-source header comparison is explicitly skipped when the ignored kit is unavailable. Generated output remains ignored and is not production reference data.
 
 **Purpose:** create deterministic test datasets that exercise every scenario hidden in the brief, without touching the supplied data.
 **Owns:** `scripts/synth/generate.py`, `scenarios.py`, `validate.py`, `test_synth.py`; output goes to `data/synthetic/<name>/`, which is gitignored and never committed.
