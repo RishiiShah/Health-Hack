@@ -9,7 +9,7 @@ import { unavailableText, useApi, useServerNow } from "./act/hooks.ts";
 import { isOpen, stateBadge } from "./act/offerSteps.ts";
 import { OfferTracker } from "./act/OfferTracker.tsx";
 import { clockTime, clockTimeSeconds, headerDate } from "./act/time.ts";
-import type { AuditEntry, DataQuality, Dataset, Offer } from "./act/types.ts";
+import type { AuditEntry, Dataset, Offer } from "./act/types.ts";
 import { PAGES_BY_ROLE, SIGNED_OUT, clearSession, isUser, readSession, saveSession, type Session, type User } from "./auth/session.ts";
 import { ConsultBoard, HeadlineNumbers, PhysicianBoard, detectFromSnapshot, type DetectSnapshot, type QueueItem } from "./detect/index.ts";
 import { CoverageGrid } from "./forecast/CoverageGrid.tsx";
@@ -17,7 +17,7 @@ import { DemandPanel } from "./forecast/DemandPanel.tsx";
 import type { Coverage, Demand, Workload } from "./forecast/types.ts";
 import { WorkloadPanel } from "./forecast/WorkloadPanel.tsx";
 import { LandingPage } from "./LandingPage.tsx";
-import { LiveWorkload } from "./detect/LiveWorkload.tsx";
+import { ConsultQueues, PhysicianActivity, SignalVerification } from "./detect/LiveWorkload.tsx";
 import "./command.css";
 import { OffersPage } from "./physician/OffersPage.tsx";
 import SchedulePage from "./Schedule.tsx";
@@ -155,14 +155,21 @@ function OperationsApp({ session }: { session: Session }) {
     <Main>
       {live.error && <p className="error" role="status">{s ? "Updates interrupted. Showing the last received snapshot. " : "Can't reach the server: "}{live.error}</p>}
       {page === "command" && s && <CommandPage snapshot={s} detect={detect} now={now} offers={offers.data?.items ?? []} reloadKey={live.receivedAt} refresh={live.refresh} />}
-      {page === "consults" && <div className="page"><Title eyebrow={workspace} title="Consults" note="Level from the server" />{detect ? <ConsultBoard consults={detect.consults} /> : <Unavailable what="consults with levels" />}</div>}
-      {page === "doctors" && <div className="page"><Title eyebrow={workspace} title="Doctors" note="Self-report beside derived state" />{detect ? <PhysicianBoard physicians={detect.physicians} /> : <Unavailable what="physician state" />}</div>}
+      {page === "consults" && <div className="page detail-page"><Title eyebrow={workspace} title="Consults" note="Level from the server" />{detect ? <><ConsultQueues detect={detect} onReview={showConsult} /><ConsultBoard consults={detect.consults} /></> : <Unavailable what="consults with levels" />}</div>}
+      {page === "doctors" && <div className="page detail-page"><Title eyebrow={workspace} title="Doctors" note="Self-report beside derived state" />{detect ? <><PhysicianActivity detect={detect} /><div className="forecast-panels"><WorkloadPanel workload={s?.workload as Workload | undefined} /><SignalVerification detect={detect} /></div><PhysicianBoard physicians={detect.physicians} /></> : <Unavailable what="physician state" />}</div>}
       {page === "schedule" && <SchedulePage />}
       {page === "audit" && <AuditPage workspace={workspace} reloadKey={live.receivedAt} />}
       {page === "approvals" && <ApprovalsPage offers={offers.data?.items ?? []} offersError={offers.error && !offers.data ? unavailableText(offers.error, "GET /offers") : null} now={now} reloadKey={live.receivedAt} onChanged={live.refresh} />}
       {page === "data" && <DataPage snapshot={s} now={now} onChanged={live.refresh} />}
     </Main>
   </div>;
+}
+
+// Bring a consult's row in the lifecycle board into view.
+function showConsult(consultId: string) {
+  const row = document.getElementById(`consult-${consultId}`);
+  row?.scrollIntoView({ behavior: "smooth", block: "center" });
+  row?.focus({ preventScroll: true });
 }
 
 function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
@@ -172,37 +179,22 @@ function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
   const [gapId, setGapId] = useState<string | null>(null);
   const [queueFilter, setQueueFilter] = useState("All");
   const findCover = (id: string) => { setGapId(id); };
-  const reviewConsult = (consultId: string) => {
-    const entry = detect?.queue.find((q) => q.label === consultId);
-    if (!entry) { location.hash = "consults"; return; }
-    setSelectedId(entry.id); setQueueFilter("All");
-    requestAnimationFrame(() => {
-      const target = document.getElementById("command-attention");
-      target?.scrollIntoView({ behavior: "smooth", block: "start" });
-      target?.focus({ preventScroll: true });
-    });
-  };
   useEffect(() => {
     if (gapId) document.getElementById("command-cover-action")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [gapId]);
   const openOffers = offers.filter(isOpen);
   const closedOffers = offers.filter((o) => !isOpen(o));
-  const quality = snapshot.data_quality as DataQuality | undefined;
   const shownQueue = detect?.queue.filter((q) => queueFilter === "All" || q.level === queueFilter) ?? [];
   const item = shownQueue.find((entry) => entry.id === selectedId) ?? shownQueue[0] ?? null;
   return <div className="command-page">
-    <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Operations command center</h1><p className="command-subtitle">Live workload. Clear decisions. Closed-loop coverage.</p></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
+    <div className="command-title"><div><span className="eyebrow">Coordinator workspace</span><h1>Operations command center</h1><p className="command-subtitle">Work top to bottom: resolve priority items, check coverage for the next 90 minutes, then follow each offer to its outcome.</p></div>{now !== null && <span className="command-clock">{snapshot.clock.mode} · {headerDate(now)} · {clockTime(new Date(now).toISOString())} ET</span>}</div>
     {detect && <HeadlineNumbers headline={detect.headline} />}
-    <nav className="command-section-nav" aria-label="Dashboard sections"><span>On this page</span><a href="#command-live">Live workload</a><a href="#command-attention">Priority actions</a><a href="#command-forecast">Coverage forecast</a><a href="#command-actions">Offers & outcomes</a></nav>
-    <section id="command-live" className="command-section" aria-labelledby="live-heading">
-      <div className="command-section-head"><div><span className="section-index">01 / Live workload</span><h2 id="live-heading">What is happening now</h2></div><p>Physician activity and consult progress, shown separately.</p></div>
-      {detect ? <LiveWorkload detect={detect} onReview={reviewConsult} /> : <Unavailable what="live workload" />}
-    </section>
+    <nav className="command-section-nav" aria-label="Dashboard sections"><span>On this page</span><a href="#command-attention">1. Priority actions</a><a href="#command-forecast">2. Coverage forecast</a><a href="#command-actions">3. Coverage offers</a></nav>
     <section id="command-attention" tabIndex={-1} className="command-section" aria-labelledby="attention-heading">
-      <div className="command-section-head"><div><span className="section-index">02 / Detect & decide</span><h2 id="attention-heading">What needs action</h2></div><p>Select an item to review the next action.</p></div>
+      <div className="command-section-head"><div><span className="section-index">01 · Detect & decide</span><h2 id="attention-heading">What needs action now</h2></div><p>Ranked by the server. Select an item to see the recommended intervention.</p></div>
       <div className="command-top">
       <section className="queue-card" aria-label="Ranked attention queue">
-        <div className="queue-card-head"><div><span className="eyebrow">Needs attention</span><h3>Ranked attention queue</h3></div><span className="mono queue-count">{detect?.queue.length ?? 0} items</span></div>
+        <div className="queue-card-head"><div><h3>Attention queue</h3><p className="panel-note">Highest priority first</p></div><span className="mono queue-count">{detect?.queue.length ?? 0} items</span></div>
         <div className="queue-filters" aria-label="Filter attention queue">{["All", "Critical", "Warning", "Info"].map((level) => <button key={level} aria-pressed={queueFilter === level} onClick={() => setQueueFilter(level)}>{level} <span>{level === "All" ? detect?.queue.length ?? 0 : detect?.queue.filter((q) => q.level === level).length ?? 0}</span></button>)}</div>
         {detect ? <div className="dense-queue">{shownQueue.map((entry) => (
           <button className={`dense-queue-row ${entry.id === item?.id ? "active" : ""}`} key={entry.id} aria-pressed={entry.id === item?.id} onClick={() => setSelectedId(entry.id)}>
@@ -216,28 +208,27 @@ function CommandPage({ snapshot, detect, now, offers, reloadKey, refresh }: {
       </div>
     </section>
     <section id="command-forecast" className="command-section" aria-labelledby="coverage-heading">
-      <div className="command-section-head"><div><span className="section-index">03 / Forecast</span><h2 id="coverage-heading">Where coverage needs support</h2></div><p>Staffing against demand across every hospital.</p></div>
+      <div className="command-section-head"><div><span className="section-index">02 · Forecast</span><h2 id="coverage-heading">Where coverage needs support</h2></div><p>Staffing against the minimum at each hospital, with recent demand.</p></div>
       <div className="command-coverage">
       <CoverageGrid coverage={snapshot.coverage as Coverage | undefined} onFindCover={setGapId} />
       {gapId && <div id="command-cover-action"><GapPanel gapId={gapId} reloadKey={reloadKey} canPropose onClose={() => setGapId(null)} onProposed={() => { setGapId(null); refresh(); }} /></div>}
       </div>
-      <div className="forecast-panels">
-        <DemandPanel demand={snapshot.demand as Demand | undefined} />
-        <WorkloadPanel workload={snapshot.workload as Workload | undefined} />
-      </div>
+      <DemandPanel demand={snapshot.demand as Demand | undefined} />
     </section>
     <section id="command-actions" className="command-section" aria-labelledby="coordination-heading">
-      <div className="command-section-head"><div><span className="section-index">04 / Act & close the loop</span><h2 id="coordination-heading">Interventions & outcomes</h2></div><p>Track open offers and recent network actions.</p></div>
-      <div className="intervention-summary" aria-label="Offer status summary"><div><strong>{offers.filter(o => o.state === "Proposed").length}</strong><span>Awaiting lead approval</span></div><div><strong>{offers.filter(o => o.state === "Sent").length}</strong><span>Awaiting physician reply</span></div><div><strong>{offers.filter(o => o.state === "Accepted").length}</strong><span>Accepted offers</span></div></div>
-      <ol className="approval-flow" aria-label="Intervention workflow"><li><span>1</span><div><b>Propose</b><small>Coordinator selects eligible cover</small></div></li><li className="human-approval"><span>2</span><div><b>Lead approval</b><small>Required before off-shift contact</small></div></li><li><span>3</span><div><b>Send & respond</b><small>Physician accepts or declines · 10 min</small></div></li><li><span>4</span><div><b>Recheck coverage</b><small>Update projection & log outcome</small></div></li></ol>
+      <div className="command-section-head"><div><span className="section-index">03 · Act & close the loop</span><h2 id="coordination-heading">Coverage offers</h2></div><p>Every off-shift offer needs clinical lead approval before the physician is contacted.</p></div>
       <div className="command-rail">
-        <div className="command-offers"><div className="offers-list-heading"><h3>Offers in progress</h3><span>{openOffers.length} open</span></div>{openOffers.length ? openOffers.map((o) => <OfferTracker key={o.offer_id} offer={o} now={now} />) : <section className="panel"><span className="eyebrow">Open offers</span><h2>No offers in progress</h2><p className="muted">New coverage offers will appear here.</p></section>}
-          {closedOffers.length > 0 && <section className="panel offer-outcomes"><div className="panel-head"><h3>Completed offers</h3><span className="panel-note">{closedOffers.length} outcomes</span></div><div className="outcome-list">{closedOffers.map((offer) => <div className="outcome-row" key={offer.offer_id}><div><strong>{offer.physician_name}</strong><p>{offer.hospital_names.join(", ")} · {clockTime(offer.start)}–{clockTime(offer.end)} ET</p>{offer.reject_reason && <small>{offer.reject_reason}</small>}</div><span className={`badge ${stateBadge(offer.state).tone}`}>{stateBadge(offer.state).text}</span></div>)}</div></section>}
-        </div>
-        <AutoLog reloadKey={reloadKey} offers={offers} detect={detect} coverage={snapshot.coverage as Coverage | undefined} />
+        <section className="panel" aria-labelledby="open-offers-heading">
+          <div className="panel-head"><div><h3 id="open-offers-heading">Offers in progress</h3><p className="panel-note">{openOffers.length} open · each card shows its next step and who acts on it</p></div>
+            <div className="status-badges"><span className="badge amber">{offers.filter(o => o.state === "Proposed").length} awaiting lead approval</span><span className="badge teal">{offers.filter(o => o.state === "Sent").length} awaiting physician reply</span></div></div>
+          {openOffers.length ? <div className="tracker-list">{openOffers.map((o) => <OfferTracker key={o.offer_id} offer={o} now={now} />)}</div> : <p className="empty-state">No offers in progress. Use Find cover on a coverage gap to propose one.</p>}
+        </section>
+        <section className="panel offer-outcomes" aria-labelledby="closed-offers-heading">
+          <div className="panel-head"><div><h3 id="closed-offers-heading">Completed offers</h3><p className="panel-note">{offers.filter(o => o.state === "Accepted").length} accepted of {closedOffers.length} closed · full history in <a className="text-link" href="#audit">Audit</a></p></div></div>
+          {closedOffers.length ? <div className="outcome-list">{closedOffers.map((offer) => <div className="outcome-row" key={offer.offer_id}><div><strong>{offer.physician_name}</strong><p>{offer.hospital_names.join(", ")} · {clockTime(offer.start)}–{clockTime(offer.end)} ET</p>{offer.reject_reason && <small>{offer.reject_reason}</small>}</div><span className={`badge ${stateBadge(offer.state).tone}`}>{stateBadge(offer.state).text}</span></div>)}</div> : <p className="empty-state">No completed offers yet.</p>}
+        </section>
       </div>
     </section>
-    <footer className="command-data-footer"><div><strong>Event integrity</strong><span>{(snapshot.dataset as Dataset | undefined)?.name ?? "Current dataset"} · Revision {snapshot.revision}</span></div>{quality?.supported && <div className="integrity-counts"><span><b>{quality.duplicates ?? 0}</b> duplicates handled</span><span><b>{quality.late ?? 0}</b> late events</span><span><b>{quality.reordered ?? 0}</b> reordered</span><span><b>{quality.rejected ?? 0}</b> rejected</span></div>}<a className="text-link" href="#data">Inspect data & live test ↗</a></footer>
   </div>;
 }
 
@@ -276,23 +267,6 @@ function Dossier({ item, total, onFindCover, onDone }: { item: QueueItem; total:
 
 function useAudit(reloadKey: unknown) {
   return useApi<{ items: AuditEntry[] }>("/audit", reloadKey);
-}
-
-function AutoLog({ reloadKey, offers, detect, coverage }: { reloadKey: unknown; offers: Offer[]; detect: DetectSnapshot | null; coverage?: Coverage }) {
-  const { data, error } = useAudit(reloadKey);
-  const rows = (data?.items ?? []).slice(-5).reverse();
-  const names = new Map<string, string>();
-  detect?.physicians.forEach(p => names.set(p.id, p.name));
-  offers.forEach(o => names.set(o.physician_id, o.physician_name));
-  coverage?.hospitals?.forEach(h => names.set(h.hospital_id, h.hospital_name));
-  const readable = (detail: string) => detail.replace(/\b(?:PHY|SYN)-\d+\b/g, id => names.get(id) ?? id).replace(/\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})/g, at => `${headerDate(Date.parse(at))} ${clockTime(at)} ET`);
-  const total = data?.items.length ?? 0;
-  return <section className="auto-log">
-    <div className="rail-heading"><div><span className="eyebrow">Audit trail</span><h2>Recent activity</h2></div><a className="text-link" href="#audit">View full audit ↗</a></div>
-    <p className="activity-caption">{total ? `Latest ${rows.length} of ${total} recorded ${total === 1 ? "action" : "actions"}` : "Actions appear here as offers move forward."}</p>
-    {error && <p className="unavailable">{unavailableText(error, "GET /audit")}</p>}
-    {!rows.length && !error ? <p className="empty-state">No actions recorded yet.</p> : rows.map((row, i) => <div className="auto-log-row" key={`${row.at}-${i}`}><span className="activity-dot" aria-hidden="true" /><div><div className="activity-row-heading"><strong>{row.action}</strong><time dateTime={row.at}>{clockTimeSeconds(row.at)} ET</time></div><span className="activity-actor">{row.actor}</span>{row.detail && <><p className="activity-detail">{readable(row.detail)}</p><details className="audit-record"><summary>Original record</summary><p>{row.detail}</p></details></>}</div></div>)}
-  </section>;
 }
 
 function AuditPage({ workspace, reloadKey }: { workspace: string; reloadKey: unknown }) {
