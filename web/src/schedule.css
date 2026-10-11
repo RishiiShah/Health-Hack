@@ -74,5 +74,6 @@
 .roster-context h3 { margin-bottom: var(--s-1); }
 .roster-context p { color: var(--muted); font-size: var(--t-sm); }
 .roster-search input { min-width: max(16vw, 26vh); }
+.roster-site select { min-height: 0; padding: .45em .9em; font: 500 var(--t-xs) var(--font-mono); letter-spacing: .06em; }
 @media (max-width: 69em) { .schedule-layout { grid-template-columns: minmax(0, 1fr); } .roster-side { position: static; } }
 @media (max-width: 44em) { .roster-summary, .roster-alert, .roster-card-head { grid-template-columns: minmax(0, 1fr); } .roster-date { justify-items: start; } .roster-search input { min-width: 0; width: 100%; } }

@@ -6,6 +6,8 @@ import "./schedule.css";
 
 export type Doctor = { id: string; name: string; group: "On shift" | "Off shift"; status: string; bar: string; tone: "day" | "night" | "unavailable" | "offer" | "off"; detail: string; avatar: string; workload: string; credentialed: string };
 export type ScheduleData = { date?: string; date_label: string; now_label: string; alert: { text: string; physician_id: string } | null; filters: { label: string; ids: string[] }[]; doctors: Doctor[] };
+// The server sends one filter per hospital; they go in a dropdown so the roster stays the focus.
+const SITE_PREFIX = "Credentialed at ";
 const timeMarks = ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"];
 
 // Reloads with each live snapshot so offers and status changes show without a page refresh.
@@ -32,7 +34,14 @@ function Schedule({ data, error }: { data: ScheduleData; error: string | null })
     {alert && <div className="roster-alert"><div><span className="roster-alert-label">Coverage follow-up</span><p>{alert.text}</p></div><button onClick={() => { setFilter(filters[0]?.label ?? ""); setQuery(""); select(alert.physician_id); }}>Inspect physician <span aria-hidden="true">→</span></button></div>}
     <div className="schedule-layout roster-layout"><section className="roster-card" aria-label="Shift timeline">
       <div className="roster-card-head"><div><h2>Daily roster</h2><p>{visible.length} of {doctors.length} physicians · All times Eastern</p></div><label className="roster-search"><span className="sr-only">Search scheduled physicians</span><input type="search" placeholder="Search name or ID" value={query} onChange={e => setQuery(e.target.value)} /></label></div>
-      <div className="roster-filters" role="group" aria-label="Filter roster">{filters.map(({ label, ids }) => <button aria-pressed={filter === label} key={label} onClick={() => setFilter(label)}>{label} <span>{ids.length}</span></button>)}</div>
+      <div className="roster-filters" role="group" aria-label="Filter roster">
+        {filters.filter((f) => !f.label.startsWith(SITE_PREFIX)).map(({ label, ids }) => <button aria-pressed={filter === label} key={label} onClick={() => setFilter(label)}>{label} <span>{ids.length}</span></button>)}
+        {filters.some((f) => f.label.startsWith(SITE_PREFIX)) && <label className="roster-site"><span className="sr-only">Credentialed at hospital</span>
+          <select value={filter.startsWith(SITE_PREFIX) ? filter : ""} onChange={(e) => setFilter(e.target.value || filters[0]?.label || "")}>
+            <option value="">Credentialed at any hospital</option>
+            {filters.filter((f) => f.label.startsWith(SITE_PREFIX)).map(({ label, ids }) => <option key={label} value={label}>{label.slice(SITE_PREFIX.length)} ({ids.length})</option>)}
+          </select></label>}
+      </div>
       <p className="roster-scroll-hint">Scroll across to view the full day. Select a physician for details.</p>
       <div className="roster-scroll" tabIndex={0} role="region" aria-label="Physician shifts from midnight to midnight">
         <div className="roster-timeline">
