@@ -63,33 +63,33 @@ export function IncomingCall() {
 
   const done = result ?? closed;
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-      <section role="alertdialog" aria-labelledby="call-title" className="w-full max-w-sm rounded-3xl bg-[#161E2E] p-7 text-center text-white shadow-2xl">
-        <span className="font-mono text-[11px] uppercase tracking-widest text-teal-300">{ringing ? "Incoming call" : answered ? "On call" : "Call ended"}</span>
-        <h2 id="call-title" className="mt-3 text-2xl font-bold">Sevaro Coverage</h2>
-        <p className="mt-1 text-sm text-slate-300">Incoming shift offer from Sevaro Operations</p>
-        <div className="mt-6 rounded-2xl bg-white/10 p-4">
-          <strong className="block text-lg">{call.hospital_names.join(", ")}</strong>
-          <span className="font-mono text-sm text-slate-200">{clockTime(call.start)} to {clockTime(call.end)} ET</span>
-          {call.expires_at && now !== null && !done && <p className="mt-2 font-mono text-xs text-amber-300">Reply within {countdown(call.expires_at, now)}</p>}
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#28323D]/80 p-4 backdrop-blur-md">
+      <section role="alertdialog" aria-labelledby="call-title" className="w-full max-w-sm rounded-3xl bg-[#101B2B] p-7 text-center text-[#F5F3ED] shadow-2xl border border-[rgba(188,201,210,0.25)]">
+        <span className="font-mono text-[11px] uppercase tracking-widest text-[#B8D8EB] font-bold">{ringing ? "Incoming call" : answered ? "On call" : "Call ended"}</span>
+        <h2 id="call-title" className="mt-3 text-2xl font-bold text-[#F5F3ED]">Sevaro Coverage</h2>
+        <p className="mt-1 text-sm text-[#BCC9D2]">Incoming shift offer from Sevaro Operations</p>
+        <div className="mt-6 rounded-2xl bg-white/10 p-4 border border-white/5">
+          <strong className="block text-lg text-[#F5F3ED]">{call.hospital_names.join(", ")}</strong>
+          <span className="font-mono text-sm text-[#BCC9D2]">{clockTime(call.start)} to {clockTime(call.end)} ET</span>
+          {call.expires_at && now !== null && !done && <p className="mt-2 font-mono text-xs text-[#D6A451] font-semibold">Reply within {countdown(call.expires_at, now)}</p>}
         </div>
-        {answered && !done && call.message && <p className="mt-4 text-sm text-slate-200">{call.message}</p>}
-        <p className="mt-3 text-[11px] text-slate-400">Synthetic demonstration · no patient details</p>
+        {answered && !done && call.message && <p className="mt-4 text-sm text-[#F5F3ED]">{call.message}</p>}
+        <p className="mt-3 text-[11px] text-[#8E9CA8]">Synthetic demonstration · no patient details</p>
         {done ? (
           <div className="mt-6">
-            <p role="status" className="rounded-xl bg-white/10 p-3 text-sm font-semibold">{done}</p>
-            <button onClick={close} className="mt-4 w-full rounded-full bg-white py-3 text-sm font-semibold text-slate-900">Close</button>
+            <p role="status" className="rounded-xl bg-white/10 p-3 text-sm font-semibold text-[#F5F3ED]">{done}</p>
+            <button onClick={close} className="mt-4 w-full rounded-full bg-[#B8D8EB] py-3 text-sm font-bold text-[#101B2B] hover:bg-[#A6CAE0] transition">Close</button>
           </div>
         ) : !answered ? (
           <div className="mt-8 flex justify-around">
-            <button onClick={close} className="h-16 w-16 rounded-full bg-red-600 text-sm font-semibold shadow-lg">Decline</button>
-            <button onClick={answer} className="h-16 w-16 animate-pulse rounded-full bg-teal-500 text-sm font-semibold shadow-lg">Answer</button>
+            <button onClick={close} className="h-16 w-16 rounded-full bg-[#C93B2B] text-sm font-bold shadow-lg text-white hover:opacity-90 transition">Decline</button>
+            <button onClick={answer} className="h-16 w-16 animate-pulse rounded-full bg-[#B8D8EB] text-sm font-bold shadow-lg text-[#101B2B] hover:bg-[#A6CAE0] transition">Answer</button>
           </div>
         ) : (
           <div className="mt-6 grid gap-2">
-            <button onClick={() => reply("accept")} className="rounded-full bg-teal-500 py-3 text-sm font-semibold">Accept shift</button>
-            <button onClick={() => reply("decline")} className="rounded-full bg-white/10 py-3 text-sm font-semibold">Decline shift</button>
-            <button onClick={close} className="py-2 text-xs text-slate-400">Hang up · reply later from Offers</button>
+            <button onClick={() => reply("accept")} className="rounded-full bg-[#B8D8EB] py-3 text-sm font-bold text-[#101B2B] hover:bg-[#A6CAE0] transition">Accept shift</button>
+            <button onClick={() => reply("decline")} className="rounded-full bg-white/10 py-3 text-sm font-semibold text-[#F5F3ED] hover:bg-white/20 transition">Decline shift</button>
+            <button onClick={close} className="py-2 text-xs text-[#8E9CA8] hover:text-[#F5F3ED]">Hang up · reply later from Offers</button>
           </div>
         )}
       </section>

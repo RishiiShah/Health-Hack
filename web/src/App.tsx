@@ -114,23 +114,23 @@ export default function App() {
 
 // Anish's floating header: brand, live clock line, role tabs, account and sign-out.
 function Header({ session, page, clock, counts = {} }: { session: Session; page: string; clock?: string; counts?: Record<string, number> }) {
-  return <header className="tw app-header z-50 rounded-2xl border border-[#E5E0D5] bg-white/90 px-5 py-2.5 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+  return <header className="tw app-header z-50 rounded-full border border-[rgba(255,255,255,0.15)] bg-[#F1F0EC] px-6 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.22)]">
     <div className="header-brand flex items-center gap-3">
-      <span className="flex items-center gap-2"><span className="relative block h-5 w-6"><i className="absolute left-0 top-0 h-3 w-3 -skew-x-12 rounded-sm bg-teal-600" /><i className="absolute left-2.5 top-1.5 h-3 w-3 -skew-x-12 rounded-sm bg-[#161E2E]" /></span><strong className="text-sm font-bold tracking-tight text-slate-900">overlap</strong></span>
-      {clock && <span className="header-clock items-center gap-1.5 pl-2 font-mono text-[11px] text-slate-500"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-600" />{clock}</span>}
-      {DEMO && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Demo data</span>}
+      <span className="flex items-center gap-2"><span className="relative block h-5 w-6"><i className="absolute left-0 top-0 h-3 w-3 -skew-x-12 rounded-sm bg-[#B8D8EB]" /><i className="absolute left-2.5 top-1.5 h-3 w-3 -skew-x-12 rounded-sm bg-[#101B2B]" /></span><strong className="text-sm font-bold tracking-tight text-[#101B2B]">overlap</strong></span>
+      {clock && <span className="header-clock items-center gap-1.5 pl-2 font-mono text-[11px] text-[#475569]"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#101B2B]" />{clock}</span>}
+      {DEMO && <span className="rounded-full bg-[#D6A451]/20 border border-[#D6A451]/30 px-2 py-0.5 text-[11px] font-semibold text-[#8A5A00]">Demo data</span>}
     </div>
     <nav aria-label="Workspace" className="header-nav flex items-center gap-1">
       {PAGES_BY_ROLE[session.user.role].map((key) => (
         <a key={key} href={`#${key}`} aria-current={page === key ? "page" : undefined}
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${page === key ? "bg-[#161E2E] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"}`}>
+          className={`rounded-full px-3.5 py-1 text-xs font-semibold transition ${page === key ? "bg-[#101B2B] text-[#F5F3ED] shadow-sm" : "text-[#475569] hover:bg-[#E2DFD8] hover:text-[#101B2B]"}`}>
           {LABELS[key]}{counts[key] ? ` (${counts[key]})` : ""}
         </a>
       ))}
     </nav>
     <div className="header-account flex items-center gap-2">
-      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600" title={session.user.email}>{session.user.name} · {session.user.role_label}</span>
-      <button onClick={() => clearSession()} className="rounded-full px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:text-slate-900">Sign out ↗</button>
+      <span className="rounded-full border border-[#DCD9D0] bg-[#E8E6E0] px-3 py-0.5 text-[11px] font-medium text-[#101B2B]" title={session.user.email}>{session.user.name} · {session.user.role_label}</span>
+      <button onClick={() => clearSession()} className="rounded-full px-2.5 py-1 text-xs font-semibold text-[#64748B] transition hover:text-[#101B2B]">Sign out ↗</button>
     </div>
   </header>;
 }
@@ -161,7 +161,7 @@ function OperationsApp({ session }: { session: Session }) {
   const workspace = role === "lead" ? "Clinical lead workspace" : "Coordinator workspace";
   const clock = s && now !== null ? `${headerDate(now)} · ${clockTime(new Date(now).toISOString())} ET · ${(s.dataset as Dataset | undefined)?.name ?? s.clock.mode}` : undefined;
 
-  return <div className={`${page === "command" ? "command-shell " : ""}min-h-screen bg-[#FBF9F5] text-slate-900`}>
+  return <div className={`${page === "command" ? "command-shell " : ""}min-h-screen bg-[#28323D] text-[#F5F3ED]`}>
     <Header session={session} page={page} clock={clock} counts={role === "lead" ? { approvals: Number(s?.pending_approvals ?? 0) } : {}} />
     <Main page={page}>
       {live.error && <p className="error" role="status">{s ? "Updates interrupted. Showing the last received snapshot. " : "Can't reach the server: "}{live.error}</p>}
@@ -295,7 +295,7 @@ type Shift = { name: string; shift_end: string | null; minutes_to_shift_end: num
 
 function PhysicianApp({ session }: { session: Session }) {
   const page = useHashPage(PAGES_BY_ROLE.physician);
-  return <div className="min-h-screen bg-[#FBF9F5] text-slate-900">
+  return <div className="min-h-screen bg-[#28323D] text-[#F5F3ED]">
     <Header session={session} page={page} />
     <IncomingCall />
     <Main page={page}>

@@ -1,82 +1,82 @@
 .roster-page { display: flex; flex-direction: column; gap: 22px; }
 .roster-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
-.roster-heading h1 { font-size: clamp(27px, 2.2vw, 36px); letter-spacing: -.035em; margin: 6px 0 0; }
-.roster-heading p { color: var(--muted); font-size: 12px; margin: 9px 0 0; line-height: 1.6; }
-.roster-date { padding: 12px 16px; border: 1px solid #dfe7e2; border-radius: 9px; background: #f1f6f3; }
-.roster-date strong { display: block; font-size: 12px; color: #365847; }
-.roster-date span { display: block; font: 10px var(--font-mono); color: #76877b; margin-top: 6px; }
-.roster-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid #dfe7e2; border-radius: 12px; background: #fff; overflow: hidden; }
+.roster-heading h1 { font-size: clamp(27px, 2.2vw, 36px); letter-spacing: -.035em; margin: 6px 0 0; color: #F5F3ED; }
+.roster-heading p { color: #BCC9D2; font-size: 12px; margin: 9px 0 0; line-height: 1.6; }
+.roster-date { padding: 12px 16px; border: 1px solid rgba(188,201,210,0.2); border-radius: 9px; background: #364550; }
+.roster-date strong { display: block; font-size: 12px; color: #F5F3ED; }
+.roster-date span { display: block; font: 10px var(--font-mono); color: #BCC9D2; margin-top: 6px; }
+.roster-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid #E2DFD8; border-radius: 12px; background: #F1F0EC; overflow: hidden; color: #101B2B; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
 .roster-summary > div { display: flex; align-items: center; gap: 14px; padding: 18px 22px; }
-.roster-summary > div + div { border-left: 1px solid #e4eae6; }
-.roster-summary strong { font: 600 28px var(--font-head); color: #376551; }
-.roster-summary > div:last-child strong { color: #a57728; }
-.roster-summary span { font-size: 12px; color: #708176; }
-.roster-alert { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 16px 20px; border: 1px solid #ebd7ac; background: #fffaef; border-radius: 10px; }
-.roster-alert-label { font-size: 9px; text-transform: uppercase; letter-spacing: .07em; color: #a27830; font-weight: 600; }
-.roster-alert p { font-size: 12px; line-height: 1.6; color: #715a35; margin: 5px 0 0; }
-.roster-alert button { display: flex; gap: 14px; border: 1px solid #e3d0a6; border-radius: 6px; padding: 10px 12px; background: #fffdf6; font-size: 11px; color: #8c6824; white-space: nowrap; cursor: pointer; }
+.roster-summary > div + div { border-left: 1px solid #E2DFD8; }
+.roster-summary strong { font: 600 28px var(--font-head); color: #101B2B; }
+.roster-summary > div:last-child strong { color: #D6A451; }
+.roster-summary span { font-size: 12px; color: #5D6D7E; }
+.roster-alert { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 16px 20px; border: 1px solid rgba(214,164,81,0.4); background: #FDF6E9; border-radius: 10px; }
+.roster-alert-label { font-size: 9px; text-transform: uppercase; letter-spacing: .07em; color: #8A5A00; font-weight: 600; }
+.roster-alert p { font-size: 12px; line-height: 1.6; color: #8A5A00; margin: 5px 0 0; }
+.roster-alert button { display: flex; gap: 14px; border: 1px solid #D6A451; border-radius: 6px; padding: 10px 12px; background: #F1F0EC; font-size: 11px; color: #8A5A00; white-space: nowrap; cursor: pointer; font-weight: 600; }
 .roster-layout { grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; }
-.roster-card, .roster-inspector, .roster-context { background: #fff; border: 1px solid #e1e6e1; border-radius: 14px; box-shadow: 0 2px 6px #1e253006; padding: 22px; min-width: 0; }
+.roster-card, .roster-inspector, .roster-context { background: #F1F0EC; border: 1px solid #E2DFD8; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 22px; min-width: 0; color: #101B2B; }
 .roster-card-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
-.roster-card-head h2 { font-size: 18px; margin: 0; }
+.roster-card-head h2 { font-size: 18px; margin: 0; color: #101B2B; }
 .roster-card-head p { font-size: 10px; color: var(--muted); margin: 6px 0 0; }
-.roster-search input { padding: 10px 12px; border: 1px solid #dce5de; border-radius: 7px; font: 11px var(--font-body); background: #fbfdfb; color: var(--ink); width: 220px; max-width: 100%; min-width: 0; }
-.roster-filters { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid #e6ece7; padding: 18px 0; margin-bottom: 14px; }
-.roster-filters button { padding: 7px 10px; background: #fff; border: 1px solid #e1e7e2; border-radius: 6px; color: #7b897f; font-size: 10px; cursor: pointer; }
+.roster-search input { padding: 10px 12px; border: 1px solid #D9D6CE; border-radius: 7px; font: 11px var(--font-body); background: #FAF9F6; color: var(--ink); width: 220px; max-width: 100%; min-width: 0; }
+.roster-filters { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid #E2DFD8; padding: 18px 0; margin-bottom: 14px; }
+.roster-filters button { padding: 7px 10px; background: #FAF9F6; border: 1px solid #D9D6CE; border-radius: 6px; color: #5D6D7E; font-size: 10px; cursor: pointer; }
 .roster-filters button span { margin-left: 8px; font: 9px var(--font-mono); }
-.roster-filters button[aria-pressed="true"] { background: #eaf4ee; border-color: #b9d6c6; color: #357054; }
+.roster-filters button[aria-pressed="true"] { background: #E2ECF3; border-color: #B8D8EB; color: #101B2B; font-weight: 600; }
 .roster-scroll-hint { font-size: 10px; color: var(--muted); margin: 0 0 18px; }
 .roster-scroll { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
 .roster-timeline { min-width: 880px; position: relative; padding: 15px 20px 0 0; }
-.roster-axis { display: grid; grid-template-columns: 220px minmax(0, 1fr); padding-bottom: 14px; border-bottom: 1px solid #e6ece7; color: #7a887e; font: 9px var(--font-mono); }
+.roster-axis { display: grid; grid-template-columns: 220px minmax(0, 1fr); padding-bottom: 14px; border-bottom: 1px solid #E2DFD8; color: var(--muted); font: 9px var(--font-mono); }
 .roster-axis > span { font-family: var(--font-body); padding-left: 10px; }
 .roster-axis > div { position: relative; height: 12px; }
 .roster-axis > div span { white-space: nowrap; position: absolute; transform: translateX(-50%); }
 .roster-axis > div span:first-child { transform: none; }
 .roster-axis > div span:last-child { transform: translateX(-100%); }
-.roster-now { position: absolute; z-index: 2; top: 33px; bottom: 0; border-left: 1px solid #c88658; pointer-events: none; }
-.roster-now > span { position: absolute; top: -29px; left: 0; transform: translateX(-50%); background: #fff2e7; border: 1px solid #e8c8b2; border-radius: 4px; color: #a56b42; font: 9px var(--font-mono); padding: 4px 6px; white-space: nowrap; }
+.roster-now { position: absolute; z-index: 2; top: 33px; bottom: 0; border-left: 1px solid #C93B2B; pointer-events: none; }
+.roster-now > span { position: absolute; top: -29px; left: 0; transform: translateX(-50%); background: #FDEEEB; border: 1px solid #F3C5BF; border-radius: 4px; color: #C93B2B; font: 9px var(--font-mono); padding: 4px 6px; white-space: nowrap; font-weight: 600; }
 .roster-group { margin-top: 16px; }
-.roster-group-label { display: flex; align-items: center; gap: 10px; font-size: 10px; color: #64776a; padding: 7px 10px; background: #f6f8f5; border-radius: 5px; }
+.roster-group-label { display: flex; align-items: center; gap: 10px; font-size: 10px; color: #101B2B; padding: 7px 10px; background: #E8E6E0; border-radius: 6px; font-weight: 600; }
 .roster-group-label strong { font-weight: 600; }
-.roster-group-label span { color: #94a095; font-size: 9px; }
-.roster-row { display: grid; grid-template-columns: 220px minmax(0, 1fr); width: 100%; padding: 0; border: 0; border-bottom: 1px solid #edf1ed; background: #fff; text-align: left; min-height: 56px; align-items: stretch; cursor: pointer; }
-.roster-row:hover { background: #fafcf9; }
-.roster-row.selected { background: #f0f8f3; box-shadow: inset 3px 0 #43856a; }
+.roster-group-label span { color: #5D6D7E; font-size: 9px; }
+.roster-row { display: grid; grid-template-columns: 220px minmax(0, 1fr); width: 100%; padding: 0; border: 0; border-bottom: 1px solid #E5E2DC; background: #FAF9F6; text-align: left; min-height: 56px; align-items: stretch; cursor: pointer; color: #101B2B; }
+.roster-row:hover { background: #EBE8E0; }
+.roster-row.selected { background: #E2ECF3; box-shadow: inset 3px 0 #B8D8EB; }
 .roster-physician { display: flex; flex-direction: column; justify-content: center; padding: 10px 14px 10px 10px; }
-.roster-physician strong { color: #35493c; font-size: 11px; font-weight: 600; }
-.roster-physician small { font-size: 9px; line-height: 1.5; color: #8b978e; margin-top: 4px; }
-.roster-track { position: relative; display: block; background: repeating-linear-gradient(to right, #e9eee9 0, #e9eee9 1px, transparent 1px, transparent 16.6667%); }
-.roster-shift { position: absolute; top: 14px; height: 28px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 5px; background: #dceee3; color: #3d7456; font: 9px var(--font-mono); white-space: nowrap; }
-.roster-shift.shift-night { background: #e4e9f4; color: #56688a; }
-.roster-shift.shift-unavailable { background: repeating-linear-gradient(135deg, #f8f0df 0, #f8f0df 5px, #f1e3c7 5px, #f1e3c7 8px); color: #9b7833; }
-.roster-shift.shift-offer { background: #fff7e6; color: #a77a26; border: 1px dashed #d2ac61; }
-.roster-shift.shift-off { background: #eef1f2; color: #8a949b; }
-.roster-off-label { display: flex; align-items: center; height: 100%; color: #9aa59b; padding-left: 12px; font-size: 10px; }
+.roster-physician strong { color: #101B2B; font-size: 11px; font-weight: 600; }
+.roster-physician small { font-size: 9px; line-height: 1.5; color: var(--muted); margin-top: 4px; }
+.roster-track { position: relative; display: block; background: repeating-linear-gradient(to right, #E2DFD8 0, #E2DFD8 1px, transparent 1px, transparent 16.6667%); }
+.roster-shift { position: absolute; top: 14px; height: 28px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 6px; background: #D7EAF4; color: #1B4560; font: 9px var(--font-mono); white-space: nowrap; font-weight: 600; }
+.roster-shift.shift-night { background: #28323D; color: #F5F3ED; }
+.roster-shift.shift-unavailable { background: repeating-linear-gradient(135deg, #FDF6E9 0, #FDF6E9 5px, #F5E5C4 5px, #F5E5C4 8px); color: #8A5A00; }
+.roster-shift.shift-offer { background: #FDF6E9; color: #D6A451; border: 1px dashed #D6A451; }
+.roster-shift.shift-off { background: #E5E2DC; color: #5D6D7E; }
+.roster-off-label { display: flex; align-items: center; height: 100%; color: var(--muted); padding-left: 12px; font-size: 10px; }
 .roster-legend { display: flex; gap: 10px 18px; flex-wrap: wrap; margin-top: 20px; }
-.roster-legend > span { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #7c8c80; }
-.roster-legend i { width: 11px; height: 8px; border-radius: 2px; background: #dceee3; }
-.roster-legend i.night { background: #e4e9f4; }
-.roster-legend i.unavailable { background: #f1e3c7; }
-.roster-legend i.offer { background: #fff7e6; border: 1px dashed #d2ac61; }
-.roster-footnote { font-size: 10px; line-height: 1.7; color: #94a095; margin: 14px 0 0; }
+.roster-legend > span { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); }
+.roster-legend i { width: 11px; height: 8px; border-radius: 2px; background: #D7EAF4; }
+.roster-legend i.night { background: #28323D; }
+.roster-legend i.unavailable { background: #F5E5C4; }
+.roster-legend i.offer { background: #FDF6E9; border: 1px dashed #D6A451; }
+.roster-footnote { font-size: 10px; line-height: 1.7; color: var(--muted); margin: 14px 0 0; }
 .roster-side { gap: 16px; grid-template-columns: 1fr; scroll-margin-top: 175px; }
 .roster-inspector-head { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
-.roster-avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #eaf4ee; color: #4d7960; font: 11px var(--font-mono); flex-shrink: 0; }
-.roster-inspector-head h2 { font-size: 16px; line-height: 1.4; margin: 0; }
-.roster-inspector-head > div > span { color: #95a098; font: 9px var(--font-mono); display: block; margin-top: 5px; }
-.roster-status { display: inline-block; font-size: 10px; padding: 5px 8px; background: #edf4ee; color: #557560; border-radius: 5px; }
-.roster-status.status-offer, .roster-status.status-unavailable { color: #9b7327; background: #fff5de; }
+.roster-avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #E2ECF3; color: #101B2B; font: 700 11px var(--font-mono); flex-shrink: 0; }
+.roster-inspector-head h2 { font-size: 16px; line-height: 1.4; margin: 0; color: #101B2B; }
+.roster-inspector-head > div > span { color: var(--muted); font: 9px var(--font-mono); display: block; margin-top: 5px; }
+.roster-status { display: inline-block; font-size: 10px; padding: 5px 8px; background: #E2ECF3; color: #101B2B; border-radius: 5px; font-weight: 600; }
+.roster-status.status-offer, .roster-status.status-unavailable { color: #8A5A00; background: #FDF6E9; }
 .roster-inspector dl { margin: 20px 0; }
-.roster-inspector dl > div { border-bottom: 1px solid #edf0eb; padding: 12px 0; }
-.roster-inspector dt { color: #8c998f; font-size: 9px; margin-bottom: 6px; }
-.roster-inspector dd { color: #506355; font-size: 11px; line-height: 1.7; margin: 0; }
-.roster-inspector-action { display: flex; justify-content: space-between; gap: 8px; border-radius: 7px; padding: 11px 12px; background: #23876e; color: #fff; font-size: 11px; text-decoration: none; }
-.roster-inspector-action:hover { background: #196e59; }
-.roster-context { background: #f4f8f4; }
-.roster-context h3 { font-size: 12px; margin: 0 0 10px; }
-.roster-context p { font-size: 10px; color: #809083; line-height: 1.8; margin: 8px 0 0; }
-.roster-page :is(button, a, input, .roster-scroll):focus-visible { outline: 2px solid #268266; outline-offset: 3px; }
+.roster-inspector dl > div { border-bottom: 1px solid #E2DFD8; padding: 12px 0; }
+.roster-inspector dt { color: var(--muted); font-size: 9px; margin-bottom: 6px; }
+.roster-inspector dd { color: #101B2B; font-size: 11px; line-height: 1.7; margin: 0; }
+.roster-inspector-action { display: flex; justify-content: space-between; gap: 8px; border-radius: 7px; padding: 11px 12px; background: #B8D8EB; color: #101B2B; font-size: 11px; text-decoration: none; font-weight: 700; transition: background .15s; }
+.roster-inspector-action:hover { background: #A6CAE0; }
+.roster-context { background: #E8E6E0; }
+.roster-context h3 { font-size: 12px; margin: 0 0 10px; color: #101B2B; }
+.roster-context p { font-size: 10px; color: #5D6D7E; line-height: 1.8; margin: 8px 0 0; }
+.roster-page :is(button, a, input, .roster-scroll):focus-visible { outline: 2px solid #B8D8EB; outline-offset: 3px; }
 @media (max-width: 1100px) {
   .roster-layout { grid-template-columns: minmax(0, 1fr); }
   .roster-side { grid-template-columns: minmax(0, 1fr) minmax(0, .7fr); align-items: start; }
