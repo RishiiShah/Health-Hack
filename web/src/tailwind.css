@@ -9,6 +9,7 @@
   --font-sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
   --font-heading: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-serif: "Newsreader", Georgia, serif;
 }
 
 @layer base {
