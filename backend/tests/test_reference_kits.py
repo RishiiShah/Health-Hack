@@ -211,3 +211,14 @@ def test_a_stored_kit_uploaded_again_without_a_date_uses_its_stored_date(db_url,
         again = client.post('/admin/references', headers=ADMIN, json={'files': second_kit(), 'name': 'Second kit'})
         assert again.status_code == 200, again.text
         assert len(client.get('/admin/references', headers=ADMIN).json()['kits']) == kits
+
+
+def test_the_clock_resets_to_18_20_on_the_kit_service_date_paused(db_url, monkeypatch):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    with TestClient(hosted(db_url, monkeypatch)) as client:
+        seed(client)
+        client.post('/admin/clock', headers=ADMIN, json={'paused': False, 'advance_s': 3600})
+        reset = client.post('/admin/clock', headers=ADMIN, json={'to_start': True}).json()
+        assert reset['paused'] is True
+        assert datetime.fromisoformat(reset['now']) == datetime(2026, 4, 7, 18, 20, tzinfo=ZoneInfo('America/New_York'))

@@ -25,7 +25,7 @@ from app.db import EventDatabase, usable_ca
 from app.decide.eligibility import MAX_WEEKLY_OFFERS
 from app.ingest.adapters import FIXTURE_VERSION
 from app.models import EventInput
-from app.service import Engine, REFERENCE_FILES, base_history, dataset_label, jsonable, reference_manifest, references_from_files
+from app.service import Engine, REFERENCE_FILES, base_history, dataset_label, jsonable, kit_start, reference_manifest, references_from_files
 from app.tts import Speech
 
 log = logging.getLogger(__name__)
@@ -56,6 +56,7 @@ class ClockRequest(BaseModel):
     at: datetime | None = None  # default: the current simulated time
     advance_s: float | None = None  # jump forward (the web's "+5 min")
     paused: bool | None = None  # True = fixed at the current time, False = resume running
+    to_start: bool = False  # back to 18:20 Eastern on the active kit's service date, paused
 
 
 class SwitchKitRequest(BaseModel):
@@ -559,9 +560,14 @@ def create_app(database_url: str | None = None, test_clock=None, *, auth: Auth |
         """Set, pause, resume or jump the simulated clock. Offers refuse commands from a clock moved behind them."""
         current = request.app.state.clock
         at = body.at or current.now()
+        if body.to_start:
+            day = ((request.app.state.db.metadata("references") or {}).get("source") or {}).get("service_date")
+            if not day:
+                raise HTTPException(422, "the active reference kit has no service date to start from")
+            at = kit_start(date.fromisoformat(day))
         if body.advance_s:
             at += timedelta(seconds=body.advance_s)
-        mode = "fixed" if body.paused else "anchored" if body.paused is False else body.mode or ("fixed" if current.mode == "fixed" else "anchored")
+        mode = "fixed" if body.paused or body.to_start else "anchored" if body.paused is False else body.mode or ("fixed" if current.mode == "fixed" else "anchored")
         clock = FixedClock(at) if mode == "fixed" else AnchoredClock(at)
         request.app.state.coordinator.set_clock(clock)
         request.app.state.clock = clock

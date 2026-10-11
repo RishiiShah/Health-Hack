@@ -123,6 +123,7 @@ function LiveTest({ snapshot, now, onChanged }: { snapshot: Snapshot; now: numbe
         <span className="actions">
           <button className="btn" disabled={busy} onClick={() => run(() => post("/admin/clock", { paused: !paused }))}>{paused ? "Resume" : "Pause"}</button>
           <button className="btn" disabled={busy} onClick={() => run(() => post("/admin/clock", { advance_s: 300 }))}>+5 min</button>
+          <button className="btn" disabled={busy} onClick={() => run(() => post("/admin/clock", { to_start: true }))}>Reset to 18:20</button>
         </span>
       </div>
       <label className="btn primary block">

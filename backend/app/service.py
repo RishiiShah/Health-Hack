@@ -108,7 +108,9 @@ def item_payload(rank, item, intervention=None):
             "candidates": len(item.candidates), "intervention": jsonable(intervention) if intervention else None}
 
 
-KIT_START = time(18, 20)  # Eastern: the sample's as-of time; a switched kit's clock waits here, paused
+def kit_start(day: date) -> datetime:
+    """18:20 Eastern on a kit's service date: the sample's as-of time, where a switched or reset clock waits, paused."""
+    return datetime.combine(day, time(18, 20), ET)
 
 
 @dataclass
@@ -172,7 +174,7 @@ class Engine:
             self.ops, self.dataset = ops, dataset_label(source)
             self.desk.reset(actor, self.coordinator.clock.now())
             self.interventions.reset()
-        return datetime.combine(day, KIT_START, ET) if day else None
+        return kit_start(day) if day else None
 
     def _kit_for(self, hospital_ids: set, physician_ids: set) -> dict | None:
         """The stored kit an events-only file belongs to, or None to append to the active kit. A file that shares any
